@@ -205,8 +205,8 @@ export class Server {
          * GET / - Root endpoint
          */
         app.get("/", (c) => {
-            throw new Error('Something went wrong!')
-            // return c.html("<h3>Hello Eegle1!</h3>");
+            // throw new Error('Something went wrong!')
+            return c.html("<h3>Hello Eegle1!</h3>");
         });
 
         // error handling

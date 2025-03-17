@@ -216,7 +216,7 @@ export class Fedex {
      * @private
      */
     private static async convert(
-        trakingNum: string,
+        trackingNum: string,
         result: Record<string, any>,
         updateMethod: string,
     ): Promise<Entity> {
@@ -224,7 +224,7 @@ export class Fedex {
         const completeTrackResult = result["output"]["completeTrackResults"][0];
         const trackResult = completeTrackResult["trackResults"][0];
         entity.uuid = "eg1_" + crypto.randomUUID();
-        entity.id = trakingNum;
+        entity.id = trackingNum;
         entity.params = {};
         entity.type = "waybill";
         entity.extra = {

@@ -185,7 +185,7 @@ export class Sfex {
      * @returns {Promise<Entity | undefined>} A promise that resolves to an `Entity` object or undefined if no routes are found.
      */
     private static async convert(
-        trakingNum: string,
+        trackingNum: string,
         result: Record<string, any>,
         params: Record<string, string>,
         updateMethod: string,
@@ -197,7 +197,7 @@ export class Sfex {
 
         const entity: Entity = new Entity();
         entity.uuid = "eg1_" + crypto.randomUUID();
-        entity.id = trakingNum;
+        entity.id = trackingNum;
         entity.type = "waybill";
         entity.params = params;
         entity.extra = {};

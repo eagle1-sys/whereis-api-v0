@@ -35,9 +35,9 @@ async function loadEnv(): Promise<void> {
  * @throws {Error} If the JSON files cannot be loaded or parsed.
  */
 async function loadMetaData():Promise<void> {
-    const status: Record<string, any> = await loadJSONFromFs("codes.json");
+    const status: Record<string, any> = await loadJSONFromFs("./metadata/codes.json");
     CodeDesc.initialize(status);
-    const errors: Record<string, any> = await loadJSONFromFs("errors.json");
+    const errors: Record<string, any> = await loadJSONFromFs("./metadata/errors.json");
     ErrorRegistry.initialize(errors);
 }
 

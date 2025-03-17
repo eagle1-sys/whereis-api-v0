@@ -7,8 +7,8 @@
  * @date 2025-02-28
  */
 
-import { Sfex } from "./carriers/sfex.ts";
-import { Fedex } from "./carriers/fedex.ts";
+import { Sfex } from "./operators/sfex.ts";
+import { Fedex } from "./operators/fedex.ts";
 import { Entity, TrackingID } from "./model.ts";
 
 /**
