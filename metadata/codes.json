@@ -1,0 +1,19 @@
+{
+  "3000": "Transport Bill Created",
+  "3001": "Logistics In-Progress",
+  "3002": "Arrived",
+  "3003": "Scanned",
+  "3004": "Departed",
+  "3005": "Information Received",
+  "3006": "Information Processed",
+  "3050": "Picked Up",
+  "3100": "Received by Carrier",
+  "3150": "Customs Clearance: Export In-Progress",
+  "3200": "Customs Clearance: Export Released",
+  "3250": "In-Transit",
+  "3300": "Arrived At Destination",
+  "3350": "Customs Clearance: Import In-Progress",
+  "3400": "Customs Clearance: Import Released",
+  "3450": "Final Delivery In-Progress",
+  "3500": "Delivered"
+}
