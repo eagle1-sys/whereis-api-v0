@@ -14,7 +14,7 @@ const url = 'https://daona.io/v1/whereis/fdx-779879860040'
 const response = await fetch(url, {
     method: "GET",
     headers: {
-            "Authorization": `Bearer YOUR-TOKEN`,
+            "Authorization": "Bearer YOUR-TOKEN"
     },
 });
 ```
