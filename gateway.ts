@@ -27,7 +27,7 @@ export async function requestWhereIs(
     updateMethod: string,
 ): Promise<Entity | undefined> {
     const trackingNum = trackingID.trackingNum;
-    switch (trackingID.carrier) {
+    switch (trackingID.operator) {
         case "sfex":
             return await Sfex.whereIs(
                 trackingNum,

@@ -225,7 +225,7 @@ export async function queryStatus(
         SELECT status,
                what
         FROM events
-        WHERE operator_code = ${trackingID.carrier}
+        WHERE operator_code = ${trackingID.operator}
           AND tracking_num = ${trackingID.trackingNum}
         ORDER BY when_ DESC LIMIT 1;
     `;
@@ -271,7 +271,7 @@ async function queryEvents(
                source_data,
                data_provider
         FROM events
-        WHERE operator_code = ${trackingID.carrier}
+        WHERE operator_code = ${trackingID.operator}
           AND tracking_num = ${trackingID.trackingNum}
         ORDER BY when_;
     `;
@@ -314,7 +314,7 @@ export async function queryEventIds(
     const result = await client.queryArray`
         SELECT event_id
         FROM events
-        WHERE operator_code = ${trackingID.carrier}
+        WHERE operator_code = ${trackingID.operator}
           AND tracking_num = ${trackingID.trackingNum};
     `;
 

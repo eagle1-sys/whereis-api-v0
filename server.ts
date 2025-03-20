@@ -129,7 +129,7 @@ export class Server {
 
             const queryParams = this.getExtraParams(
                 c.req,
-                trackingID.carrier,
+                trackingID.operator,
             );
 
             // query DB to get the status
@@ -156,7 +156,7 @@ export class Server {
 
             const queryParams = this.getExtraParams(
                 c.req,
-                trackingID.carrier,
+                trackingID.operator,
             );
 
             // get the full url string
@@ -371,11 +371,11 @@ export class Server {
     /**
      * Extracts extra parameters based on carrier type
      * @param req - The request object
-     * @param carrier - The carrier identifier
+     * @param operator - The carrier identifier
      * @returns Record of extra parameters
      */
-    getExtraParams(req: any, carrier: string): Record<string, string> {
-        if ("sfex" == carrier) {
+    getExtraParams(req: any, operator: string): Record<string, string> {
+        if ("sfex" == operator) {
             return { phonenum: req.query("phonenum") };
         }
         return {};

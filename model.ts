@@ -116,19 +116,19 @@ type ParseResult = [
  * @version 0.1.1
  */
 export class TrackingID {
-    carrier: string;
+    operator: string;
     trackingNum: string;
 
     /** @private List of supported carriers */
-    static carriers: string[] = ["fdx", "sfex"];
+    static operators: string[] = ["fdx", "sfex"];
 
     /**
      * @private Constructor for creating a TrackingID instance.
-     * @param {string} carrier - The carrier code (e.g., "fdx" for FedEx).
+     * @param {string} operator - The carrier code (e.g., "fdx" for FedEx).
      * @param {string} trackingNum - The tracking number associated with the carrier.
      */
-    private constructor(carrier: string, trackingNum: string) {
-        this.carrier = carrier;
+    private constructor(operator: string, trackingNum: string) {
+        this.operator = operator;
         this.trackingNum = trackingNum;
     }
 
@@ -137,7 +137,7 @@ export class TrackingID {
      * @returns {string} The carrier and tracking number joined by a hyphen (e.g., "fdx-123456789012").
      */
     toString(): string {
-        return this.carrier + "-" + this.trackingNum;
+        return this.operator + "-" + this.trackingNum;
     }
 
     /**
@@ -152,24 +152,24 @@ export class TrackingID {
         } else if (array.length != 2) {
             return ["400-05", undefined];
         } else {
-            const carrier: string = array[0];
+            const operator: string = array[0];
             const trackingNum: string = array[1];
-            if (!this.carriers.includes(carrier)) {
+            if (!this.operators.includes(operator)) {
                 return ["400-04", undefined];
             }
-            if ("fdx" == carrier) {
+            if ("fdx" == operator) {
                 const errorCode = this.checkFedExTrackingNum(trackingNum);
                 if (errorCode != undefined) {
                     return [errorCode, undefined];
                 }
             }
-            if ("sfex" == carrier) {
+            if ("sfex" == operator) {
                 const errorCode = this.checkSFTrackingNum(trackingNum);
                 if (errorCode != undefined) {
                     return [errorCode, undefined];
                 }
             }
-            return [undefined, new TrackingID(carrier, trackingNum)];
+            return [undefined, new TrackingID(operator, trackingNum)];
         }
     }
 
