@@ -7,6 +7,6 @@
   "401-01": "Unauthorized: Missing authorization header or invalid format",
   "401-02": "Unauthorized: Invalid access token.",
   "404-01": "Not found: Tracking number not found.",
-  "404-02": "Not found: The tracking inquiry period for this shipment has expired.",
+  "404-02": "Not found: The tracking number has expired."
   "429-01": "Too many requests."
 }
