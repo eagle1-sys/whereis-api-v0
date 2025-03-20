@@ -1,4 +1,4 @@
-# whereis 
+# Eagle1 whereis API
 
 ## Goal
 The goal of this project is to solve one problem: to track the current location of a shipment through the simplest possible API query.
@@ -10,7 +10,7 @@ Since different logistics providers have their own data formats and APIs, integr
 
 ### Request
 ```TypeScript
-const url = 'https://daona.io/v1/whereis/fdx-779879860040'
+const url = 'https://api.eg1.io/v0/whereis/fdx-779879860040'
 const response = await fetch(url, {
     method: "GET",
     headers: {
@@ -28,7 +28,7 @@ const response = await fetch(url, {
     "type": "waybill",
     "creationTime": "2024-11-11T14:16:48-06:00",
     "additional": {
-      "origin": "AMERICAN CANYON CA United States",
+      "origin": "San Francisco CA United States",
       "destination": "CENTRAL  Hong Kong SAR, China"
     }
   },
