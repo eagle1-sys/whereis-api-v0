@@ -9,6 +9,7 @@
 
 import { Context, Hono, Next } from "hono";
 import { StatusCode } from "hono/utils/http-status";
+import { ContentfulStatusCode } from 'hono/utils/http-status';
 import { QueryArrayResult } from "https://deno.land/x/postgres/mod.ts";
 
 import { logger } from "./logger.ts";
@@ -107,7 +108,7 @@ export class Server {
                         code: code,
                         message: ErrorRegistry.getMessage(code),
                     },
-                    this.getHttpCode(code) as StatusCode, // unAuthorized
+                    this.getHttpCode(code) as ContentfulStatusCode, // unAuthorized
                 );
             };
             await next();
