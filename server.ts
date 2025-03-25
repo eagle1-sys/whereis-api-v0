@@ -286,7 +286,7 @@ export class Server {
             );
             if (entity != undefined) {
                 client.queryObject("BEGIN");
-                // await insertEntity(client, entity);
+                await insertEntity(client, entity);
                 client.queryObject("COMMIT");
             }
         } catch (error) {
