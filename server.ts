@@ -8,7 +8,6 @@
  */
 
 import { Context, Hono, Next } from "hono";
-import { StatusCode } from "hono/utils/http-status";
 import { ContentfulStatusCode } from 'hono/utils/http-status';
 import { QueryArrayResult } from "https://deno.land/x/postgres/mod.ts";
 
@@ -186,22 +185,6 @@ export class Server {
             }
         });
 
-        app.get("/dbtest", async (c) => {
-            let result: QueryArrayResult | undefined;
-            // Init db client
-            try {
-                using client = await connect();
-                result = await client.queryArray`SELECT now()`;
-            } catch (error) {
-                logger.error(`Database operation failed: ${error}`);
-            }
-            if (result === undefined) {
-                c.notFound();
-            } else {
-                return c.text(String(result.rows[0][0]));
-            }
-        });
-
         /**
          * GET / - Root endpoint
          */
@@ -303,7 +286,7 @@ export class Server {
             );
             if (entity != undefined) {
                 client.queryObject("BEGIN");
-                await insertEntity(client, entity);
+                // await insertEntity(client, entity);
                 client.queryObject("COMMIT");
             }
         } catch (error) {

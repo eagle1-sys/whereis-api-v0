@@ -5,7 +5,14 @@
  * @version 0.1.1
  */
 
-import winston from 'winston';
+import { FileLogger, Log } from "@cross/log";
+
+export const logger = new Log([
+  new FileLogger({
+    filePath: "./app.log",
+    fileFormat: "txt",
+  }),
+]);
 
 /**
  * A configured Winston logger instance
@@ -14,22 +21,22 @@ import winston from 'winston';
  * @property {Object} format - Log format configuration
  * @property {Object[]} transports - Log output destinations
  */
-export const logger = winston.createLogger({
-    /**
-     * The minimum level of messages to log
-     * @type {string}
-     */
-    level: 'info',
-    format: winston.format.combine(
-        winston.format.timestamp(), // timestamp
-        winston.format.printf(({ timestamp, level, message }) => {
-            return `${timestamp} [${level}]: ${message}`;
-        })
-    ),
-    transports: [
-        // output to console
-        new winston.transports.Console(),
-        // output to file
-        new winston.transports.File({ filename: 'combined.log' })
-    ]
-});
+// export const logger0 = winston.createLogger({
+//   /**
+//    * The minimum level of messages to log
+//    * @type {string}
+//    */
+//   level: "info",
+//   format: winston.format.combine(
+//     winston.format.timestamp(), // timestamp
+//     winston.format.printf(({ timestamp, level, message }) => {
+//       return `${timestamp} [${level}]: ${message}`;
+//     }),
+//   ),
+//   transports: [
+//     // output to console
+//     new winston.transports.Console(),
+//     // output to file
+//     new winston.transports.File({ filename: "combined.log" }),
+//   ],
+// });
