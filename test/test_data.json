@@ -1,0 +1,120 @@
+{
+  "server": {
+    "protocol": "http",
+    "host": "localhost",
+    "port": 8080
+  },
+  "bearerToken": "eagle1",
+  "tests": [
+    {
+      "name": "md5",
+      "desc": "Test md5 algorithm",
+      "async": true,
+      "data": {
+        "input": {
+          "name": "Alice",
+          "age": 25
+        },
+        "output": {
+          "md5hash": "60aac94c2ec3777879f970ef03a369e7"
+        }
+      }
+    },
+    {
+      "name": "getFedExToken",
+      "desc": "Test get token from Fedex",
+      "async": true,
+      "data": {
+      }
+    },
+    {
+      "name": "getFedExRoute",
+      "desc": "Test get route from Fedex",
+      "async": true,
+      "data": {
+        "input": {
+          "trackingNum": "779879860040"
+        },
+        "output": {
+          "eventNum": 16
+        }
+      }
+    },
+    {
+      "name": "getSfExRoute",
+      "desc": "Test get route from SF",
+      "async": true,
+      "data": {
+        "input": {
+          "trackingNum": "SF3122082959115",
+          "phone": "5567"
+        },
+        "output": {
+          "routeNum": 17
+        }
+      }
+    },
+    {
+      "name": "whereIs",
+      "desc": "Test whereIs API to SF",
+      "async": true,
+      "data": {
+        "input": {
+          "id": "sfex-SF3122082959115",
+          "extra": {
+            "phonenum": "5567"
+          }
+        },
+        "output": {
+          "eventNum": 17
+        }
+      }
+    },
+    {
+      "name": "getStatus",
+      "desc": "Test status API to SF",
+      "async": true,
+      "data": {
+        "input": {
+          "id": "sfex-SF3122082959115",
+          "extra": {
+            "phonenum": "5567"
+          }
+        },
+        "output": {
+          "status": 3500
+        }
+      }
+    },
+    {
+      "name": "whereIs",
+      "desc": "Test whereIs API to FedEx",
+      "async": true,
+      "data": {
+        "input": {
+          "id": "fdx-779879860040",
+          "extra": {
+          }
+        },
+        "output": {
+          "eventNum": 16
+        }
+      }
+    },
+    {
+      "name": "getStatus",
+      "desc": "Test status API to SF",
+      "async": true,
+      "data": {
+        "input": {
+          "id": "fdx-779879860040",
+          "extra": {
+          }
+        },
+        "output": {
+          "status": 3500
+        }
+      }
+    }
+  ]
+}
