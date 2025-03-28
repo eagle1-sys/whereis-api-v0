@@ -1,3 +1,13 @@
+/**
+ * @fileoverview Test suite for shipping API functionality
+ * @description This file contains automated tests for various shipping-related operations
+ * including MD5 hashing, FedEx and SF Express tracking, and API endpoint verification.
+ * The tests use Deno's testing framework and assert module for validation.
+ * @author samshdn
+ * @date March 28, 2025
+ * @version 0.0。1
+ */
+
 import { assert, assertEquals } from "@std/assert";
 import { jsonToMd5, loadJSONFromFs } from "./util.ts";
 import { Fedex } from "./operators/fedex.ts";
@@ -10,6 +20,11 @@ await loadEnv();
 // load file system data
 await loadMetaData();
 
+// Load testing config data from file system
+const testData: Record<string, any> = await loadJSONFromFs(
+  "./test/test_data.json",
+);
+
 // Define function Map
 const functionMap: { [key: string]: (arg: any) => any } = {
   "md5": md5Test,
@@ -19,10 +34,6 @@ const functionMap: { [key: string]: (arg: any) => any } = {
   "whereIs": whereIs,
   "getStatus": getStatus,
 };
-
-const testData: Record<string, any> = await loadJSONFromFs(
-  "./test/test_data.json",
-);
 
 // Read the server & token info
 const server = testData.server;
@@ -52,19 +63,33 @@ for (let i = 0; i < tests.length; i++) {
   }
 }
 
-async function md5Test(data: any) {
+/**
+ * Tests MD5 hash generation from JSON input
+ * @param {any} data - Test data containing input and expected output
+ * @returns {Promise<void>} - Resolves when test completes
+ */
+async function md5Test(data: any): Promise<void> {
   const input = data["input"];
   const output = data["output"];
   const md5Hash = await jsonToMd5(input);
   assertEquals(md5Hash, output["md5hash"]);
 }
 
-async function getFedExToken() {
+/**
+ * Tests FedEx token retrieval
+ * @returns {Promise<void>} - Resolves when test completes
+ */
+async function getFedExToken(): Promise<void> {
   const token = await Fedex.getToken();
   assertEquals(token.length, 1269);
 }
 
-async function getFedExRoute(data: any) {
+/**
+ * Tests FedEx route tracking functionality
+ * @param {any} data - Test data containing tracking number and expected output
+ * @returns {Promise<void>} - Resolves when test completes
+ */
+async function getFedExRoute(data: any): Promise<void> {
   const input = data["input"];
   const output = data["output"];
   const trackingNum = input["trackingNum"];
@@ -76,7 +101,12 @@ async function getFedExRoute(data: any) {
   assert(events.length == output["eventNum"]);
 }
 
-async function getSfExRoute(data: any) {
+/**
+ * Tests SF Express route tracking functionality
+ * @param {any} data - Test data containing tracking number, phone, and expected output
+ * @returns {Promise<void>} - Resolves when test completes
+ */
+async function getSfExRoute(data: any): Promise<void> {
   const input = data["input"];
   const output = data["output"];
   const response = await Sfex.getRoute(input["trackingNum"], input["phone"]);
@@ -85,7 +115,12 @@ async function getSfExRoute(data: any) {
   assert(routes.length == output["routeNum"]);
 }
 
-async function whereIs(data: any) {
+/**
+ * Tests package location tracking API endpoint
+ * @param {any} data - Test data containing tracking ID, extra parameters, and expected output
+ * @returns {Promise<void>} - Resolves when test completes
+ */
+async function whereIs(data: any): Promise<void> {
   const input = data["input"];
   const output = data["output"];
   const trackingNumber: string = input["id"];
@@ -109,7 +144,12 @@ async function whereIs(data: any) {
   assert(responseJSON["events"].length == output["eventNum"]);
 }
 
-async function getStatus(data: any) {
+/**
+ * Tests package status API endpoint
+ * @param {any} data - Test data containing tracking ID and expected output
+ * @returns {Promise<void>} - Resolves when test completes
+ */
+async function getStatus(data: any): Promise<void> {
   const input = data["input"];
   const output = data["output"];
   const trackingNumber: string = input["id"];
