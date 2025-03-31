@@ -8,7 +8,7 @@
 
 import { load } from "https://deno.land/std/dotenv/mod.ts";
 
-import { loadJSONFromFs } from "./util.ts";
+import { loadJSONFromFs } from "../tools/util.ts";
 import { CodeDesc, ErrorRegistry } from "./model.ts";
 
 /**

@@ -40,8 +40,8 @@
  */
 
 import { PoolClient } from "https://deno.land/x/postgres@v0.19.3/mod.ts";
-import { Entity, Event, TrackingID } from "../model.ts";
-import {logger} from "../logger.ts";
+import { Entity, Event, TrackingID } from "../main/model.ts";
+import {logger} from "../tools/logger.ts";
 
 /**
  * Insert entity and events into table

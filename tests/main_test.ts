@@ -9,11 +9,11 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
-import { jsonToMd5, loadJSONFromFs } from "./util.ts";
-import { Fedex } from "./operators/fedex.ts";
-import { Sfex } from "./operators/sfex.ts";
+import { jsonToMd5, loadJSONFromFs } from "../tools/util.ts";
+import { Fedex } from "../operators/fedex.ts";
+import { Sfex } from "../operators/sfex.ts";
 import "https://deno.land/x/dotenv/load.ts";
-import { loadEnv, loadMetaData } from "./app.ts";
+import { loadEnv, loadMetaData } from "../main/app.ts";
 
 // load environment variable first
 await loadEnv();

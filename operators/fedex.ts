@@ -17,9 +17,9 @@
  *   console.log(trackingInfo);
  */
 
-import { logger } from "../logger.ts";
-import { jsonToMd5 } from "../util.ts";
-import { CodeDesc, Entity, Event } from "../model.ts";
+import { logger } from "../tools/logger.ts";
+import { jsonToMd5 } from "../tools/util.ts";
+import {CodeDesc, Entity, Event, TrackingID} from "../main/model.ts";
 
 /**
  * A class to interact with the FedEx tracking API and manage shipment tracking information.
@@ -112,18 +112,19 @@ export class Fedex {
 
   /**
    * Retrieves the current location and tracking details for a given tracking number.
-   * @param {string} trackingNum - The FedEx tracking number.
+   * @param {TrackingID} trackingId - The tracking ID defined by eagle1.
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Promise<Entity | undefined>} A promise resolving to the tracking entity or undefined if not found.
    */
   static async whereIs(
-    trackingNum: string,
+    trackingId: TrackingID,
     updateMethod: string,
-  ): Promise<Entity | undefined> {
+  ): Promise<Entity | string> {
+    const trackingNum : string = trackingId.trackingNum;
     const result = await this.getRoute(trackingNum);
-    if (result === undefined) return undefined;
+    if (result === undefined) return "404-1";
 
-    return await this.convert(trackingNum, result, updateMethod);
+    return await this.convert(trackingId, result, updateMethod);
   }
 
   /**
@@ -212,14 +213,14 @@ export class Fedex {
 
   /**
    * Converts raw FedEx API data into an internal Entity object with events.
-   * @param {string} trackingNum - The FedEx tracking number.
+   * @param {TrackingID} trackingId - The tracking ID defined by eagle1.
    * @param {Record<string, any>} result - The raw API response data.
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Promise<Entity>} A promise resolving to the constructed Entity object.
    * @private
    */
   private static async convert(
-    trackingNum: string,
+    trackingId: TrackingID,
     result: Record<string, any>,
     updateMethod: string,
   ): Promise<Entity> {
@@ -227,7 +228,7 @@ export class Fedex {
     const completeTrackResult = result["output"]["completeTrackResults"][0];
     const trackResult = completeTrackResult["trackResults"][0];
     entity.uuid = "eg1_" + crypto.randomUUID();
-    entity.id = trackingNum;
+    entity.id = trackingId.toString();
     entity.params = {};
     entity.type = "waybill";
     entity.extra = {

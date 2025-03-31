@@ -5,8 +5,8 @@
  * @author samshdn
  * @version 0.1.1
  */
-import { logger } from "./logger.ts";
-import { initializeDbPool } from "./database/dbutil.ts";
+import { logger } from "../tools/logger.ts";
+import { initializeDbPool } from "../db/dbutil.ts";
 import { Server } from "./server.ts";
 import { syncRoutes } from "./schedule.ts";
 import { loadEnv, loadMetaData } from "./app.ts";

@@ -12,10 +12,10 @@
  * @date 2025-02-28
  */
 
-import { createHash } from "node:crypto";
-import { logger } from "../logger.ts";
-import { jsonToMd5 } from "../util.ts";
-import { CodeDesc, Entity, Event } from "../model.ts";
+import { logger } from "../tools/logger.ts";
+import { jsonToMd5 } from "../tools/util.ts";
+import {CodeDesc, Entity, Event, TrackingID} from "../main/model.ts";
+import { crypto } from "https://deno.land/std@0.224.0/crypto/crypto.ts";
 
 /**
  * SF Express API client class for tracking shipments and managing route data.
@@ -75,24 +75,32 @@ export class Sfex {
    * Queries the location and status of a shipment using its tracking number.
    * @static
    * @async
-   * @param {string} trackingNum - The tracking number of the shipment.
+   * @param {TrackingID} trackingId - The tracking ID defined by eagle1.
    * @param {Record<string, string>} extraParams - Additional parameters, including phone number.
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Promise<Entity | undefined>} A promise that resolves to an `Entity` object or undefined if no data is found.
    */
   static async whereIs(
-    trackingNum: string,
+    trackingId: TrackingID,
     extraParams: Record<string, string>,
     updateMethod: string,
-  ): Promise<Entity | undefined> {
+  ): Promise<Entity | string> {
     const result = await this.getRoute(
-      trackingNum,
+      trackingId.trackingNum,
       extraParams["phonenum"],
     );
-    if (result === undefined) return undefined;
+
+    if (result === undefined) {
+      return "404-1";
+    }
+
+    const resultCode = result["apiResultCode"];
+    if (resultCode != "A1000") {
+      return resultCode;
+    }
 
     return await this.convert(
-      trackingNum,
+      trackingId,
       result,
       extraParams,
       updateMethod,
@@ -106,15 +114,20 @@ export class Sfex {
    * @param {string} checkWord - The application key
    * @returns {string} - The signed digest
    */
-  private static generateSignature(
+  private static async generateSignature(
     msgString: string,
     timestamp: number,
     checkWord: string,
-  ): string {
-    // need to encode the input data
-    return createHash("md5").update(
+  ): Promise<string> {
+    // Encode the input data
+    const encoder = new TextEncoder();
+    const data = encoder.encode(
       encodeURIComponent(msgString + timestamp + checkWord),
-    ).digest("base64");
+    );
+    const hashBuffer = await crypto.subtle.digest("MD5", data);
+    // Output base64 string
+    const hashArray = new Uint8Array(hashBuffer);
+    return btoa(String.fromCharCode(...hashArray));
   }
 
   /**
@@ -142,7 +155,7 @@ export class Sfex {
       };
       const timestamp = Date.now();
       const msgString = JSON.stringify(msgData);
-      const msgDigest = Sfex.generateSignature(
+      const msgDigest = await Sfex.generateSignature(
         msgString,
         timestamp,
         SF_Express_CheckWord,
@@ -154,14 +167,14 @@ export class Sfex {
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams(
-            {
-              partnerID: SF_Express_PartnerID,
-              requestID: crypto.randomUUID(),
-              serviceCode: "EXP_RECE_SEARCH_ROUTES",
-              timestamp: timestamp.toString(),
-              msgDigest: msgDigest,
-              msgData: msgString,
-            }
+          {
+            partnerID: SF_Express_PartnerID,
+            requestID: crypto.randomUUID(),
+            serviceCode: "EXP_RECE_SEARCH_ROUTES",
+            timestamp: timestamp.toString(),
+            msgDigest: msgDigest,
+            msgData: msgString,
+          },
         ),
       });
       return await response.json();
@@ -176,26 +189,28 @@ export class Sfex {
    * @private
    * @static
    * @async
-   * @param {string} trackingNum - The tracking number of the shipment.
+   * @param {TrackingID} trackingId - The tracking ID defined by eagle1.
    * @param {Record<string, any>} result - The raw API response data.
    * @param {Record<string, string>} params - Additional parameters for the entity.
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Promise<Entity | undefined>} A promise that resolves to an `Entity` object or undefined if no routes are found.
    */
   private static async convert(
-    trackingNum: string,
+    trackingId: TrackingID,
     result: Record<string, any>,
     params: Record<string, string>,
     updateMethod: string,
-  ): Promise<Entity | undefined> {
+  ): Promise<Entity | string> {
     const apiResult = JSON.parse(result["apiResultData"]);
     const routeResp = apiResult["msgData"]["routeResps"][0];
     const routes: [] = routeResp["routes"];
-    if (routes.length == 0) return undefined;
+    if (routes.length == 0) {
+      return "404-1";
+    }
 
     const entity: Entity = new Entity();
     entity.uuid = "eg1_" + crypto.randomUUID();
-    entity.id = trackingNum;
+    entity.id = trackingId.toString();
     entity.type = "waybill";
     entity.params = params;
     entity.extra = {};
