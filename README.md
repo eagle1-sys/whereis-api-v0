@@ -80,3 +80,45 @@ const response = await fetch(url, {
   "what": "Delivered"
 }
 ```
+
+## Deploying to Fly.io
+
+Follow these steps to deploy the application to Fly.io using the provided Dockerfile:
+
+1. **Install Flyctl**  
+   If you don’t already have it, install the Fly.io command-line tool (`flyctl`) by following the [official installation guide](https://fly.io/docs/hands-on/install-flyctl/).
+
+2. **Clone the Repository**  
+   
+   Clone this repository to your local machine:
+   ```bash
+   git clone https://github.com/samshdn/whereis-api-v0
+   cd whereis-api-v0
+
+3. **Log in to Fly.io**
+   
+   Authenticate with Fly.io using your account:
+   ```bash
+   flyctl auth login
+   ```
+
+4. **Create Database cluster**
+   ```bash
+   fly postgres create
+   ```  
+
+5. **Deploy the Application**
+   
+   Run the following command to deploy the app to Fly.io. This will use the Dockerfile to build and deploy your application:
+      bash
+      ```bash
+      flyctl deploy
+      ```
+   
+6. **Check the Status**
+
+   Once the deployment is complete, you can check the status of your app:
+   ```bash
+   flyctl status
+   ```
+
