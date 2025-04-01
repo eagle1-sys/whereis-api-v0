@@ -24,7 +24,7 @@ import {CodeDesc, Entity, Event, TrackingID} from "../main/model.ts";
 /**
  * A class to interact with the FedEx tracking API and manage shipment tracking information.
  */
-export class Fedex {
+export class Fdx {
   /** @type {string} The current authentication token for FedEx API requests. */
   private static token: string;
   /** @type {number} The expiration time of the token in milliseconds since epoch. Initially 0. */
@@ -77,8 +77,8 @@ export class Fedex {
     eventType: string,
     sourceData: Record<string, any>,
   ): number {
-    if (derivedStatusCode in Fedex.eventCodeMap) {
-      const value = Fedex.eventCodeMap[derivedStatusCode][eventType];
+    if (derivedStatusCode in Fdx.eventCodeMap) {
+      const value = Fdx.eventCodeMap[derivedStatusCode][eventType];
       if (typeof value === "number") {
         return value;
       } else if (typeof value === "function") {
@@ -232,10 +232,10 @@ export class Fedex {
     entity.params = {};
     entity.type = "waybill";
     entity.extra = {
-      origin: Fedex.getAddress(
+      origin: Fdx.getAddress(
         trackResult["shipperInformation"]["address"],
       ),
-      destination: Fedex.getAddress(
+      destination: Fdx.getAddress(
         trackResult["recipientInformation"]["address"],
       ),
     };
@@ -246,7 +246,7 @@ export class Fedex {
       const scanEvent = scanEvents[i];
       const fdxStatusCode = scanEvent["derivedStatusCode"];
       const fdxEventType = scanEvent["eventType"];
-      const eagle1status: number = Fedex.getEventCode(
+      const eagle1status: number = Fdx.getEventCode(
         fdxStatusCode,
         fdxEventType,
         scanEvent,
@@ -260,7 +260,7 @@ export class Fedex {
       event.status = eagle1status;
       event.what = CodeDesc.getDesc(eagle1status);
       event.when = scanEvent["date"];
-      const where = Fedex.getWhere(scanEvent["scanLocation"]);
+      const where = Fdx.getWhere(scanEvent["scanLocation"]);
       if (where.trim().length > 0) {
         event.where = where;
       } else {

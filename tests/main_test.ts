@@ -10,7 +10,7 @@
 
 import { assert, assertEquals } from "@std/assert";
 import { jsonToMd5, loadJSONFromFs } from "../tools/util.ts";
-import { Fedex } from "../operators/fedex.ts";
+import { Fdx } from "../operators/fdx.ts";
 import { Sfex } from "../operators/sfex.ts";
 import "https://deno.land/x/dotenv/load.ts";
 import { loadEnv, loadMetaData } from "../main/app.ts";
@@ -80,7 +80,7 @@ async function md5Test(data: any): Promise<void> {
  * @returns {Promise<void>} - Resolves when test completes
  */
 async function getFedExToken(): Promise<void> {
-  const token = await Fedex.getToken();
+  const token = await Fdx.getToken();
   assertEquals(token.length, 1269);
 }
 
@@ -93,7 +93,7 @@ async function getFedExRoute(data: any): Promise<void> {
   const input = data["input"];
   const output = data["output"];
   const trackingNum = input["trackingNum"];
-  const result = await Fedex.getRoute(trackingNum);
+  const result = await Fdx.getRoute(trackingNum);
   assert(result != undefined);
   const events = result["output"]["completeTrackResults"][0]["trackResults"][0][
     "scanEvents"

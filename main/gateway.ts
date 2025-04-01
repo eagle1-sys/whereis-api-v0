@@ -8,7 +8,7 @@
  */
 
 import { Sfex } from "../operators/sfex.ts";
-import { Fedex } from "../operators/fedex.ts";
+import { Fdx } from "../operators/fdx.ts";
 import { Entity, TrackingID } from "./model.ts";
 
 /**
@@ -34,7 +34,7 @@ export async function requestWhereIs(
                 updateMethod,
             );
         case "fdx":
-            return await Fedex.whereIs(trackingId, updateMethod);
+            return await Fdx.whereIs(trackingId, updateMethod);
     }
     return "";
 }
