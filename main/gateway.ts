@@ -1,11 +1,8 @@
 /**
- * Tracking utility module for retrieving shipment location information
+ * @file gateway.ts
+ * @description utility module for retrieving shipment location information
  * from various carriers using their tracking IDs.
- *
- * @author samshdn
- * @version 0.1.1
- * @date 2025-02-28
- */
+  */
 
 import { Sfex } from "../operators/sfex.ts";
 import { Fdx } from "../operators/fdx.ts";

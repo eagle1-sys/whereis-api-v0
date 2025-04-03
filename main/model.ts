@@ -1,7 +1,6 @@
 /**
- * A singleton class for storing and retrieving key-value pairs where keys are numbers and values are strings.
- * @author samshdn
- * @version 0.1.1
+ * @file model.ts
+ * @description A singleton class for storing and retrieving key-value pairs where keys are numbers and values are strings.
  */
 export class CodeDesc {
     /** @private Singleton instance of CodeDesc */

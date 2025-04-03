@@ -1,9 +1,6 @@
 /**
- * @file Database Connection Pool Module
+ * @file dbutil.ts
  * @description Provides functions to initialize and manage PostgreSQL database connection pool
- * @author samshdn
- * @version 0.1.1
- * @date 2025-02-28
   */
 import { Pool } from "https://deno.land/x/postgres/mod.ts";
 const POOL_CONNECTIONS = 20;

@@ -1,12 +1,9 @@
 /**
- * @fileoverview Scheduler for synchronizing tracking routes with external data.
+ * @file schedule.ts
+ * @description Scheduler for synchronizing tracking routes with external data.
  * This module sets up a cron job to periodically fetch in-process tracking numbers,
  * query their latest status, and update the database accordingly. It handles
  * database transactions and error logging to ensure data consistency.
- *
- * @author samshdn
- * @version 0.1.1
- * @date 2025-02-28
  */
 import { connect } from "../db/dbutil.ts";
 import {

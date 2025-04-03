@@ -1,16 +1,9 @@
 /**
- * @fileoverview SF Express (Sfex) API client for tracking shipments and converting route data.
+ * @file sfex.ts
+ * @description SF Express (Sfex) API client for tracking shipments and converting route data.
  * This module provides functionality to interact with the SF Express API, retrieve shipment routes,
  * and convert them into a structured `Entity` object with associated `Event` details.
- * @module Sfex
- * @requires node:crypto
- * @requires ./logger.ts
- * @requires ./model.ts
- * @requires ./util.ts
- * @author samshdn
- * @version 0.1.1
- * @date 2025-02-28
- */
+  */
 
 import { logger } from "../tools/logger.ts";
 import { jsonToMd5 } from "../tools/util.ts";

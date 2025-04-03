@@ -1,9 +1,7 @@
 /**
- * Main code to execute.
- * This module serves as the entry point for the application, handling environment loading,
+ * @file main.ts
+ * @description This module serves as the entry point for the application, handling environment loading,
  * metadata initialization, database setup, scheduling, and server startup.
- * @author samshdn
- * @version 0.1.1
  */
 import { logger } from "../tools/logger.ts";
 import { initializeDbPool } from "../db/dbutil.ts";

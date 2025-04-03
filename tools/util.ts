@@ -1,12 +1,8 @@
 /**
- * @fileoverview Utilities for loading JSON files and calculating MD5 hashes.
+ * @file util.ts
+ * @description Utilities for loading JSON files and calculating MD5 hashes.
  * Provides functions to read JSON from filesystem and generate MD5 checksums
  * from JSON objects using Deno's crypto module.
- * @module JsonUtils
- * @requires crypto from "https://deno.land/std@0.200.0/crypto/mod.ts"
- * @author samshdn
- * @version 0.1.1
- * @date 2025-02-28
  */
 
 import { crypto } from "https://deno.land/std@0.200.0/crypto/mod.ts";

@@ -1,9 +1,6 @@
 /**
  * @file app.ts
  * @description A collection of functions for loading metadata from the file system.
- * @author samshdn
- * @date 2025-03-28
- * @version 0.1.1
  */
 
 import { load } from "https://deno.land/std/dotenv/mod.ts";

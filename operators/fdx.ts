@@ -1,20 +1,8 @@
 /**
- * @file Fedex.ts
+ * @file fdx.ts
  * @description A TypeScript class implementation for interacting with the FedEx tracking API.
  *              Provides functionality to authenticate with the API, fetch shipment tracking details,
  *              and convert FedEx tracking data into an internal Entity format with associated events.
- * @author samshdn
- * @version 0.1.1
- * @date 2025-02-28
- * @requires ./logger.ts - For logging errors and debugging
- * @requires ./model.ts - For Entity, Event, and CodeDesc type definitions
- * @requires ./util.ts - For jsonToMd5 utility function
- * @dependencies
- *   - Deno environment variables: FedEx_API_URL, FedEx_Client_ID, FedEx_Client_Secret, FedEx_Track_API_URL
- *   - External crypto API for UUID generation
- * @example
- *   const trackingInfo = await Fedex.whereIs("123456789012", "manual");
- *   console.log(trackingInfo);
  */
 
 import { logger } from "../tools/logger.ts";

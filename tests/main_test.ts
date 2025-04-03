@@ -1,18 +1,15 @@
 /**
- * @fileoverview Test suite for shipping API functionality
+ * @file main_test.ts
  * @description This file contains automated tests for various shipping-related operations
  * including MD5 hashing, FedEx and SF Express tracking, and API endpoint verification.
  * The tests use Deno's testing framework and assert module for validation.
- * @author samshdn
- * @date March 28, 2025
- * @version 0.0。1
  */
 
 import { assert, assertEquals } from "@std/assert";
 import { jsonToMd5, loadJSONFromFs } from "../tools/util.ts";
 import { Fdx } from "../operators/fdx.ts";
 import { Sfex } from "../operators/sfex.ts";
-import "https://deno.land/x/dotenv/load.ts";
+import "https://deno.land/x/dotenv@v3.2.2/load.ts";
 import { loadEnv, loadMetaData } from "../main/app.ts";
 
 // load environment variable first
@@ -123,9 +120,9 @@ async function getSfExRoute(data: any): Promise<void> {
 async function whereIs(data: any): Promise<void> {
   const input = data["input"];
   const output = data["output"];
-  const trackingNumber: string = input["id"];
+  const trackingId: string = input["id"];
   const extra: Record<string, any> = input["extra"];
-  let url = `${protocol}://${domain}:${port}/v0/whereis/${trackingNumber}`;
+  let url = `${protocol}://${domain}:${port}/v0/whereis/${trackingId}`;
   if (extra !== undefined) {
     const params = new URLSearchParams(extra);
     url = url + "?" + params.toString();
@@ -152,8 +149,8 @@ async function whereIs(data: any): Promise<void> {
 async function getStatus(data: any): Promise<void> {
   const input = data["input"];
   const output = data["output"];
-  const trackingNumber: string = input["id"];
-  const url = `${protocol}://${domain}:${port}/v0/status/${trackingNumber}`;
+  const trackingId: string = input["id"];
+  const url = `${protocol}://${domain}:${port}/v0/status/${trackingId}`;
   // issue http request
   const response = await fetch(url, {
     method: "GET",

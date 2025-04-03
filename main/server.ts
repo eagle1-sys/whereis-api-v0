@@ -2,9 +2,6 @@
  * @file Server.ts
  * @description Implements a Hono-based server for tracking package status and location information.
  * Handles HTTP requests, database operations, and carrier API integrations with Bearer token authentication.
- * @author samshdn
- * @version 0.1.1
- * @date 2025-02-28
  */
 
 import { Context, Hono, Next } from "hono";
