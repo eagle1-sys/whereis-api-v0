@@ -255,7 +255,7 @@ export class Server {
   }
 
   /**
-   * Attempts to get entity from database first, then carrier if not found
+   * Attempts to get object from database first, then carrier if not found
    * @param trackingID - The tracking ID object
    * @param queryParams - Additional query parameters
    * @returns Entity object or undefined if not found
@@ -302,7 +302,7 @@ export class Server {
   }
 
   /**
-   * Gets entity from carrier first and updates database
+   * Gets object from carrier first and updates database
    * @param trackingID - The tracking ID object
    * @param queryParams - Additional query parameters
    * @returns Entity object or undefined if not found
@@ -331,7 +331,7 @@ export class Server {
         trackingID,
       );
       if (entity != undefined && entity instanceof Entity && entity.eventNum() > eventIds.length) {
-        // update the entity
+        // update the object
         client.queryObject("BEGIN");
         await updateEntity(client, entity, eventIds);
         client.queryObject("COMMIT");

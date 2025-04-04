@@ -197,34 +197,35 @@ export class TrackingID {
     }
 }
 
+
 /**
- * A class representing an entity with associated events and metadata.
+ * A class representing an object with associated events and metadata.
  * @author samshdn
  * @version 0.1.1
  * @date 2025-2-28
  */
 export class Entity {
-    /** Unique identifier for the entity */
+    /** Unique identifier for the object */
     uuid?: string;
-    /** Entity identifier. ex: fdx-779879860040 */
+    /** Object identifier. ex: fdx-779879860040 */
     id?: string;
-    /** Type of the entity. ex: waybill */
+    /** Type of the object. ex: waybill */
     type?: string;
-    /** Indicates if the event related to entity is completed */
+    /** Indicates if the event related to object is completed */
     completed?: boolean;
     /** Indicates the timestamp of the first event */
     creationTime?: string;
-    /** Additional metadata for the entity */
+    /** Additional metadata for the object */
     extra?: Record<string, any>;
-    /** Parameters associated with the entity. ex:{phonenum:'1234'} */
+    /** Parameters associated with the object. ex:{phonenum:'1234'} */
     params?: Record<string, any>;
-    /** List of events associated with the entity */
+    /** List of events associated with the object */
     events?: Event[] = [];
 
     /**
      * Constructs an Entity instance.
-     * @param {string} [id] - The entity identifier.
-     * @param {string} [type] - The type of the entity.
+     * @param {string} [id] - The object identifier.
+     * @param {string} [type] - The type of the object.
      */
     constructor(
         id?: string,
@@ -237,7 +238,7 @@ export class Entity {
     /**
      * Converts the Entity instance to a JSON-compatible object.
      * @param {boolean} [fullData=false] - Whether to include full event data.
-     * @returns {Record<string, any>} A structured object representing the entity and its events.
+     * @returns {Record<string, any>} A structured object representing the object and its events.
      */
     public toJSON(fullData: boolean = false): Record<string, any> {
         const extra = this.extra;
@@ -271,7 +272,7 @@ export class Entity {
     }
 
     /**
-     * Returns the number of events associated with the entity.
+     * Returns the number of events associated with the object.
      * @returns {number} The number of events, or 0 if none exist.
      */
     public eventNum(): number {
@@ -279,7 +280,7 @@ export class Entity {
     }
 
     /**
-     * Adds an event to the entity's event list.
+     * Adds an event to the object's event list.
      * @param {Event} event - The event to add.
      */
     public addEvent(event: Event) {
@@ -330,7 +331,7 @@ export class Entity {
     }
 
     /**
-     * Checks if the entity is completed (has a status of 3500).
+     * Checks if the object is completed (has a status of 3500).
      * @returns {boolean} True if completed, false otherwise.
      */
     public isCompleted(): boolean {
@@ -345,7 +346,7 @@ export class Entity {
     }
 
     /**
-     * Gets the creation time of the entity based on the first event.
+     * Gets the creation time of the object based on the first event.
      * @returns {string} The creation time, or an empty string if no events exist.
      */
     public getCreationTime(): string {
@@ -377,7 +378,7 @@ export class Entity {
     }
 
     /**
-     * Checks if an event with the given ID exists in the entity's event list.
+     * Checks if an event with the given ID exists in the object's event list.
      * @param {string} eventId - The event ID to check.
      * @returns {boolean} True if the event ID exists, false otherwise.
      */
@@ -396,7 +397,7 @@ export class Entity {
 }
 
 /**
- * A class representing an event associated with an entity.
+ * A class representing an event associated with an object.
  * @author samshdn
  * @version 0.1.1
  * @date 2025-2-28
@@ -416,7 +417,7 @@ export class Event {
     when?: string;
     /** Location where the event occurred */
     where?: string;
-    /** Entity or person associated with the event */
+    /** Operator associated with the event */
     whom?: string;
     /** Additional notes about the event */
     notes?: string;

@@ -1,7 +1,7 @@
 /**
  * @file dbop.ts
  * @description The module encapsulates database interactions for:
- * - Entity management (insert, update, query)
+ * - Object management (insert, update, query)
  * - Event tracking (insert, query)
  * - Status monitoring
  * - Tracking number management
@@ -12,7 +12,7 @@ import { Entity, Event, TrackingID } from "../main/model.ts";
 import { logger } from "../tools/logger.ts";
 
 /**
- * Insert entity and events into table
+ * Insert object and events into table
  * @param client PoolClient
  * @param entity Entity object with events
  * @returns {Promise<number | undefined>} A promise that resolves to the number of affected rows on success, or undefined if the operation fails.

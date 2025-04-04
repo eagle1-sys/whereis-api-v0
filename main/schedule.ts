@@ -50,7 +50,7 @@ export async function syncRoutes() {
         trackingID,
       );
       if (entity instanceof Entity && entity.eventNum() > eventIds.length) {
-        // update the entity
+        // update the object
         await updateEntity(client, entity, eventIds);
       }
     }

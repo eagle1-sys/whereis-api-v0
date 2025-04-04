@@ -2,7 +2,7 @@
  * @file fdx.ts
  * @description A TypeScript class implementation for interacting with the FedEx tracking API.
  *              Provides functionality to authenticate with the API, fetch shipment tracking details,
- *              and convert FedEx tracking data into an internal Entity format with associated events.
+ *              and convert FedEx tracking data into an internal format with associated events.
  */
 
 import { logger } from "../tools/logger.ts";
@@ -200,7 +200,7 @@ export class Fdx {
   }
 
   /**
-   * Converts raw FedEx API data into an internal Entity object with events.
+   * Converts raw FedEx API data into an internal object with events.
    * @param {TrackingID} trackingId - The tracking ID defined by eagle1.
    * @param {Record<string, any>} result - The raw API response data.
    * @param {string} updateMethod - The method used to update the tracking information.

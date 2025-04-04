@@ -2,7 +2,7 @@
  * @file sfex.ts
  * @description SF Express (Sfex) API client for tracking shipments and converting route data.
  * This module provides functionality to interact with the SF Express API, retrieve shipment routes,
- * and convert them into a structured `Entity` object with associated `Event` details.
+ * and convert them into a structured object with associated `Event` details.
   */
 
 import { logger } from "../tools/logger.ts";
@@ -71,7 +71,7 @@ export class Sfex {
    * @param {TrackingID} trackingId - The tracking ID defined by eagle1.
    * @param {Record<string, string>} extraParams - Additional parameters, including phone number.
    * @param {string} updateMethod - The method used to update the tracking information.
-   * @returns {Promise<Entity | undefined>} A promise that resolves to an `Entity` object or undefined if no data is found.
+   * @returns {Promise<Entity | undefined>} A promise that resolves to an object or undefined if no data is found.
    */
   static async whereIs(
     trackingId: TrackingID,
@@ -178,15 +178,15 @@ export class Sfex {
   }
 
   /**
-   * Converts raw SF Express route data into a structured `Entity` object with events.
+   * Converts raw SF Express route data into a structured  object with events.
    * @private
    * @static
    * @async
    * @param {TrackingID} trackingId - The tracking ID defined by eagle1.
    * @param {Record<string, any>} result - The raw API response data.
-   * @param {Record<string, string>} params - Additional parameters for the entity.
+   * @param {Record<string, string>} params - Additional parameters for the object.
    * @param {string} updateMethod - The method used to update the tracking information.
-   * @returns {Promise<Entity | undefined>} A promise that resolves to an `Entity` object or undefined if no routes are found.
+   * @returns {Promise<Entity | undefined>} A promise that resolves to an object or undefined if no routes are found.
    */
   private static async convert(
     trackingId: TrackingID,
