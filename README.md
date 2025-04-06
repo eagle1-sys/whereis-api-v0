@@ -92,7 +92,7 @@ Follow these steps to deploy the application to Fly.io using the provided Docker
    
    Clone this repository to your local machine:
    ```bash
-   git clone https://github.com/samshdn/whereis-api-v0
+   git clone https://github.com/eagle1-sys/whereis-api-v0
    cd whereis-api-v0
 
 3. **Log in to Fly.io**
