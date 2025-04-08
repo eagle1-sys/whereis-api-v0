@@ -10,7 +10,7 @@ Since different logistics providers have their own data formats and APIs, integr
 
 ### CURL
 ```shell
-curl https://api.eg1.io/v0/whereis/fdx-123456 -H "bearer key"
+curl https://api.eg1.io/v0/whereis/fdx-123456 -H "Authorization: Bearer YOUR-TOKEN"
 ```
 
 ### TypeScript
