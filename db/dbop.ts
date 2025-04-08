@@ -310,3 +310,22 @@ export async function getInProcessingTrackingNums(
 
   return trackingNums;
 }
+
+/**
+ * Query token from DB
+ * @param client PoolClient
+ * @param token
+ * @return {Promise<boolean>} A promise that resolves to true if found, or false.
+ */
+export async function isTokenValid(
+  client: PoolClient,
+  token: string,
+): Promise<boolean> {
+  const result = await client.queryArray`
+        SELECT id
+        FROM tokens
+        WHERE id = ${token};
+    `;
+
+  return result.rows.length == 1;
+}

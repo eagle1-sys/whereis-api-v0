@@ -9,6 +9,7 @@ import { ContentfulStatusCode } from "hono/utils/http-status";
 
 import { logger } from "../tools/logger.ts";
 import { connect } from "../db/dbutil.ts";
+import { isTokenValid } from "../db/dbop.ts";
 import { requestWhereIs } from "./gateway.ts";
 import { Entity, ErrorRegistry, TrackingID } from "./model.ts";
 import {
@@ -50,8 +51,20 @@ export class Server {
    * @param token - The Bearer token to verify
    * @returns boolean indicating if token is valid
    */
-  verifyToken(token: string): boolean {
-    return token == "eagle1";
+  async verifyToken(token: string): Promise<boolean> {
+    let client;
+    let isValidToken = false;
+    try {
+      client = await connect();
+      isValidToken = await isTokenValid(client, token);
+    } catch (error) {
+      logger.error(error);
+    } finally {
+      if (client) {
+        client.release();
+      }
+    }
+    return isValidToken;
   }
 
   /**
@@ -85,7 +98,7 @@ export class Server {
       }
 
       const token = authHeader.split(" ")[1];
-      const isValidToken = this.verifyToken(token); // Check for token
+      const isValidToken = await this.verifyToken(token); // verify the token
       if (!isValidToken) {
         return c.sendError("401-02");
       }
@@ -100,7 +113,7 @@ export class Server {
       c.sendError = (code: string) => {
         return c.json(
           {
-            code: code,
+            error: code,
             message: ErrorRegistry.getMessage(code),
           },
           this.getHttpCode(code) as ContentfulStatusCode, // not authorized
@@ -156,28 +169,28 @@ export class Server {
       );
 
       // get the full url string
-      let entity: Entity | string;
+      let result: Entity | string;
       const fullData: boolean = "true" == c.req.query("fulldata");
 
       if (c.req.param("refresh") === undefined) {
-        entity = await this.getObjectFromDbFirst(
+        result = await this.getObjectFromDbFirst(
           trackingID,
           queryParams,
         );
       } else {
         // issue request to carrier
-        entity = await this.getObjectFromCarrierFirst(
+        result = await this.getObjectFromCarrierFirst(
           trackingID,
           queryParams,
         );
       }
 
-      if (typeof entity === "string") {
-        // Not found
-        return c.sendError("404-01");
-      } else if (entity instanceof Entity) {
+      if (typeof result === "string") {
+        // Error
+        return c.sendError(result);
+      } else if (result instanceof Entity) {
         // send response
-        return c.json(entity.toJSON(fullData));
+        return c.json(result.toJSON(fullData));
       }
     });
 
@@ -185,8 +198,7 @@ export class Server {
      * GET / - Root endpoint
      */
     app.get("/", (c) => {
-      // throw new Error('Something went wrong!')
-      return c.html("Empty");  // For empty slug, we should not return anything
+      return c.html("Empty"); // For empty slug, we should not return anything
     });
 
     // error handling
@@ -330,7 +342,10 @@ export class Server {
         client,
         trackingID,
       );
-      if (entity != undefined && entity instanceof Entity && entity.eventNum() > eventIds.length) {
+      if (
+        entity != undefined && entity instanceof Entity &&
+        entity.eventNum() > eventIds.length
+      ) {
         // update the object
         client.queryObject("BEGIN");
         await updateEntity(client, entity, eventIds);

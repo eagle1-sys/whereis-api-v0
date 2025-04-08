@@ -3,11 +3,11 @@
  * @description SF Express (Sfex) API client for tracking shipments and converting route data.
  * This module provides functionality to interact with the SF Express API, retrieve shipment routes,
  * and convert them into a structured object with associated `Event` details.
-  */
+ */
 
 import { logger } from "../tools/logger.ts";
 import { jsonToMd5 } from "../tools/util.ts";
-import {CodeDesc, Entity, Event, TrackingID} from "../main/model.ts";
+import { CodeDesc, Entity, Event, TrackingID } from "../main/model.ts";
 import { crypto } from "https://deno.land/std@0.224.0/crypto/crypto.ts";
 
 /**
@@ -78,13 +78,18 @@ export class Sfex {
     extraParams: Record<string, string>,
     updateMethod: string,
   ): Promise<Entity | string> {
+    const phoneNum = extraParams["phonenum"];
+    if (phoneNum == undefined || phoneNum == "") {
+      return "400-03";
+    }
+
     const result = await this.getRoute(
       trackingId.trackingNum,
-      extraParams["phonenum"],
+      phoneNum,
     );
 
     if (result === undefined) {
-      return "404-1";
+      return "404-01";
     }
 
     const resultCode = result["apiResultCode"];
