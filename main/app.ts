@@ -31,11 +31,11 @@ export async function loadEnv(): Promise<void> {
  */
 export async function loadMetaData(): Promise<void> {
     const status: Record<string, any> = await loadJSONFromFs(
-        "./metadata/codes.json",
+        "./metadata/status_codes.json",
     );
     CodeDesc.initialize(status);
     const errors: Record<string, any> = await loadJSONFromFs(
-        "./metadata/errors.json",
+        "./metadata/error_codes.json",
     );
     ErrorRegistry.initialize(errors);
 }
