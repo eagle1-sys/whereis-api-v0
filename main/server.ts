@@ -85,7 +85,7 @@ export class Server {
       }
 
       const token = authHeader.split(" ")[1];
-      const isValidToken = this.verifyToken(token); // 你需要实现这个函数
+      const isValidToken = this.verifyToken(token); // Check for token
       if (!isValidToken) {
         return c.sendError("401-02");
       }
@@ -103,7 +103,7 @@ export class Server {
             code: code,
             message: ErrorRegistry.getMessage(code),
           },
-          this.getHttpCode(code) as ContentfulStatusCode, // unAuthorized
+          this.getHttpCode(code) as ContentfulStatusCode, // not authorized
         );
       };
       await next();
@@ -186,7 +186,7 @@ export class Server {
      */
     app.get("/", (c) => {
       // throw new Error('Something went wrong!')
-      return c.html("<h3>Hello Eegle1!</h3>");
+      return c.html("Empty");  // For empty slug, we should not return anything
     });
 
     // error handling
