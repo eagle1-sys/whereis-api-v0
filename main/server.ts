@@ -143,8 +143,8 @@ export class Server {
 
       // query DB to get the status
       const status = await this.getStatus(trackingID, queryParams);
-      if (status == undefined) {
-        return c.sendError("404-01");
+      if (typeof status == "string") {
+        return c.sendError(status);
       } else {
         return c.json(status);
       }
@@ -232,7 +232,7 @@ export class Server {
   ) {
     let client;
     let status;
-    let entity: Entity | string;
+    let result: Entity | string;
     try {
       client = await connect();
       // try to load from database first
@@ -241,16 +241,19 @@ export class Server {
         return status;
       }
 
-      entity = await requestWhereIs(
+      result = await requestWhereIs(
         trackingID,
         queryParams,
         "manual-pull",
       );
-      if (entity instanceof Entity) {
+
+      if (typeof result === "string") {
+        status = result;
+      } else if (result instanceof Entity) {
         client.queryObject("BEGIN");
-        await insertEntity(client, entity);
+        await insertEntity(client, result);
         client.queryObject("COMMIT");
-        status = entity.getLastStatus();
+        status = result.getLastStatus();
       }
     } catch (error) {
       logger.error(error);
