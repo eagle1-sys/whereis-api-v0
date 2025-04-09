@@ -22,6 +22,7 @@ export class Sfex {
    */
   private static eventCodeMap: Record<string, Record<string, number>> = {
     "101": {
+      "50": 3100, // Received by Carrier
       "54": 3100, // Received by Carrier
     },
     "201": {
