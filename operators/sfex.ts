@@ -237,7 +237,7 @@ export class Sfex {
       // convert to isoStringWithTimezone : "2024-10-26T06:12:43+08:00"
       event.when = acceptTime.replace(" ", "T") + "+08:00";
       event.where = route["acceptAddress"];
-      event.whom = "SFEx";
+      event.whom = "SF Express";
       event.notes = route["remark"];
       event.dataProvider = "SF Express";
       event.extra = {
