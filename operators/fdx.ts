@@ -7,7 +7,7 @@
 
 import { logger } from "../tools/logger.ts";
 import { jsonToMd5 } from "../tools/util.ts";
-import {CodeDesc, Entity, Event, TrackingID} from "../main/model.ts";
+import {Entity, Event, ExceptionCode, StatusCode, TrackingID} from "../main/model.ts";
 
 /**
  * A class to interact with the FedEx tracking API and manage shipment tracking information.
@@ -41,6 +41,7 @@ export class Fdx {
         return -1;
       },
       OD: 3450, // Final Delivery In-Progress
+      RR: 3450, // Delivery option requested
     },
     CD: {
       CD: 3150, // Clearance delay - Import
@@ -51,6 +52,16 @@ export class Fdx {
     DL: {
       DL: 3500, // Delivered
     },
+    DE: {
+      DE: 3450, // Final Delivery In-Progress
+    },
+  };
+
+  private static exceptionCodeMap: Record<string, any> = {
+    "08": 907, // Recipient, Not Available
+    "17": 900, // Exception, Occurred
+    "67": 900, // Exception, Occurred
+    "A12": 900, // Exception, Occurred
   };
 
   /**
@@ -74,6 +85,31 @@ export class Fdx {
       }
     }
     return -1;
+  }
+
+  static getException(
+    sourceData: Record<string, any>,
+  ): Record<string, any> | undefined {
+    const code_original = sourceData["exceptionCode"];
+    if (code_original == "") {
+      return undefined;
+    }
+    if (code_original in Fdx.exceptionCodeMap) {
+      const execptionCode = Fdx.exceptionCodeMap[code_original];
+      return {
+        "exceptionCode": execptionCode,
+        "exceptionDesc": ExceptionCode.getDesc(execptionCode),
+        "notes": sourceData["eventDescription"] + ": " +
+          sourceData["exceptionDescription"],
+      };
+    } else {
+      return {
+        "exceptionCode": -1,
+        "exceptionDesc": "Unknown Exception",
+        "notes": sourceData["eventDescription"] + ": " +
+          sourceData["exceptionDescription"],
+      };
+    }
   }
 
   /**
@@ -108,7 +144,7 @@ export class Fdx {
     trackingId: TrackingID,
     updateMethod: string,
   ): Promise<Entity | string> {
-    const trackingNum : string = trackingId.trackingNum;
+    const trackingNum: string = trackingId.trackingNum;
     const result = await this.getRoute(trackingNum);
     if (result === undefined) return "404-1";
 
@@ -246,7 +282,7 @@ export class Fdx {
       event.operatorCode = "fdx";
       event.trackingNum = completeTrackResult["trackingNumber"];
       event.status = eagle1status;
-      event.what = CodeDesc.getDesc(eagle1status);
+      event.what = StatusCode.getDesc(eagle1status);
       event.when = scanEvent["date"];
       const where = Fdx.getWhere(scanEvent["scanLocation"]);
       if (where.trim().length > 0) {
@@ -257,12 +293,19 @@ export class Fdx {
         }
       }
       event.whom = "FedEx";
-      event.notes = scanEvent["eventDescription"];
       event.dataProvider = "FedEx";
       event.extra = {
         lastUpdateMethod: updateMethod,
         lastUpdateTime: new Date().toISOString(),
       };
+      const exception = Fdx.getException(scanEvent);
+      if (exception == undefined) {
+        event.notes = scanEvent["eventDescription"];
+      } else {
+        event.exceptionCode = exception["exceptionCode"];
+        event.exceptionDesc = exception["exceptionDesc"];
+        event.notes = exception["notes"];
+      }
       event.sourceData = scanEvent;
       entity.addEvent(event as Event);
     }

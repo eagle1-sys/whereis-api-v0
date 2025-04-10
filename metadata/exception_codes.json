@@ -1,0 +1,13 @@
+{
+  "900": "Exception, Occurred",
+  "901": "Cancelled",
+  "902": "Damaged",
+  "903": "Delayed",
+  "904": "Denied",
+  "905": "Incorrect, Information",
+  "906": "Lost",
+  "907": "Recipient, Not Available",
+  "908": "Recipient, Refused",
+  "909": "Rerouted",
+  "910": "Returned"
+}

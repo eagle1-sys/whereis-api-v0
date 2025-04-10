@@ -7,7 +7,7 @@
 
 import { logger } from "../tools/logger.ts";
 import { jsonToMd5 } from "../tools/util.ts";
-import { CodeDesc, Entity, Event, TrackingID } from "../main/model.ts";
+import { StatusCode, Entity, Event, TrackingID } from "../main/model.ts";
 import { crypto } from "https://deno.land/std@0.224.0/crypto/crypto.ts";
 
 /**
@@ -232,7 +232,7 @@ export class Sfex {
       event.operatorCode = "sfex";
       event.trackingNum = routeResp["mailNo"];
       event.status = status;
-      event.what = CodeDesc.getDesc(status);
+      event.what = StatusCode.getDesc(status);
       // acceptTime format: 2024-10-26 06:12:43
       const acceptTime: string = route["acceptTime"];
       // convert to isoStringWithTimezone : "2024-10-26T06:12:43+08:00"

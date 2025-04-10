@@ -6,7 +6,7 @@
 import { load } from "https://deno.land/std/dotenv/mod.ts";
 
 import { loadJSONFromFs } from "../tools/util.ts";
-import { CodeDesc, ErrorRegistry } from "./model.ts";
+import {StatusCode, ErrorRegistry, ExceptionCode} from "./model.ts";
 
 /**
  * Loads environment variables from a `.env` file and sets them in `Deno.env`.
@@ -33,7 +33,13 @@ export async function loadMetaData(): Promise<void> {
     const status: Record<string, any> = await loadJSONFromFs(
         "./metadata/status_codes.json",
     );
-    CodeDesc.initialize(status);
+    StatusCode.initialize(status);
+
+    const exception: Record<string, any> = await loadJSONFromFs(
+        "./metadata/exception_codes.json",
+    );
+    ExceptionCode.initialize(exception);
+
     const errors: Record<string, any> = await loadJSONFromFs(
         "./metadata/error_codes.json",
     );

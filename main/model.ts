@@ -2,9 +2,9 @@
  * @file model.ts
  * @description A singleton class for storing and retrieving key-value pairs where keys are numbers and values are strings.
  */
-export class CodeDesc {
-    /** @private Singleton instance of CodeDesc */
-    private static instance: CodeDesc = new CodeDesc();
+export class StatusCode {
+    /** @private Singleton instance of StatusCode */
+    private static instance: StatusCode = new StatusCode();
 
     /** @private Object storing key-value pairs with numeric keys and string values */
     private data: { [key: number]: string } = {};
@@ -28,7 +28,53 @@ export class CodeDesc {
     }
 
     /**
-     * Initializes the CodeDesc instance with a record of key-value pairs.
+     * Initializes the StatusCode instance with a record of key-value pairs.
+     * @param {Record<string, any>} record - An object with string keys and any values to initialize the store.
+     */
+    public static initialize(record: Record<string, any>): void {
+        for (const [key, value] of Object.entries(record)) {
+            const numericKey = Number(key);
+            this.instance.set(numericKey, value);
+        }
+    }
+
+    /**
+     * Gets the description associated with a numeric code.
+     * @param {number} code - The numeric code to look up.
+     * @returns {string} The description for the code, or an empty string if not found.
+     */
+    public static getDesc(code: number): string {
+        return this.instance.get(code) ?? "";
+    }
+}
+
+export class ExceptionCode {
+    /** @private Singleton instance of ExceptionCode */
+    private static instance: ExceptionCode = new ExceptionCode();
+
+    /** @private Object storing key-value pairs with numeric keys and string values */
+    private data: { [key: number]: string } = {};
+
+    /**
+     * Sets a key-value pair in the data store.
+     * @param {number} key - The numeric key to associate with the value.
+     * @param {string} value - The string value to store.
+     */
+    set(key: number, value: string): void {
+        this.data[key] = value;
+    }
+
+    /**
+     * Retrieves a value by its key.
+     * @param {number} key - The numeric key to look up.
+     * @returns {string | undefined} The value associated with the key, or undefined if not found.
+     */
+    get(key: number): string | undefined {
+        return this.data[key];
+    }
+
+    /**
+     * Initializes the ExceptionCode instance with a record of key-value pairs.
      * @param {Record<string, any>} record - An object with string keys and any values to initialize the store.
      */
     public static initialize(record: Record<string, any>): void {
