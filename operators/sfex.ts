@@ -7,7 +7,7 @@
 
 import { logger } from "../tools/logger.ts";
 import { jsonToMd5 } from "../tools/util.ts";
-import { StatusCode, Entity, Event, TrackingID } from "../main/model.ts";
+import { Entity, Event, StatusCode, TrackingID } from "../main/model.ts";
 import { crypto } from "https://deno.land/std@0.224.0/crypto/crypto.ts";
 
 /**
@@ -81,7 +81,7 @@ export class Sfex {
   ): Promise<Entity | string> {
     const result = await this.getRoute(
       trackingId.trackingNum,
-        extraParams["phonenum"],
+      extraParams["phonenum"],
     );
 
     if (result === undefined) {
@@ -232,9 +232,14 @@ export class Sfex {
       const acceptTime: string = route["acceptTime"];
       // convert to isoStringWithTimezone : "2024-10-26T06:12:43+08:00"
       event.when = acceptTime.replace(" ", "T") + "+08:00";
-      event.where = route["acceptAddress"];
+      const remark: string = (route["remark"] as string).trim();
+      if (remark.startsWith("快件途经")) {
+        event.where = remark.substring(4);
+      } else {
+        event.where = route["acceptAddress"];
+      }
       event.whom = "SF Express";
-      event.notes = route["remark"];
+      event.notes = remark;
       event.dataProvider = "SF Express";
       event.extra = {
         lastUpdateMethod: updateMethod,
