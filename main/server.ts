@@ -51,7 +51,7 @@ export class Server {
    * @param token - The Bearer token to verify
    * @returns boolean indicating if token is valid
    */
-  async verifyToken(token: string): Promise<boolean> {
+  private async verifyToken(token: string): Promise<boolean> {
     let client;
     let isValidToken = false;
     try {
@@ -73,7 +73,7 @@ export class Server {
    * @returns Numeric HTTP status code
    * @throws Error if errorCode format is invalid
    */
-  getHttpCode(errorCode: string): number {
+  private getHttpCode(errorCode: string): number {
     const parts = errorCode.split("-");
     const httpStatusCode = Number(parts[0]);
     // validate the first part
@@ -128,21 +128,14 @@ export class Server {
      * GET /v0/status/:id - Retrieves status for a tracking ID
      */
     app.get("/v0/status/:id?", async (c) => {
-      // Carrier-TrackingNumber
-      const id = c.req.param("id") ?? "";
-      const [error, trackingID] = TrackingID.parse(id);
-      if (trackingID == undefined) {
-        const errorCode = error ?? "";
-        return c.sendError(errorCode);
+      const [error, trackingID, queryParams] = this.parseURL(c.req);
+      if (error != "") {
+        return c.sendError(error);
       }
 
-      const queryParams = this.getExtraParams(
-        c.req,
-        trackingID.operator,
-      );
 
       // query DB to get the status
-      const status = await this.getStatus(trackingID, queryParams);
+      const status = await this.getStatus(trackingID as TrackingID, queryParams as Record<string, string>);
       if (typeof status == "string") {
         return c.sendError(status);
       } else {
@@ -155,18 +148,10 @@ export class Server {
      * Requires Bearer token authentication
      */
     app.get("/v0/whereis/:id?", async (c) => {
-      // Carrier-TrackingNumber
-      const id = c.req.param("id") ?? "";
-      const [error, trackingID] = TrackingID.parse(id);
-      if (trackingID == undefined) {
-        const errorCode = error ?? "";
-        return c.sendError(errorCode);
+      const [error, trackingID, queryParams] = this.parseURL(c.req);
+      if (error != "") {
+        return c.sendError(error);
       }
-
-      const queryParams = this.getExtraParams(
-        c.req,
-        trackingID.operator,
-      );
 
       // get the full url string
       let result: Entity | string;
@@ -174,14 +159,14 @@ export class Server {
 
       if (c.req.param("refresh") === undefined) {
         result = await this.getObjectFromDbFirst(
-          trackingID,
-          queryParams,
+          trackingID as TrackingID,
+          queryParams as Record<string, string>,
         );
       } else {
         // issue request to carrier
         result = await this.getObjectFromCarrierFirst(
-          trackingID,
-          queryParams,
+          trackingID as TrackingID,
+          queryParams as Record<string, string>,
         );
       }
 
@@ -226,7 +211,7 @@ export class Server {
    * @param queryParams - Additional query parameters
    * @returns Status object or undefined if not found
    */
-  async getStatus(
+  private async getStatus(
     trackingID: TrackingID,
     queryParams: Record<string, string>,
   ) {
@@ -275,7 +260,7 @@ export class Server {
    * @param queryParams - Additional query parameters
    * @returns Entity object or undefined if not found
    */
-  async getObjectFromDbFirst(
+  private async getObjectFromDbFirst(
     trackingID: TrackingID,
     queryParams: Record<string, string>,
   ) {
@@ -322,7 +307,7 @@ export class Server {
    * @param queryParams - Additional query parameters
    * @returns Entity object or undefined if not found
    */
-  async getObjectFromCarrierFirst(
+  private async getObjectFromCarrierFirst(
     trackingID: TrackingID,
     queryParams: Record<string, string>,
   ) {
@@ -374,10 +359,35 @@ export class Server {
    * @param operator - The carrier identifier
    * @returns Record of extra parameters
    */
-  getExtraParams(req: any, operator: string): Record<string, string> {
+  private getExtraParams(req: any, operator: string): Record<string, string> {
     if ("sfex" == operator) {
       return { phonenum: req.query("phonenum") };
     }
     return {};
+  }
+
+  private parseURL(
+    req: any,
+  ): [string, TrackingID | undefined, Record<string, string> | undefined] {
+    // Carrier-TrackingNumber
+    const id = req.param("id") ?? "";
+    const [error, trackingID] = TrackingID.parse(id);
+    if (trackingID == undefined) {
+      return [error, undefined, undefined];
+    }
+
+    const queryParams = this.getExtraParams(
+      req,
+      trackingID.operator,
+    );
+
+    if (trackingID.operator == "sfex") {
+      const phoneNum = queryParams["phonenum"];
+      if (phoneNum == undefined || phoneNum == "") {
+        return ["400-03", undefined, undefined];
+      }
+    }
+
+    return ["", trackingID, queryParams];
   }
 }

@@ -79,14 +79,9 @@ export class Sfex {
     extraParams: Record<string, string>,
     updateMethod: string,
   ): Promise<Entity | string> {
-    const phoneNum = extraParams["phonenum"];
-    if (phoneNum == undefined || phoneNum == "") {
-      return "400-03";
-    }
-
     const result = await this.getRoute(
       trackingId.trackingNum,
-      phoneNum,
+        extraParams["phonenum"],
     );
 
     if (result === undefined) {
