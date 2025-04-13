@@ -7,7 +7,13 @@
 
 import { logger } from "../tools/logger.ts";
 import { jsonToMd5 } from "../tools/util.ts";
-import {Entity, Event, ExceptionCode, StatusCode, TrackingID} from "../main/model.ts";
+import {
+  Entity,
+  Event,
+  ExceptionCode,
+  StatusCode,
+  TrackingID,
+} from "../main/model.ts";
 
 /**
  * A class to interact with the FedEx tracking API and manage shipment tracking information.
@@ -29,7 +35,14 @@ export class Fdx {
       DR: 3250, // In-Transit
       DP: 3004, // Logistics In-Progress
       AR: 3002, // Arrived
-      IT: 3001, // Logistics In-Progress
+      IT: function (sourceData: Record<string, any>): number {
+        const exceptionCode = sourceData["exceptionCode"];
+        if (exceptionCode == "67") {
+          return 3450; // Final Delivery In-Progress
+        } else {
+          return 3001; // Logistics In-Progress
+        }
+      },
       AF: 3001, // Logistics In-Progress
       CC: function (sourceData: Record<string, any>): number {
         const desc = sourceData["eventDescription"];
