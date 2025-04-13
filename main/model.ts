@@ -282,7 +282,7 @@ export class Entity {
       ...(extra != null && ("destination" in extra) &&
         { destination: extra["destination"] }),
     };
-    const object = {
+    const entity = {
       uuid: this.uuid,
       id: this.id,
       type: this.type,
@@ -300,7 +300,7 @@ export class Entity {
       }
     }
 
-    return { "object": object, "events": events };
+    return { "entity": entity, "events": events };
   }
 
   /**

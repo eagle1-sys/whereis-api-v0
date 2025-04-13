@@ -27,7 +27,7 @@ const response = await fetch(url, {
 ### Response
 ```JSON
 {
-  "object": {
+  "entity": {
     "uuid": "eg1_7e3f6f06-2710-4225-8067-62bebfc4e45c",
     "id": "fdx-123456",
     "type": "waybill",
