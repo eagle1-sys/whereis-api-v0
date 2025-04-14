@@ -184,8 +184,8 @@ export class Server {
     /**
      * GET / - Root endpoint
      */
-    app.get("/", (c) => {
-      return c.html("Empty"); // For empty slug, we should not return anything
+    app.get("/apistatus", (c) => {
+      return c.html(""); // For empty slug, we should not return anything
     });
 
     // error handling
