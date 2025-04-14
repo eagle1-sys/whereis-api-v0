@@ -88,7 +88,7 @@ export class Sfex {
       return "404-01";
     }
 
-    const resultCode = result["apiResultCode"];
+    const resultCode = result["apiResultCode"] as string;
     if (resultCode != "A1000") {
       return resultCode;
     }
@@ -130,13 +130,13 @@ export class Sfex {
    * @async
    * @param {string} trackingNumber - The tracking number for the shipment.
    * @param {string} phoneNo - The phone number associated with the shipment.
-   * @returns {Promise<Record<string, any>>} A promise that resolves to the raw API response data.
+   * @returns {Promise<Record<string, unknown>>} A promise that resolves to the raw API response data.
    * @throws {Error} If the API request fails or an error occurs during fetching.
    */
   static async getRoute(
     trackingNumber: string,
     phoneNo: string,
-  ): Promise<Record<string, any>> {
+  ): Promise<Record<string, unknown>> {
     // live
     const SF_EXPRESS_API_URL = Deno.env.get("SF_EXPRESS_API_URL") ?? "";
     const SF_Express_PartnerID = Deno.env.get("SF_EXPRESS_PartnerID") ?? "";
@@ -184,18 +184,18 @@ export class Sfex {
    * @static
    * @async
    * @param {TrackingID} trackingId - The tracking ID defined by eagle1.
-   * @param {Record<string, any>} result - The raw API response data.
+   * @param {Record<string, unknown>} result - The raw API response data.
    * @param {Record<string, string>} params - Additional parameters for the object.
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Promise<Entity | undefined>} A promise that resolves to an object or undefined if no routes are found.
    */
   private static async convert(
     trackingId: TrackingID,
-    result: Record<string, any>,
+    result: Record<string, unknown>,
     params: Record<string, string>,
     updateMethod: string,
   ): Promise<Entity | string> {
-    const apiResult = JSON.parse(result["apiResultData"]);
+    const apiResult = JSON.parse(result["apiResultData"] as string);
     const routeResp = apiResult["msgData"]["routeResps"][0];
     const routes: [] = routeResp["routes"];
     if (routes.length == 0) {

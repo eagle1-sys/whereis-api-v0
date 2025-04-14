@@ -29,12 +29,12 @@ export class StatusCode {
 
   /**
    * Initializes the StatusCode instance with a record of key-value pairs.
-   * @param {Record<string, any>} record - An object with string keys and any values to initialize the store.
+   * @param {Record<string, unknown>} record - An object with string keys and any values to initialize the store.
    */
-  public static initialize(record: Record<string, any>): void {
+  public static initialize(record: Record<string, unknown>): void {
     for (const [key, value] of Object.entries(record)) {
       const numericKey = Number(key);
-      this.instance.set(numericKey, value);
+      this.instance.set(numericKey, value as string);
     }
   }
 
@@ -75,12 +75,12 @@ export class ExceptionCode {
 
   /**
    * Initializes the ExceptionCode instance with a record of key-value pairs.
-   * @param {Record<string, any>} record - An object with string keys and any values to initialize the store.
+   * @param {Record<string, unknown>} record - An object with string keys and any values to initialize the store.
    */
-  public static initialize(record: Record<string, any>): void {
+  public static initialize(record: Record<string, unknown>): void {
     for (const [key, value] of Object.entries(record)) {
       const numericKey = Number(key);
-      this.instance.set(numericKey, value);
+      this.instance.set(numericKey, value as string);
     }
   }
 
@@ -126,11 +126,11 @@ export class ErrorRegistry {
 
   /**
    * Initializes the ErrorRegistry with a record of error codes and descriptions.
-   * @param {Record<string, any>} record - An object with string keys and any values to initialize the registry.
+   * @param {Record<string, unknown>} record - An object with string keys and any values to initialize the registry.
    */
-  static initialize(record: Record<string, any>): void {
+  static initialize(record: Record<string, unknown>): void {
     for (const [key, value] of Object.entries(record)) {
-      this.instance.set(key, value);
+      this.instance.set(key, value as string);
     }
   }
 
@@ -250,9 +250,9 @@ export class Entity {
   /** Indicates the timestamp of the first event */
   creationTime?: string;
   /** Additional metadata for the object */
-  extra?: Record<string, any>;
+  extra?: Record<string, string>;
   /** Parameters associated with the object. ex:{phonenum:'1234'} */
-  params?: Record<string, any>;
+  params?: Record<string, string>;
   /** List of events associated with the object */
   events?: Event[] = [];
 
@@ -272,9 +272,9 @@ export class Entity {
   /**
    * Converts the Entity instance to a JSON-compatible object.
    * @param {boolean} [fullData=false] - Whether to include full event data.
-   * @returns {Record<string, any>} A structured object representing the object and its events.
+   * @returns {Record<string, unknown>} A structured object representing the object and its events.
    */
-  public toJSON(fullData: boolean = false): Record<string, any> {
+  public toJSON(fullData: boolean = false): Record<string, unknown> {
     const extra = this.extra;
     const additional = {
       ...(extra != null && ("origin" in extra) &&
@@ -456,18 +456,18 @@ export class Event {
   notificationDesc?: string;
 
   /** Additional metadata for the event */
-  extra?: Record<string, any>;
+  extra?: Record<string, unknown>;
   /** Raw source data for the event */
-  sourceData?: Record<string, any>;
+  sourceData?: Record<string, unknown>;
 
   /**
    * Converts the Event instance to a JSON-compatible object.
    * @param {boolean} [fullData=false] - Whether to include full source data.
-   * @returns {Record<string, any>} A structured object representing the event.
+   * @returns {Record<string, unknown>} A structured object representing the event.
    */
-  public toJSON(fullData: boolean = false): Record<string, any> {
+  public toJSON(fullData: boolean = false): Record<string, unknown> {
     const extra = this.extra;
-    const result: Record<string, any> = {
+    const result: Record<string, unknown> = {
       status: this.status,
       what: this.what,
       when: this.when,

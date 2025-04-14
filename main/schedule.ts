@@ -25,7 +25,7 @@ import { Entity, TrackingID } from "./model.ts";
  */
 export async function syncRoutes() {
   let client;
-  let inProcessTrackingNums: Record<string, any>;
+  let inProcessTrackingNums: Record<string, unknown>;
   try {
     client = await connect();
     inProcessTrackingNums = await getInProcessingTrackingNums(client);
@@ -33,14 +33,14 @@ export async function syncRoutes() {
     client.queryObject("BEGIN");
     // for (const inProcessTrackingNum of inProcessTrackingNums) {
     for (const [id, params] of Object.entries(inProcessTrackingNums)) {
-      const [error, trackingID] = TrackingID.parse(id);
+      const [_error, trackingID] = TrackingID.parse(id);
       if (trackingID === undefined) {
         continue;
       }
 
       const entity: Entity | string = await requestWhereIs(
         trackingID,
-        params,
+        params as Record<string, string>,
         "auto-pull",
       );
       if (entity === undefined) continue;

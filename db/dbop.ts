@@ -165,8 +165,8 @@ export async function queryEntity(
     entity.id = row[1] as string;
     entity.type = row[2] as string;
     entity.completed = row[3] as boolean;
-    entity.extra = row[4] as Record<string, any>;
-    entity.params = row[5] as Record<string, any>;
+    entity.extra = row[4] as Record<string, string>;
+    entity.params = row[5] as Record<string, string>;
     entity.creationTime = row[6] as string;
   }
 
@@ -180,12 +180,12 @@ export async function queryEntity(
  * Query status by trackingID
  * @param client
  * @param trackingID
- * @returns {Promise<Record<string, any> | undefined>} A promise that resolves to JSON object if found, or undefined.
+ * @returns {Promise<Record<string, unknown> | undefined>} A promise that resolves to JSON object if found, or undefined.
  */
 export async function queryStatus(
   client: PoolClient,
   trackingID: TrackingID,
-): Promise<Record<string, any> | undefined> {
+): Promise<Record<string, unknown> | undefined> {
   const result = await client.queryArray`
         SELECT status,
                what,
@@ -262,8 +262,8 @@ async function queryEvents(
     event.notificationCode = row[10] as number;
     event.notificationDesc = row[11] as string;
     event.notes = row[12] as string;
-    event.extra = row[13] as Record<string, any>;
-    event.sourceData = row[14] as Record<string, any>;
+    event.extra = row[13] as Record<string, string>;
+    event.sourceData = row[14] as Record<string, string>;
     event.dataProvider = row[15] as string;
     events.push(event);
   }
@@ -298,12 +298,12 @@ export async function queryEventIds(
 /**
  * Get in-procesing tracking numbers
  * @param client
- * @returns {Promise<Record<string, any>>} A promise resolves to JSON object
+ * @returns {Promise<Record<string, unknown>>} A promise resolves to JSON object
  */
 export async function getInProcessingTrackingNums(
   client: PoolClient,
-): Promise<Record<string, any>> {
-  const trackingNums: Record<string, any> = {};
+): Promise<Record<string, unknown>> {
+  const trackingNums: Record<string, unknown> = {};
   const result = await client.queryArray`
         SELECT id, params
         FROM entities

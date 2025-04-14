@@ -4,7 +4,7 @@
  * Handles HTTP requests, database operations, and carrier API integrations with Bearer token authentication.
  */
 
-import { Context, Hono, Next } from "hono";
+import { Context, Hono, HonoRequest, Next } from "hono";
 import { ContentfulStatusCode } from "hono/utils/http-status";
 
 import { logger } from "../tools/logger.ts";
@@ -133,9 +133,11 @@ export class Server {
         return c.sendError(error);
       }
 
-
       // query DB to get the status
-      const status = await this.getStatus(trackingID as TrackingID, queryParams as Record<string, string>);
+      const status = await this.getStatus(
+        trackingID as TrackingID,
+        queryParams as Record<string, string>,
+      );
       if (typeof status == "string") {
         return c.sendError(status);
       } else {
@@ -238,7 +240,8 @@ export class Server {
         client.queryObject("BEGIN");
         await insertEntity(client, result);
         client.queryObject("COMMIT");
-        status = result.getLastStatus();
+        // get last status from DB
+        status = await queryStatus(client, trackingID);
       }
     } catch (error) {
       logger.error(error);
@@ -353,21 +356,8 @@ export class Server {
     return entity;
   }
 
-  /**
-   * Extracts extra parameters based on carrier type
-   * @param req - The request object
-   * @param operator - The carrier identifier
-   * @returns Record of extra parameters
-   */
-  private getExtraParams(req: any, operator: string): Record<string, string> {
-    if ("sfex" == operator) {
-      return { phonenum: req.query("phonenum") };
-    }
-    return {};
-  }
-
   private parseURL(
-    req: any,
+    req: HonoRequest,
   ): [string, TrackingID | undefined, Record<string, string> | undefined] {
     // Carrier-TrackingNumber
     const id = req.param("id") ?? "";
@@ -390,4 +380,18 @@ export class Server {
 
     return ["", trackingID, queryParams];
   }
+
+  /**
+   * Extracts extra parameters based on carrier type
+   * @param req - The request object
+   * @param operator - The carrier identifier
+   * @returns Record of extra parameters
+   */
+  private getExtraParams(req: HonoRequest, operator: string): Record<string, string> {
+    if ("sfex" == operator) {
+      return { phonenum: req.query("phonenum") ?? "" };
+    }
+    return {};
+  }
+
 }

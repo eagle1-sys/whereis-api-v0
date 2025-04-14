@@ -13,7 +13,7 @@ import { crypto } from "https://deno.land/std@0.200.0/crypto/mod.ts";
  * @async
  * @function loadJSONFromFs
  * @param {string} filePath - The path to the JSON file to be loaded
- * @returns {Promise<Record<string, any>>} A promise that resolves to the parsed JSON object
+ * @returns {Promise<Record<string, unknown>>} A promise that resolves to the parsed JSON object
  * @throws {Error} If file reading or JSON parsing fails
  * @example
  * ```typescript
@@ -23,7 +23,7 @@ import { crypto } from "https://deno.land/std@0.200.0/crypto/mod.ts";
  */
 export async function loadJSONFromFs(
     filePath: string,
-): Promise<Record<string, any>> {
+): Promise<Record<string, unknown>> {
     try {
         // read file content
         const jsonString = await Deno.readTextFile(filePath);

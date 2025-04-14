@@ -25,9 +25,9 @@ export class Fdx {
   private static expireTime: number = 0;
   /**
    * A mapping of FedEx status codes and event types to internal event codes or functions.
-   * @type {Record<string, Record<string, any>>}
+   * @type {Record<string, Record<string, unknown>>}
    */
-  private static eventCodeMap: Record<string, Record<string, any>> = {
+  private static eventCodeMap: Record<string, Record<string, unknown>> = {
     IN: {
       OC: 3000, // Transport Bill Created
     },
@@ -35,7 +35,7 @@ export class Fdx {
       DR: 3250, // In-Transit
       DP: 3004, // Logistics In-Progress
       AR: 3002, // Arrived
-      IT: function (sourceData: Record<string, any>): number {
+      IT: function (sourceData: Record<string, unknown>): number {
         const exceptionCode = sourceData["exceptionCode"];
         if (exceptionCode == "67") {
           return 3450; // Final Delivery In-Progress
@@ -44,8 +44,8 @@ export class Fdx {
         }
       },
       AF: 3001, // Logistics In-Progress
-      CC: function (sourceData: Record<string, any>): number {
-        const desc = sourceData["eventDescription"];
+      CC: function (sourceData: Record<string, unknown>): number {
+        const desc = sourceData["eventDescription"] as string;
         if (desc.indexOf("Export") > 0) {
           return 3200; // Customs Clearance: Export Released
         } else if (desc.indexOf("Import") > 0) {
@@ -70,7 +70,7 @@ export class Fdx {
     },
   };
 
-  private static exceptionCodeMap: Record<string, any> = {
+  private static exceptionCodeMap: Record<string, number> = {
     "08": 907, // Recipient, Not Available
     "17": 900, // Exception, Occurred
     "67": 900, // Exception, Occurred
@@ -81,13 +81,13 @@ export class Fdx {
    * Retrieves the internal event code based on FedEx status code, event type, and source data.
    * @param {string} derivedStatusCode - The derived status code from FedEx.
    * @param {string} eventType - The type of event from FedEx.
-   * @param {Record<string, any>} sourceData - The raw event data from FedEx.
+   * @param {Record<string, unknown>} sourceData - The raw event data from FedEx.
    * @returns {number} The corresponding internal event code, or -1 if not found.
    */
   static getEventCode(
     derivedStatusCode: string,
     eventType: string,
-    sourceData: Record<string, any>,
+    sourceData: Record<string, unknown>,
   ): number {
     if (derivedStatusCode in Fdx.eventCodeMap) {
       const value = Fdx.eventCodeMap[derivedStatusCode][eventType];
@@ -101,9 +101,9 @@ export class Fdx {
   }
 
   static getException(
-    sourceData: Record<string, any>,
-  ): Record<string, any> | undefined {
-    const code_original = sourceData["exceptionCode"];
+    sourceData: Record<string, unknown>,
+  ): Record<string, unknown> | undefined {
+    const code_original = sourceData["exceptionCode"] as string;
     if (code_original == "") {
       return undefined;
     }
@@ -208,12 +208,12 @@ export class Fdx {
   /**
    * Fetches the shipment route details for a given tracking number from the FedEx API.
    * @param {string} trackingNumber - The FedEx tracking number.
-   * @returns {Promise<Record<string, any>>} A promise resolving to the raw API response data.
+   * @returns {Promise<Record<string, unknown>>} A promise resolving to the raw API response data.
    * @throws {Error} If the API request fails.
    */
   static async getRoute(
     trackingNumber: string,
-  ): Promise<Record<string, any>> {
+  ): Promise<Record<string, unknown>> {
     try {
       // Prepare the request payload
       const payload = {
@@ -251,38 +251,41 @@ export class Fdx {
   /**
    * Converts raw FedEx API data into an internal object with events.
    * @param {TrackingID} trackingId - The tracking ID defined by eagle1.
-   * @param {Record<string, any>} result - The raw API response data.
+   * @param {Record<string, unknown>} result - The raw API response data.
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Promise<Entity>} A promise resolving to the constructed Entity object.
    * @private
    */
   private static async convert(
     trackingId: TrackingID,
-    result: Record<string, any>,
+    result: Record<string, unknown>,
     updateMethod: string,
   ): Promise<Entity> {
     const entity: Entity = new Entity();
-    const completeTrackResult = result["output"]["completeTrackResults"][0];
-    const trackResult = completeTrackResult["trackResults"][0];
+    const output = result["output"] as Record<string, unknown>;
+    const completeTrackResults = output["completeTrackResults"] as [unknown];
+    const completeTrackResult = completeTrackResults[0] as Record<string, unknown>;
+    const trackResults =  completeTrackResult["trackResults"] as [unknown];
+    const trackResult = trackResults[0] as Record<string, unknown>;
     entity.uuid = "eg1_" + crypto.randomUUID();
     entity.id = trackingId.toString();
     entity.params = {};
     entity.type = "waybill";
     entity.extra = {
       origin: Fdx.getAddress(
-        trackResult["shipperInformation"]["address"],
+          (trackResult["shipperInformation"] as Record<string, unknown>)["address"] as Record<string, unknown>,
       ),
       destination: Fdx.getAddress(
-        trackResult["recipientInformation"]["address"],
+          (trackResult["recipientInformation"] as Record<string, unknown>) ["address"] as Record<string, unknown>,
       ),
     };
 
-    const scanEvents = trackResult["scanEvents"];
+    const scanEvents = trackResult["scanEvents"] as [unknown];
     for (let i = scanEvents.length - 1; i >= 0; i--) {
       const event = new Event();
-      const scanEvent = scanEvents[i];
-      const fdxStatusCode = scanEvent["derivedStatusCode"];
-      const fdxEventType = scanEvent["eventType"];
+      const scanEvent = scanEvents[i] as Record<string, unknown>;
+      const fdxStatusCode = scanEvent["derivedStatusCode"] as string;
+      const fdxEventType = scanEvent["eventType"] as string;
       const eagle1status: number = Fdx.getEventCode(
         fdxStatusCode,
         fdxEventType,
@@ -293,11 +296,11 @@ export class Fdx {
 
       event.eventId = eventId;
       event.operatorCode = "fdx";
-      event.trackingNum = completeTrackResult["trackingNumber"];
+      event.trackingNum = completeTrackResult["trackingNumber"] as string;
       event.status = eagle1status;
       event.what = StatusCode.getDesc(eagle1status);
-      event.when = scanEvent["date"];
-      const where = Fdx.getWhere(scanEvent["scanLocation"]);
+      event.when = scanEvent["date"] as string;
+      const where = Fdx.getWhere(scanEvent["scanLocation"] as Record<string, unknown>);
       if (where.trim().length > 0) {
         event.where = where;
       } else {
@@ -313,11 +316,11 @@ export class Fdx {
       };
       const exception = Fdx.getException(scanEvent);
       if (exception == undefined) {
-        event.notes = scanEvent["eventDescription"];
+        event.notes = scanEvent["eventDescription"] as string;
       } else {
-        event.exceptionCode = exception["exceptionCode"];
-        event.exceptionDesc = exception["exceptionDesc"];
-        event.notes = exception["notes"];
+        event.exceptionCode = exception["exceptionCode"] as number;
+        event.exceptionDesc = exception["exceptionDesc"] as string;
+        event.notes = exception["notes"] as string;
       }
       event.sourceData = scanEvent;
       entity.addEvent(event as Event);
