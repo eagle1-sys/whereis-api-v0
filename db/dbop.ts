@@ -188,7 +188,9 @@ export async function queryStatus(
 ): Promise<Record<string, any> | undefined> {
   const result = await client.queryArray`
         SELECT status,
-               what
+               what,
+               exception_code,
+               exception_desc
         FROM events
         WHERE operator_code = ${trackingID.operator}
           AND tracking_num = ${trackingID.trackingNum}
@@ -201,6 +203,10 @@ export async function queryStatus(
       id: trackingID.toString(),
       status: row[0] as number,
       what: row[1] as string,
+      ...(row[2] != null &&
+        { exceptionCode: row[2] as string }),
+      ...(row[3] != null &&
+          { exceptionDesc: row[3] as string })
     };
   }
 

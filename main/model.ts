@@ -392,24 +392,6 @@ export class Entity {
   }
 
   /**
-   * Gets the status of the last event.
-   * @returns {{id: string | undefined, status: number | undefined, what: string | undefined} | undefined}
-   * The last event's status details, or undefined if no events exist.
-   */
-  public getLastStatus() {
-    const lastEvent = this.lastEvent();
-    if (lastEvent === undefined) {
-      return undefined;
-    } else {
-      return {
-        id: this.id,
-        status: lastEvent.status,
-        what: lastEvent.what,
-      };
-    }
-  }
-
-  /**
    * Checks if an event with the given ID exists in the object's event list.
    * @param {string} eventId - The event ID to check.
    * @returns {boolean} True if the event ID exists, false otherwise.
