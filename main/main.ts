@@ -18,15 +18,17 @@ import { loadEnv, loadMetaData } from "./app.ts";
  * @throws {Error} If any step in the initialization process fails.
  */
 async function main(): Promise<void> {
-  await loadEnv();        // load environment variable first
-  await loadMetaData();   // load file system data
-  initializeDbPool();     // initialize database connection pool
+  await loadEnv(); // load environment variable first
+  await loadMetaData(); // load file system data
+  initializeDbPool(); // initialize database connection pool
 
   /**
    * Starts a scheduler that periodically synchronizes tracking routes.
    * The task runs every 60 seconds using a cron job.
    */
-  Deno.cron("Sync routes", { minute: { every: 1 } }, () => {
+  const intervalStr = Deno.env.get("PULL_DATA_INTERVAL");
+  const interval = intervalStr ? parseInt(intervalStr, 10) : 5;
+  Deno.cron("Sync routes", { minute: { every: interval } }, () => {
     syncRoutes();
   }).then((_r) => {
     logger.info("The scheduler started.");
