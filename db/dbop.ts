@@ -98,7 +98,7 @@ export async function deleteEntity(
         `;
   const result1 = await client.queryObject(deleteEvents, [
     trackingID.operator,
-    trackingID.operator,
+    trackingID.trackingNum,
   ]);
 
   const deleteEntity = `
