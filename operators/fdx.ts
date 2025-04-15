@@ -159,7 +159,7 @@ export class Fdx {
   ): Promise<Entity | string> {
     const trackingNum: string = trackingId.trackingNum;
     const result = await this.getRoute(trackingNum);
-    if (result === undefined) return "404-1";
+    if (result === undefined) return "404-01";
 
     return await this.convert(trackingId, result, updateMethod);
   }

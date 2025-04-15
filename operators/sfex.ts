@@ -199,7 +199,7 @@ export class Sfex {
     const routeResp = apiResult["msgData"]["routeResps"][0];
     const routes: [] = routeResp["routes"];
     if (routes.length == 0) {
-      return "404-1";
+      return "404-01";
     }
 
     const entity: Entity = new Entity();
