@@ -9,15 +9,13 @@ import { ContentfulStatusCode } from "hono/utils/http-status";
 
 import { logger } from "../tools/logger.ts";
 import { connect } from "../db/dbutil.ts";
-import { isTokenValid } from "../db/dbop.ts";
+import {deleteEntity, isTokenValid} from "../db/dbop.ts";
 import { requestWhereIs } from "./gateway.ts";
 import { Entity, ErrorRegistry, TrackingID } from "./model.ts";
 import {
   insertEntity,
   queryEntity,
-  queryEventIds,
   queryStatus,
-  updateEntity,
 } from "../db/dbop.ts";
 
 declare module "hono" {
@@ -157,16 +155,16 @@ export class Server {
 
       // get the full url string
       let result: Entity | string;
+      const refresh: boolean = "true" == c.req.query("refresh");
       const fullData: boolean = "true" == c.req.query("fulldata");
-
-      if (c.req.param("refresh") === undefined) {
-        result = await this.getObjectFromDbFirst(
+      if (refresh) {
+        // issue request to data provider
+        result = await this.getEntityFromProviderFirst(
           trackingID as TrackingID,
           queryParams as Record<string, string>,
         );
       } else {
-        // issue request to carrier
-        result = await this.getObjectFromCarrierFirst(
+        result = await this.getEntityFromDatabaseFirst(
           trackingID as TrackingID,
           queryParams as Record<string, string>,
         );
@@ -261,9 +259,9 @@ export class Server {
    * Attempts to get object from database first, then carrier if not found
    * @param trackingID - The tracking ID object
    * @param queryParams - Additional query parameters
-   * @returns Entity object or undefined if not found
+   * @returns An Entity object on success or a string error code if an error occurs
    */
-  private async getObjectFromDbFirst(
+  private async getEntityFromDatabaseFirst(
     trackingID: TrackingID,
     queryParams: Record<string, string>,
   ) {
@@ -305,12 +303,12 @@ export class Server {
   }
 
   /**
-   * Gets object from carrier first and updates database
+   * Gets object from data provider first and updates database
    * @param trackingID - The tracking ID object
    * @param queryParams - Additional query parameters
-   * @returns Entity object or undefined if not found
+   * @returns An Entity object on success or a string error code if an error occurs
    */
-  private async getObjectFromCarrierFirst(
+  private async getEntityFromProviderFirst(
     trackingID: TrackingID,
     queryParams: Record<string, string>,
   ) {
@@ -321,27 +319,22 @@ export class Server {
       "manual-pull",
     );
 
-    if (entity === undefined) {
-      return "404-01";
+    // The refresh has failed to receive data from the data provider.
+    if (typeof entity === "string") {
+      return "404-03";
     }
 
     // update to database
     let client;
     try {
       client = await connect();
-      const eventIds: string[] = await queryEventIds(
-        client,
-        trackingID,
-      );
-      if (
-        entity != undefined && entity instanceof Entity &&
-        entity.eventNum() > eventIds.length
-      ) {
-        // update the object
-        client.queryObject("BEGIN");
-        await updateEntity(client, entity, eventIds);
-        client.queryObject("COMMIT");
-      }
+      // step 1: delete the existing record first
+      await deleteEntity(client, trackingID);
+
+      // step 2: insert into database
+      client.queryObject("BEGIN");
+      await insertEntity(client, entity);
+      client.queryObject("COMMIT");
     } catch (error) {
       logger.error(error);
       if (client) {
@@ -387,11 +380,13 @@ export class Server {
    * @param operator - The carrier identifier
    * @returns Record of extra parameters
    */
-  private getExtraParams(req: HonoRequest, operator: string): Record<string, string> {
+  private getExtraParams(
+    req: HonoRequest,
+    operator: string,
+  ): Record<string, string> {
     if ("sfex" == operator) {
       return { phonenum: req.query("phonenum") ?? "" };
     }
     return {};
   }
-
 }

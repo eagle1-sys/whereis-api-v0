@@ -8,5 +8,6 @@
   "401-02": "Unauthorized: Invalid access token.",
   "404-01": "Tracking number not found.",
   "404-02": "The tracking number has expired.",
+  "404-03": "The refresh has failed to receive data from the data provider.",
   "429-01": "Too many requests."
 }

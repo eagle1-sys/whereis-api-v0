@@ -88,6 +88,31 @@ export async function updateEntity(
   return result?.rowCount;
 }
 
+export async function deleteEntity(
+  client: PoolClient,
+  trackingID: TrackingID,
+): Promise<number | undefined> {
+  // delete events
+  const deleteEvents = `
+        DELETE FROM events WHERE operator_code=$1 AND tracking_num=$2
+        `;
+  const result1 = await client.queryObject(deleteEvents, [
+    trackingID.operator,
+    trackingID.operator,
+  ]);
+
+  const deleteEntity = `
+      DELETE
+      FROM entities
+      WHERE id = $1
+  `;
+  const result2 = await client.queryObject(deleteEntity, [
+    trackingID.toString(),
+  ]);
+
+  return result1?.rowCount as number + (result2?.rowCount as number);
+}
+
 /**
  * Insert one event data into table
  * @param client PoolClient
@@ -206,7 +231,7 @@ export async function queryStatus(
       ...(row[2] != null &&
         { exceptionCode: row[2] as string }),
       ...(row[3] != null &&
-          { exceptionDesc: row[3] as string })
+        { exceptionDesc: row[3] as string }),
     };
   }
 
