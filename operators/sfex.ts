@@ -35,6 +35,8 @@ export class Sfex {
     },
     "204": {
       "605": 3350, // Customs Clearance: Import In-Progress
+      "612": 3350, // Customs Clearance: Import In-Progress
+      "18": 3350, // Customs Clearance: Import In-Progress
     },
     "301": {
       "44": 3001, // Logistics In-Progress
@@ -59,10 +61,11 @@ export class Sfex {
     statusCode: string,
     opCode: string,
   ): number {
+    let code;
     if (statusCode in Sfex.eventCodeMap) {
-      return Sfex.eventCodeMap[statusCode][opCode];
+      code = Sfex.eventCodeMap[statusCode][opCode];
     }
-    return -1;
+    return code == undefined ? 3001 : code;
   }
 
   /**
