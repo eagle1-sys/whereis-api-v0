@@ -9,14 +9,10 @@ import { ContentfulStatusCode } from "hono/utils/http-status";
 
 import { logger } from "../tools/logger.ts";
 import { connect } from "../db/dbutil.ts";
-import {deleteEntity, isTokenValid} from "../db/dbop.ts";
+import { deleteEntity, isTokenValid } from "../db/dbop.ts";
 import { requestWhereIs } from "./gateway.ts";
 import { Entity, ErrorRegistry, TrackingID } from "./model.ts";
-import {
-  insertEntity,
-  queryEntity,
-  queryStatus,
-} from "../db/dbop.ts";
+import { insertEntity, queryEntity, queryStatus } from "../db/dbop.ts";
 
 declare module "hono" {
   // noinspection JSUnusedGlobalSymbols
@@ -107,14 +103,18 @@ export class Server {
 
     // Extend Context class
     app.use("*", async (c, next) => {
-      // Extend Context，add sendMyJSON method
+      // Extend Context: add sendError method
       c.sendError = (code: string) => {
-        return c.json(
+        const resp = {
+          error: code,
+          message: ErrorRegistry.getMessage(code),
+        };
+        return c.body(
+          JSON.stringify(resp, null, 2),
+          this.getHttpCode(code) as ContentfulStatusCode,
           {
-            error: code,
-            message: ErrorRegistry.getMessage(code),
+            "Content-Type": "application/json",
           },
-          this.getHttpCode(code) as ContentfulStatusCode, // not authorized
         );
       };
       await next();
@@ -139,7 +139,9 @@ export class Server {
       if (typeof status == "string") {
         return c.sendError(status);
       } else {
-        return c.json(status);
+        return c.body(JSON.stringify(status, null, 2), 200, {
+          "Content-Type": "application/json",
+        });
       }
     });
 
@@ -147,7 +149,7 @@ export class Server {
      * GET /v0/whereis/:id - Retrieves location information for a tracking ID
      * Requires Bearer token authentication
      */
-    app.get("/v0/whereis/:id?", async (c) => {
+    app.get("/v0/whereis/:id", async (c) => {
       const [error, trackingID, queryParams] = this.parseURL(c.req);
       if (error != "") {
         return c.sendError(error);
@@ -349,6 +351,15 @@ export class Server {
     return entity;
   }
 
+  /**
+   * Parses the URL from the request to extract tracking information and query parameters.
+   *
+   * @param req - The Hono request object containing the URL and parameters.
+   * @returns A tuple containing:
+   *   - A string representing an error code (empty if no error).
+   *   - A TrackingID object (undefined if parsing fails).
+   *   - A Record of additional query parameters (undefined if parsing fails).
+   */
   private parseURL(
     req: HonoRequest,
   ): [string, TrackingID | undefined, Record<string, string> | undefined] {
