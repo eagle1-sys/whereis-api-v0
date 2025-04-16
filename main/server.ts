@@ -103,20 +103,30 @@ export class Server {
 
     // Extend Context class
     app.use("*", async (c, next) => {
-      // Extend Context: add sendError method
+      // add sendError method
       c.sendError = (code: string) => {
         const resp = {
           error: code,
           message: ErrorRegistry.getMessage(code),
         };
-        return c.body(
-          JSON.stringify(resp, null, 2),
-          this.getHttpCode(code) as ContentfulStatusCode,
-          {
-            "Content-Type": "application/json",
-          },
-        );
+        return c.body(JSON.stringify(resp, null, 2), this.getHttpCode(code) as ContentfulStatusCode, {
+          "Content-Type": "application/json",
+        });
       };
+      await next();
+    });
+
+    // url syntax validation middleware
+    app.use("*", async (c, next) => {
+      const url = new URL(c.req.url);
+      if (
+          url.pathname.endsWith("/whereis/") ||
+          url.pathname.endsWith("/whereis") ||
+          url.pathname.endsWith("/status/") ||
+          url.pathname.endsWith("/status")
+      ) {
+        return c.sendError("400-01");
+      }
       await next();
     });
 
@@ -182,7 +192,7 @@ export class Server {
     });
 
     /**
-     * GET / - Root endpoint
+     * GET /apistatus - Health check endpoint
      */
     app.get("/apistatus", (c) => {
       return c.html(""); // For empty slug, we should not return anything
