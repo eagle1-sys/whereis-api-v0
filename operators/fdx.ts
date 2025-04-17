@@ -27,7 +27,7 @@ export class Fdx {
    * A mapping of FedEx status codes and event types to internal event codes or functions.
    * @type {Record<string, Record<string, unknown>>}
    */
-  private static eventCodeMap: Record<string, Record<string, unknown>> = {
+  private static statusCodeMap: Record<string, Record<string, unknown>> = {
     IN: {
       OC: 3000, // Transport Bill Created
     },
@@ -44,14 +44,13 @@ export class Fdx {
         }
       },
       AF: 3001, // Logistics In-Progress
-      CC: function (sourceData: Record<string, unknown>): number {
+      CC: function (sourceData: Record<string, unknown>): number | undefined {
         const desc = sourceData["eventDescription"] as string;
         if (desc.indexOf("Export") > 0) {
           return 3200; // Customs Clearance: Export Released
         } else if (desc.indexOf("Import") > 0) {
           return 3400; // Customs Clearance: Import Released
         }
-        return -1;
       },
       OD: 3450, // Final Delivery In-Progress
       RR: 3450, // Delivery option requested
@@ -82,22 +81,26 @@ export class Fdx {
    * @param {string} derivedStatusCode - The derived status code from FedEx.
    * @param {string} eventType - The type of event from FedEx.
    * @param {Record<string, unknown>} sourceData - The raw event data from FedEx.
-   * @returns {number} The corresponding internal event code, or -1 if not found.
+   * @returns {number} The corresponding internal event code, or 3001 if not found.
    */
-  static getEventCode(
+  static getStatusCode(
     derivedStatusCode: string,
     eventType: string,
     sourceData: Record<string, unknown>,
   ): number {
-    if (derivedStatusCode in Fdx.eventCodeMap) {
-      const value = Fdx.eventCodeMap[derivedStatusCode][eventType];
-      if (typeof value === "number") {
-        return value;
-      } else if (typeof value === "function") {
-        return value(sourceData);
-      }
+    const statusMap = Fdx.statusCodeMap[derivedStatusCode];
+    if (!statusMap) return 3001;
+
+    const value = statusMap[eventType];
+    
+    if (typeof value === "number") return value;
+    
+    if (typeof value === "function") {
+      const result = value(sourceData);
+      return typeof result === "number" ? result : 3001;
     }
-    return -1;
+
+    return 3001;
   }
 
   static getException(
@@ -264,8 +267,11 @@ export class Fdx {
     const entity: Entity = new Entity();
     const output = result["output"] as Record<string, unknown>;
     const completeTrackResults = output["completeTrackResults"] as [unknown];
-    const completeTrackResult = completeTrackResults[0] as Record<string, unknown>;
-    const trackResults =  completeTrackResult["trackResults"] as [unknown];
+    const completeTrackResult = completeTrackResults[0] as Record<
+      string,
+      unknown
+    >;
+    const trackResults = completeTrackResult["trackResults"] as [unknown];
     const trackResult = trackResults[0] as Record<string, unknown>;
     entity.uuid = "eg1_" + crypto.randomUUID();
     entity.id = trackingId.toString();
@@ -273,10 +279,14 @@ export class Fdx {
     entity.type = "waybill";
     entity.extra = {
       origin: Fdx.getAddress(
-          (trackResult["shipperInformation"] as Record<string, unknown>)["address"] as Record<string, unknown>,
+        (trackResult["shipperInformation"] as Record<string, unknown>)[
+          "address"
+        ] as Record<string, unknown>,
       ),
       destination: Fdx.getAddress(
-          (trackResult["recipientInformation"] as Record<string, unknown>) ["address"] as Record<string, unknown>,
+        (trackResult["recipientInformation"] as Record<string, unknown>)[
+          "address"
+        ] as Record<string, unknown>,
       ),
     };
 
@@ -286,7 +296,7 @@ export class Fdx {
       const scanEvent = scanEvents[i] as Record<string, unknown>;
       const fdxStatusCode = scanEvent["derivedStatusCode"] as string;
       const fdxEventType = scanEvent["eventType"] as string;
-      const eagle1status: number = Fdx.getEventCode(
+      const eagle1status: number = Fdx.getStatusCode(
         fdxStatusCode,
         fdxEventType,
         scanEvent,
@@ -300,7 +310,9 @@ export class Fdx {
       event.status = eagle1status;
       event.what = StatusCode.getDesc(eagle1status);
       event.when = scanEvent["date"] as string;
-      const where = Fdx.getWhere(scanEvent["scanLocation"] as Record<string, unknown>);
+      const where = Fdx.getWhere(
+        scanEvent["scanLocation"] as Record<string, unknown>,
+      );
       if (where.trim().length > 0) {
         event.where = where;
       } else {
