@@ -55,8 +55,8 @@ export async function connect(): Promise<PoolClient> {
     return await dbPool.connect();
   } catch (error) {
       if(error instanceof Error) {
-          logger.error("Error connecting to the database:", error.message);
-          throw new Error(`Failed to connect to the database: ${error.message}`);
+          logger.error("Error DBUTIL-01: Cannot connect to the database:", error.message);
+          throw new Error(`Error DBUTIL-01: Cannot connect to the database: ${error.message}`);
       } else {
           logger.error("Unknown error connecting to the database");
           throw new Error("Failed to connect to the database: Unknown error");
