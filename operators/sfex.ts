@@ -20,7 +20,7 @@ export class Sfex {
    * @static
    * @type {Record<string, Record<string, number>>}
    */
-  private static eventCodeMap: Record<string, Record<string, number>> = {
+  private static statudCodeMap: Record<string, unknown> = {
     "101": {
       "50": 3100, // Received by Carrier
       "54": 3100, // Received by Carrier
@@ -33,10 +33,21 @@ export class Sfex {
       "106": 3300, // Arrived At Destination
       "310": 3002, // Customs Clearance: Import Released
     },
-    "204": {
-      "605": 3350, // Customs Clearance: Import In-Progress
-      "612": 3350, // Customs Clearance: Import In-Progress
-      "18": 3350, // Customs Clearance: Import In-Progress
+    "204": function (sourceData: Record<string, unknown>): number {
+      const secondaryStatusName = sourceData["secondaryStatusName"] as string;
+      if (secondaryStatusName.indexOf("清关中") !== -1) {
+        return 3350; // Customs Clearance: Import In-Progress
+      } else {
+        return 3001; // Logistics In-Progress
+      }
+    },
+    "205": function (sourceData: Record<string, unknown>): number {
+      const secondaryStatusName = sourceData["secondaryStatusName"] as string;
+      if (secondaryStatusName.indexOf("已清关") >= 0) {
+        return 3400; // Customs Clearance: Import Released
+      } else {
+        return 3001; // Logistics In-Progress
+      }
     },
     "301": {
       "44": 3001, // Logistics In-Progress
@@ -52,20 +63,36 @@ export class Sfex {
 
   /**
    * Retrieves the internal event code based on SF Express status and operation codes.
+   *
    * @static
    * @param {string} statusCode - The SF Express status code.
    * @param {string} opCode - The SF Express operation code.
-   * @returns {number} The corresponding internal event code, or -1 if not found.
+   * @param {Record<string, unknown>} sourceData - Additional source data for complex mappings.
+   * @returns {number} The corresponding internal event code. Returns 3001 if no specific mapping is found.
    */
-  static getEventCode(
+  static getStatusCode(
     statusCode: string,
     opCode: string,
+    sourceData: Record<string, unknown>,
   ): number {
-    let code;
-    if (statusCode in Sfex.eventCodeMap) {
-      code = Sfex.eventCodeMap[statusCode][opCode];
+    const statusMap = Sfex.statudCodeMap[statusCode];
+    if (!statusMap) return 3001;
+
+    if (typeof statusMap === "function") {
+      const result = statusMap(sourceData);
+      return typeof result === "number" ? result : 3001;
     }
-    return code == undefined ? 3001 : code;
+
+    const value = (statusMap as Record<string, unknown>)[opCode];
+    if (typeof value === "number") {
+      return value;
+    }
+    if (typeof value === "function") {
+      const result = value(sourceData);
+      return typeof result === "number" ? result : 3001;
+    }
+
+    return 3001;
   }
 
   /**
@@ -220,7 +247,7 @@ export class Sfex {
 
       const sfStatusCode = route["secondaryStatusCode"];
       const sfOpCode = route["opCode"];
-      const status = Sfex.getEventCode(sfStatusCode, sfOpCode);
+      const status = Sfex.getStatusCode(sfStatusCode, sfOpCode, route);
       const event: Event = new Event();
 
       const eventId = "ev_" + await jsonToMd5(route);
