@@ -7,15 +7,17 @@ export class StatusCode {
   private static instance: StatusCode = new StatusCode();
 
   /** @private Object storing key-value pairs with numeric keys and string values */
-  private data: { [key: number]: string } = {};
+  private data: Map<number, string> = new Map();
+
+  private constructor() {}
 
   /**
    * Sets a key-value pair in the data store.
    * @param {number} key - The numeric key to associate with the value.
    * @param {string} value - The string value to store.
    */
-  set(key: number, value: string): void {
-    this.data[key] = value;
+  private set(key: number, value: string): void {
+    this.data.set(key, value);
   }
 
   /**
@@ -23,8 +25,8 @@ export class StatusCode {
    * @param {number} key - The numeric key to look up.
    * @returns {string | undefined} The value associated with the key, or undefined if not found.
    */
-  get(key: number): string | undefined {
-    return this.data[key];
+  private get(key: number): string | undefined {
+    return this.data.get(key);
   }
 
   /**
@@ -34,7 +36,9 @@ export class StatusCode {
   public static initialize(record: Record<string, unknown>): void {
     for (const [key, value] of Object.entries(record)) {
       const numericKey = Number(key);
-      this.instance.set(numericKey, value as string);
+      if (!isNaN(numericKey)) {
+        this.instance.set(numericKey, value as string);
+      }
     }
   }
 
@@ -52,16 +56,18 @@ export class ExceptionCode {
   /** @private Singleton instance of ExceptionCode */
   private static instance: ExceptionCode = new ExceptionCode();
 
-  /** @private Object storing key-value pairs with numeric keys and string values */
-  private data: { [key: number]: string } = {};
+  /** @private Map storing key-value pairs with numeric keys and string values */
+  private data: Map<number, string> = new Map();
+
+  private constructor() {}
 
   /**
    * Sets a key-value pair in the data store.
    * @param {number} key - The numeric key to associate with the value.
    * @param {string} value - The string value to store.
    */
-  set(key: number, value: string): void {
-    this.data[key] = value;
+  private set(key: number, value: string): void {
+    this.data.set(key, value);
   }
 
   /**
@@ -69,8 +75,8 @@ export class ExceptionCode {
    * @param {number} key - The numeric key to look up.
    * @returns {string | undefined} The value associated with the key, or undefined if not found.
    */
-  get(key: number): string | undefined {
-    return this.data[key];
+  private get(key: number): string | undefined {
+    return this.data.get(key);
   }
 
   /**
@@ -80,7 +86,9 @@ export class ExceptionCode {
   public static initialize(record: Record<string, unknown>): void {
     for (const [key, value] of Object.entries(record)) {
       const numericKey = Number(key);
-      this.instance.set(numericKey, value as string);
+      if (!isNaN(numericKey)) {
+        this.instance.set(numericKey, value as string);
+      }
     }
   }
 
@@ -103,16 +111,18 @@ export class ErrorRegistry {
   /** @private Singleton instance of ErrorRegistry */
   private static instance: ErrorRegistry = new ErrorRegistry();
 
-  /** @private Object storing error codes as keys and their descriptions as values */
-  private data: { [code: string]: string } = {};
+  /** @private Map storing error codes as keys and their descriptions as values */
+  private data: Map<string, string> = new Map();
+
+  private constructor() {}
 
   /**
    * Sets an error code and its description in the registry.
    * @param {string} code - The error code to associate with the description.
    * @param {string} description - The description of the error.
    */
-  set(code: string, description: string): void {
-    this.data[code] = description;
+  private set(code: string, description: string): void {
+    this.data.set(code, description);
   }
 
   /**
@@ -120,15 +130,15 @@ export class ErrorRegistry {
    * @param {string} code - The error code to look up.
    * @returns {string | undefined} The description, or undefined if not found.
    */
-  get(code: string): string | undefined {
-    return this.data[code];
+  private get(code: string): string | undefined {
+    return this.data.get(code);
   }
 
   /**
    * Initializes the ErrorRegistry with a record of error codes and descriptions.
    * @param {Record<string, unknown>} record - An object with string keys and any values to initialize the registry.
    */
-  static initialize(record: Record<string, unknown>): void {
+  public static initialize(record: Record<string, unknown>): void {
     for (const [key, value] of Object.entries(record)) {
       this.instance.set(key, value as string);
     }
@@ -137,9 +147,9 @@ export class ErrorRegistry {
   /**
    * Gets the error message for a given error code.
    * @param {string} code - The error code to look up.
-   * @returns {string | undefined} The error message, or an empty string if not found.
+   * @returns {string} The error message, or an empty string if not found.
    */
-  static getMessage(code: string): string | undefined {
+  public static getMessage(code: string): string {
     return this.instance.get(code) ?? "";
   }
 }
@@ -275,32 +285,25 @@ export class Entity {
    * @returns {Record<string, unknown>} A structured object representing the object and its events.
    */
   public toJSON(fullData: boolean = false): Record<string, unknown> {
-    const extra = this.extra;
-    const additional = {
-      ...(extra != null && ("origin" in extra) &&
-        { origin: extra["origin"] }),
-      ...(extra != null && ("destination" in extra) &&
-        { destination: extra["destination"] }),
-    };
+    const extra = this.extra || {};
+    const additional: Record<string, unknown> = {};
+
+    // Add origin and destination if they exist in extra
+    ['origin', 'destination'].forEach(key => {
+      if (key in extra) additional[key] = extra[key];
+    });
+
     const entity = {
       id: this.id,
       type: this.type,
       uuid: this.uuid,
       createdOn: this.getCreationTime(),
-      additional: Object.keys(additional).length > 0 ? additional : undefined,
+      ...(Object.keys(additional).length > 0 && { additional }),
     };
 
-    const events = [];
-    if (
-      this.events !== undefined &&
-      Object.keys(this.events).length > 0
-    ) {
-      for (const event of this.events) {
-        events.push(event.toJSON(fullData));
-      }
-    }
+    const events = this.events?.map(event => event.toJSON(fullData)) || [];
 
-    return { "entity": entity, "events": events };
+    return { entity, events };
   }
 
   /**
@@ -461,10 +464,10 @@ export class Entity {
 export class Event {
   /** Unique identifier for the event */
   eventId?: string;
-  /** Code of the operator responsible for the event */
-  operatorCode?: string;
   /** Tracking number associated with the event */
   trackingNum?: string;
+  /** Code of the operator responsible for the event */
+  operatorCode?: string;
   /** Status code of the event */
   status?: number;
   /** Description of the event */
@@ -480,13 +483,6 @@ export class Event {
   /** Provider of the event data */
   dataProvider?: string;
 
-  // /** Method of the last update */
-  // updateMethod?: string;
-  // /** Timestamp of the last update */
-  // updatedOn?: string;
-  // /** Mode of transit for the event */
-  // transitMode?: string;
-
   /** Exception code if an error occurred */
   exceptionCode?: number;
   /** Description of the exception */
@@ -500,7 +496,12 @@ export class Event {
   /** Additional metadata for the event */
   extra?: Record<string, unknown>;
   /** Raw source data for the event */
-  sourceData?: Record<string, unknown>;
+  sourceData: Record<string, unknown>;
+
+  constructor() {
+    this.extra = {};
+    this.sourceData = {};
+  }
 
   /**
    * Converts the Event instance to a JSON-compatible object.
@@ -508,38 +509,37 @@ export class Event {
    * @returns {Record<string, unknown>} A structured object representing the event.
    */
   public toJSON(fullData: boolean = false): Record<string, unknown> {
-    const extra = this.extra;
     const result: Record<string, unknown> = {
       status: this.status,
       what: this.what,
       whom: this.whom,
       when: this.when,
       where: this.where,
-      ...(this.notes != null && { notes: this.notes }),
-      additional: {
-        trackingNum: this.trackingNum,
-        operatorCode: this.operatorCode,
-        ...(this.dataProvider != null &&
-          { dataProvider: this.dataProvider }),
-        ...(extra != null && ("updateMethod" in extra) &&
-          { updateMethod: extra["updateMethod"] }),
-        ...(extra != null && ("updatedOn" in extra) &&
-          { updatedOn: extra["updatedOn"] }),
-        ...(this.exceptionCode != null &&
-          { exceptionCode: this.exceptionCode }),
-        ...(this.exceptionDesc != null &&
-          { exceptionDesc: this.exceptionDesc }),
-        ...(this.notificationCode != null &&
-          { notificationCode: this.notificationCode }),
-        ...(this.notificationDesc != null &&
-          { notificationDesc: this.notificationDesc }),
-        ...(extra != null && ("transitMode" in extra) &&
-          { transitMode: extra["transitMode"] }),
-      },
     };
 
-    if (fullData) {
-      result["sourceData"] = this.sourceData;
+    if (this.notes != null) result.notes = this.notes;
+
+    const additional: Record<string, unknown> = {
+      trackingNum: this.trackingNum,
+      operatorCode: this.operatorCode,
+      dataProvider : this.dataProvider,
+      updateMethod: this.extra?.updateMethod,
+      updatedOn : this.extra?.updatedOn
+    };
+
+    if (this.exceptionCode != null) additional.exceptionCode = this.exceptionCode;
+    if (this.exceptionDesc != null) additional.exceptionDesc = this.exceptionDesc;
+    if (this.notificationCode != null) additional.notificationCode = this.notificationCode;
+    if (this.notificationDesc != null) additional.notificationDesc = this.notificationDesc;
+
+    if (this.extra != null && "transitMode" in this.extra) {
+      additional.transitMode = this.extra.transitMode;
+    }
+
+    result.additional = additional;
+
+    if (fullData && this.sourceData != null) {
+      result.sourceData = this.sourceData;
     }
 
     return result;
