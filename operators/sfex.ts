@@ -49,9 +49,12 @@ export class Sfex {
         return 3001; // Logistics In-Progress
       }
     },
-    "301": {
-      "44": 3001, // Logistics In-Progress
-      "204": 3450, // Final Delivery In-Progress
+    "301": function (sourceData: Record<string, unknown>): number {
+      const secondaryStatusName = sourceData["secondaryStatusName"] as string;
+      if (secondaryStatusName.indexOf("派送中") >= 0) {
+        return 3450; // Final Delivery In-Progress
+      }
+      return 3001; // Logistics In-Progress
     },
     "1301": {
       "70": 3300, // Arrived At Destination
