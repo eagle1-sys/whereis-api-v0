@@ -272,8 +272,8 @@ export class Sfex {
       event.notes = remark;
       event.dataProvider = "SF Express";
       event.extra = {
-        lastUpdateMethod: updateMethod,
-        lastUpdateTime: new Date().toISOString(),
+        updateMethod: updateMethod,
+        updatedOn: new Date().toISOString(),
       };
       event.sourceData = route;
       entity.addEvent(event);

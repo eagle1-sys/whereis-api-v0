@@ -109,9 +109,13 @@ export class Server {
           error: code,
           message: ErrorRegistry.getMessage(code),
         };
-        return c.body(JSON.stringify(resp, null, 2), this.getHttpCode(code) as ContentfulStatusCode, {
-          "Content-Type": "application/json",
-        });
+        return c.body(
+          JSON.stringify(resp, null, 2),
+          this.getHttpCode(code) as ContentfulStatusCode,
+          {
+            "Content-Type": "application/json",
+          },
+        );
       };
       await next();
     });
@@ -120,10 +124,10 @@ export class Server {
     app.use("*", async (c, next) => {
       const url = new URL(c.req.url);
       if (
-          url.pathname.endsWith("/whereis/") ||
-          url.pathname.endsWith("/whereis") ||
-          url.pathname.endsWith("/status/") ||
-          url.pathname.endsWith("/status")
+        url.pathname.endsWith("/whereis/") ||
+        url.pathname.endsWith("/whereis") ||
+        url.pathname.endsWith("/status/") ||
+        url.pathname.endsWith("/status")
       ) {
         return c.sendError("400-01");
       }
@@ -133,26 +137,45 @@ export class Server {
     app.use("/v0/whereis/:id", customBearerAuth);
 
     /**
-     * GET /v0/status/:id - Retrieves status for a tracking ID
+     * GET /v0/status/:id? - Retrieves the status for a given tracking ID
+     *
+     * This endpoint handles GET requests to retrieve the status of a shipment based on its tracking ID.
+     * It performs the following steps:
+     * 1. Parses the URL to extract the tracking ID and any query parameters.
+     * 2. Retrieves the status using the extracted information.
+     * 3. Returns the status as a JSON response or an error if one occurs.
+     *
+     * @param c - The Hono context object containing request and response information.
+     * @returns A Promise resolving to a Response object.
+     *   - If successful, returns a 200 status code with the shipment status as pretty-printed JSON.
+     *   - If an error occurs, returns an appropriate error response using the sendError method.
+     *
+     * Query Parameters:
+     *   - id: The tracking ID of the shipment (optional, can be part of the URL path)
+     *   - Additional carrier-specific parameters may be required (e.g., phonenum for sfex)
+     *
+     * Example usage:
+     *   GET /v0/status/fdx-123456789
+     *   GET /v0/status/sfex-987654321?phonenum=1234567890
      */
     app.get("/v0/status/:id?", async (c) => {
       const [error, trackingID, queryParams] = this.parseURL(c.req);
-      if (error != "") {
+      if (error) {
         return c.sendError(error);
       }
 
-      // query DB to get the status
       const status = await this.getStatus(
         trackingID as TrackingID,
-        queryParams as Record<string, string>,
+        queryParams as Record<string, string>
       );
-      if (typeof status == "string") {
+
+      if (typeof status === "string") {
         return c.sendError(status);
-      } else {
-        return c.body(JSON.stringify(status, null, 2), 200, {
-          "Content-Type": "application/json",
-        });
       }
+
+      return c.body(JSON.stringify(status, null, 2), 200, {
+        "Content-Type": "application/json",
+      });
     });
 
     /**
@@ -218,53 +241,66 @@ export class Server {
   }
 
   /**
-   * Retrieves status for a tracking ID from DB or carrier
-   * @param trackingID - The tracking ID object
-   * @param queryParams - Additional query parameters
-   * @returns Status object or undefined if not found
+   * Retrieves the status for a given tracking ID from the database or carrier.
+   * This function first attempts to fetch the status from the database. If not found,
+   * it requests the status from the data provider and updates the database accordingly.
+   *
+   * @param trackingID - The tracking ID object containing carrier and tracking number information.
+   * @param queryParams - Additional query parameters, which may include carrier-specific information.
+   * @returns A promise that resolves to:
+   *          - The last important status of the entity if found.
+   *          - An error code string if an error occurs (e.g., "400-03" for mismatched phone number).
+   *          - undefined if no status is found.
+   * @throws Will throw an error if there's an issue with database operations.
    */
   private async getStatus(
     trackingID: TrackingID,
     queryParams: Record<string, string>,
   ) {
     let client;
-    let status;
-    let result: Entity | string;
     try {
       client = await connect();
-      // try to load from database first
-      status = await queryStatus(client, trackingID);
-      if (status != undefined) {
-        return status;
+
+      // Try to get entity from database first
+      const entity = await queryEntity(client, trackingID);
+      if (entity) {
+        if (
+          trackingID.operator === "sfex" &&
+          entity.params?.phonenum !== queryParams.phonenum
+        ) {
+          return "400-03";
+        }
+        return entity.getLastStatus();
       }
 
-      result = await requestWhereIs(
-        trackingID,
-        queryParams,
-        "manual-pull",
-      );
+      // If not in database, request from data provider
+      const result = await requestWhereIs(trackingID, queryParams, "manual-pull");
 
       if (typeof result === "string") {
-        status = result;
-      } else if (result instanceof Entity) {
-        client.queryObject("BEGIN");
-        await insertEntity(client, result);
-        client.queryObject("COMMIT");
-        // get last status from DB
-        status = await queryStatus(client, trackingID);
+        return result; // Error code
       }
+
+      if (result instanceof Entity) {
+        await client.queryObject("BEGIN");
+        try {
+          await insertEntity(client, result);
+          await client.queryObject("COMMIT");
+        } catch (error) {
+          await client.queryObject("ROLLBACK");
+          throw error;
+        }
+        return result.getLastStatus();
+      }
+
+      return undefined; // No status found
     } catch (error) {
       logger.error(error);
-      if (client) {
-        client.queryObject("ROLLBACK");
-      }
+      return "500-01"; // Internal server error
     } finally {
       if (client) {
         client.release();
       }
     }
-
-    return status;
   }
 
   /**
@@ -288,6 +324,13 @@ export class Server {
         trackingID,
       );
       if (entityInDB !== undefined) {
+        if (
+          trackingID.operator === "sfex" &&
+          entityInDB.params &&
+          entityInDB.params["phonenum"] !== queryParams["phonenum"]
+        ) {
+          return "400-03";
+        }
         return entityInDB;
       }
 

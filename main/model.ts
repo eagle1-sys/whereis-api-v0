@@ -283,10 +283,10 @@ export class Entity {
         { destination: extra["destination"] }),
     };
     const entity = {
-      uuid: this.uuid,
       id: this.id,
       type: this.type,
-      creationTime: this.getCreationTime(),
+      uuid: this.uuid,
+      createdOn: this.getCreationTime(),
       additional: Object.keys(additional).length > 0 ? additional : undefined,
     };
 
@@ -363,6 +363,21 @@ export class Entity {
   }
 
   /**
+   * Retrieves the most recent important event (status ends in 50 or 100).
+   * @returns {Event | undefined} The last important event, or undefined if none exist.
+   */
+  public lastImportantEvent(): Event | undefined {
+    if (this.events === undefined) return undefined;
+
+    for (let i = this.events.length - 1; i >= 0; i--) {
+      const event = this.events[i];
+      if (event.status !== undefined && event.status % 50 === 0) {
+        return event;
+      }
+    }
+  }
+
+  /**
    * Checks if the object is completed (has a status of 3500).
    * @returns {boolean} True if completed, false otherwise.
    */
@@ -389,6 +404,33 @@ export class Entity {
 
     const when = this.events[0]?.when;
     return when ? when : "";
+  }
+
+  /**
+   * Retrieves the status details of the last event associated with this entity.
+   * 
+   * This method fetches the most recent event and extracts key information
+   * including the entity's ID, the event's status code, and the event description.
+   * 
+   * @returns {Record<string, unknown> | undefined} An object containing the status details of the last event, or undefined if no events exist.
+   *   The returned object has the following structure:
+   *   - id: The ID of the entity (string | undefined)
+   *   - status: The status code of the last event (number | undefined)
+   *   - what: The description of the last event (string | undefined)
+   */
+  public getLastStatus(): Record<string, unknown> | undefined {
+    const lastEvent = this.lastEvent();
+    if (!lastEvent) return undefined;
+
+    return {
+      id: this.id,
+      status: lastEvent.status,
+      what: lastEvent.what,
+      whom: lastEvent.whom,
+      when: lastEvent.when,
+      where: lastEvent.where,
+      notes: lastEvent.notes
+    };
   }
 
   /**
@@ -438,12 +480,12 @@ export class Event {
   /** Provider of the event data */
   dataProvider?: string;
 
-  /** Method of the last update */
-  lastUpdateMethod?: string;
-  /** Timestamp of the last update */
-  lastUpdateTime?: string;
-  /** Mode of transit for the event */
-  transitMode?: string;
+  // /** Method of the last update */
+  // updateMethod?: string;
+  // /** Timestamp of the last update */
+  // updatedOn?: string;
+  // /** Mode of transit for the event */
+  // transitMode?: string;
 
   /** Exception code if an error occurred */
   exceptionCode?: number;
@@ -470,19 +512,19 @@ export class Event {
     const result: Record<string, unknown> = {
       status: this.status,
       what: this.what,
+      whom: this.whom,
       when: this.when,
       where: this.where,
-      whom: this.whom,
+      ...(this.notes != null && { notes: this.notes }),
       additional: {
-        operatorCode: this.operatorCode,
         trackingNum: this.trackingNum,
-        ...(this.notes != null && { notes: this.notes }),
+        operatorCode: this.operatorCode,
         ...(this.dataProvider != null &&
           { dataProvider: this.dataProvider }),
-        ...(extra != null && ("lastUpdateMethod" in extra) &&
-          { lastUpdateMethod: extra["lastUpdateMethod"] }),
-        ...(extra != null && ("lastUpdateTime" in extra) &&
-          { lastUpdateTime: extra["lastUpdateTime"] }),
+        ...(extra != null && ("updateMethod" in extra) &&
+          { updateMethod: extra["updateMethod"] }),
+        ...(extra != null && ("updatedOn" in extra) &&
+          { updatedOn: extra["updatedOn"] }),
         ...(this.exceptionCode != null &&
           { exceptionCode: this.exceptionCode }),
         ...(this.exceptionDesc != null &&
