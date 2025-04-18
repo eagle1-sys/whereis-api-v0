@@ -12,7 +12,7 @@ import { connect } from "../db/dbutil.ts";
 import { deleteEntity, isTokenValid } from "../db/dbop.ts";
 import { requestWhereIs } from "./gateway.ts";
 import { Entity, ErrorRegistry, TrackingID } from "./model.ts";
-import { insertEntity, queryEntity, queryStatus } from "../db/dbop.ts";
+import { insertEntity, queryEntity } from "../db/dbop.ts";
 
 declare module "hono" {
   // noinspection JSUnusedGlobalSymbols
@@ -166,7 +166,7 @@ export class Server {
 
       const status = await this.getStatus(
         trackingID as TrackingID,
-        queryParams as Record<string, string>
+        queryParams as Record<string, string>,
       );
 
       if (typeof status === "string") {
@@ -174,7 +174,7 @@ export class Server {
       }
 
       return c.body(JSON.stringify(status, null, 2), 200, {
-        "Content-Type": "application/json",
+        "Content-Type": "application/json; charset=utf-8",
       });
     });
 
@@ -210,7 +210,9 @@ export class Server {
         return c.sendError(result);
       } else if (result instanceof Entity) {
         // send response
-        return c.json(result.toJSON(fullData));
+        return c.json(result.toJSON(fullData), 200, {
+          "Content-Type": "application/json; charset=utf-8",
+        });
       }
     });
 
@@ -274,7 +276,11 @@ export class Server {
       }
 
       // If not in database, request from data provider
-      const result = await requestWhereIs(trackingID, queryParams, "manual-pull");
+      const result = await requestWhereIs(
+        trackingID,
+        queryParams,
+        "manual-pull",
+      );
 
       if (typeof result === "string") {
         return result; // Error code
