@@ -33,7 +33,16 @@ export class Fdx {
     },
     IT: {
       DR: 3250, // In-Transit
-      DP: 3004, // Logistics In-Progress
+      DP: function (sourceData: Record<string, unknown>): number {
+        if (sourceData["locationType"] == "ORIGIN_FEDEX_FACILITY") {
+          return 3100; // Received by Carrier
+        } else if (
+          (sourceData["eventDescription"] as string).indexOf("Departed") >= 0
+        ) {
+          return 3250; // In-Transit
+        }
+        return 3001; // Logistics In-Progress
+      },
       AR: 3002, // Arrived
       IT: function (sourceData: Record<string, unknown>): number {
         const exceptionCode = sourceData["exceptionCode"];
@@ -92,9 +101,9 @@ export class Fdx {
     if (!statusMap) return 3001;
 
     const value = statusMap[eventType];
-    
+
     if (typeof value === "number") return value;
-    
+
     if (typeof value === "function") {
       const result = value(sourceData);
       return typeof result === "number" ? result : 3001;
