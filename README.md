@@ -28,10 +28,11 @@ const response = await fetch(url, {
 ```JSON
 {
   "entity": {
-    "uuid": "eg1_7e3f6f06-2710-4225-8067-62bebfc4e45c",
+
     "id": "fdx-123456",
-    "type": "waybill",
-    "creationTime": "2024-11-11T14:16:48-06:00",
+    "type": "waybill", 
+    "uuid": "eg1_7e3f6f06-2710-4225-8067-62bebfc4e45c",
+    "createdOn": "2024-11-11T14:16:48-06:00",
     "additional": {
       "origin": "San Francisco CA United States",
       "destination": "CENTRAL  Hong Kong SAR, China"
@@ -41,16 +42,16 @@ const response = await fetch(url, {
     {
       "status": 3000,
       "what": "Transport Bill Created",
-      "when": "2024-11-11T14:16:48-06:00",
-      "where": "Customer location",
       "whom": "FedEx",
+      "when": "2024-11-11T14:16:48-06:00",
+      "where": "Customer location", 
+      "notes": "Shipment information sent to FedEx",
       "additional": {
-        "operatorCode": "fdx",
         "trackingNum": "779879860040",
-        "notes": "Shipment information sent to FedEx",
+        "operatorCode": "fdx",
         "dataProvider": "FedEx",
-        "lastUpdateMethod": "manual-pull",
-        "lastUpdateTime": "2025-02-20T12:23:43.892Z"
+        "updateMethod": "manual-pull",
+        "updatedOn": "2025-02-20T12:23:43.892Z"
       }
     }
   ]
@@ -76,8 +77,12 @@ const response = await fetch(url, {
 ```json
 {
   "id": "fdx-123456",
-  "status": 3500,
-  "what": "Delivered"
+  "status": 3000,
+  "what": "Transport Bill Created",
+  "whom": "FedEx",
+  "when": "2024-11-11T14:16:48-06:00",
+  "where": "Customer location",
+  "notes": "Shipment information sent to FedEx"   
 }
 ```
 
