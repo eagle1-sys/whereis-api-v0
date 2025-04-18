@@ -10,17 +10,19 @@ Since different logistics providers have their own data formats and APIs, integr
 
 ### CURL
 ```shell
-curl https://api.eg1.io/v0/whereis/fdx-123456 -H "Authorization: Bearer YOUR-TOKEN"
+curl https://api.eg1.io/v0/whereis/{{trackingID}} -H "Authorization: Bearer YOUR-TOKEN"
 ```
+
+> ***{{trackingID}}*** is defined as `operatorCode-trackingNum`. For example, a FedEx trackingID: fdx-888877776666
 
 ### TypeScript
 ```TypeScript
-const url = 'https://api.eg1.io/v0/whereis/fdx-123456'
+const url = "https://api.eg1.io/v0/whereis/{{trackingID}}";
 const response = await fetch(url, {
-    method: "GET",
-    headers: {
-            "Authorization": "Bearer YOUR-TOKEN"
-    },
+  method: "GET",
+  headers: {
+    Authorization: "Bearer YOUR-TOKEN",
+  },
 });
 ```
 
@@ -28,33 +30,30 @@ const response = await fetch(url, {
 ```JSON
 {
   "entity": {
-
-    "id": "fdx-123456",
-    "type": "waybill", 
-    "uuid": "eg1_7e3f6f06-2710-4225-8067-62bebfc4e45c",
+    "id": "fdx-888877776666",
+    "type": "waybill",
+    "uuid": "eg1_7e3f6f06-2710-4225-8067-62bebfc4x45c",
     "createdOn": "2024-11-11T14:16:48-06:00",
     "additional": {
       "origin": "San Francisco CA United States",
       "destination": "CENTRAL  Hong Kong SAR, China"
     }
   },
-  "events": [
-    {
-      "status": 3000,
-      "what": "Transport Bill Created",
-      "whom": "FedEx",
-      "when": "2024-11-11T14:16:48-06:00",
-      "where": "Customer location", 
-      "notes": "Shipment information sent to FedEx",
-      "additional": {
-        "trackingNum": "779879860040",
-        "operatorCode": "fdx",
-        "dataProvider": "FedEx",
-        "updateMethod": "manual-pull",
-        "updatedOn": "2025-02-20T12:23:43.892Z"
-      }
+  "events": [{
+    "status": 3000,
+    "what": "Transport Bill Created",
+    "whom": "FedEx",
+    "when": "2024-11-11T14:16:48-06:00",
+    "where": "Customer location",
+    "notes": "Shipment information sent to FedEx",
+    "additional": {
+      "trackingNum": "888877776666",
+      "operatorCode": "fdx",
+      "dataProvider": "FedEx",
+      "updateMethod": "manual-pull",
+      "updatedOn": "2025-02-20T12:23:43.892Z"
     }
-  ]
+  }]
 }
 ```
 
@@ -62,21 +61,21 @@ const response = await fetch(url, {
 
 ### CURL
 ```shell
-curl https://api.eg1.io/v0/status/fdx-123456
+curl https://api.eg1.io/v0/status/{{trackingID}}
 ```
 
 ### TypeScript
 ```TypeScript
-const url = 'https://api.eg1.io/v0/status/fdx-123456'
+const url = 'https://api.eg1.io/v0/status/{{trackingID}}';
 const response = await fetch(url, {
-    method: "GET"
+  method: "GET"
 });
 ```
 
 ### Response
 ```json
 {
-  "id": "fdx-123456",
+  "id": "fdx-888877776666",
   "status": 3000,
   "what": "Transport Bill Created",
   "whom": "FedEx",
