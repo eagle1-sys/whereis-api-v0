@@ -65,7 +65,14 @@ export class Fdx {
       RR: 3450, // Delivery option requested
     },
     CD: {
-      CD: 3150, // Clearance delay - Import
+      CD : function (sourceData: Record<string, unknown>): number | undefined {
+        const desc = sourceData["eventDescription"] as string;
+        if (desc.indexOf("Import") > 0) {
+          return 3350; // Customs Clearance: Import In-Progress
+        } else {
+          return 3150; // Customs Clearance: Export In-Progress
+        }
+      }
     },
     PU: {
       PU: 3050, // Picked up
