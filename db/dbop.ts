@@ -9,7 +9,6 @@
 
 import { PoolClient } from "https://deno.land/x/postgres@v0.19.3/mod.ts";
 import { Entity, Event, TrackingID } from "../main/model.ts";
-import { logger } from "../tools/logger.ts";
 
 /**
  * Insert object and events into table
@@ -43,11 +42,8 @@ export async function insertEntity(
 
   if (result.rowCount == 1 && entity.events != undefined) {
     for (const event of entity.events) {
-      try {
-        await insertEvent(client, event);
-      } catch (e) {
-        logger.error(e);
-      }
+      // raise exception if any error occurs during event insertion
+      await insertEvent(client, event);
     }
   }
 

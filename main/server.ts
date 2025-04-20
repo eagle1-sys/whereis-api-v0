@@ -280,7 +280,7 @@ export class Server {
         trackingID,
         queryParams,
         "manual-pull",
-      );
+      ) || "404-01"; // Not found
 
       if (typeof result === "string") {
         return result; // Error code
@@ -293,6 +293,7 @@ export class Server {
           await client.queryObject("COMMIT");
         } catch (error) {
           await client.queryObject("ROLLBACK");
+          logger.error(`error occured during insert trackingNum ` + trackingID.toString());
           throw error;
         }
         return result.getLastStatus();
