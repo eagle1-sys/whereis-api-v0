@@ -36,14 +36,22 @@ export class Fdx {
       DP: function (sourceData: Record<string, unknown>): number {
         if (sourceData["locationType"] == "ORIGIN_FEDEX_FACILITY") {
           return 3100; // Received by Carrier
-        } else if (
-          (sourceData["eventDescription"] as string).indexOf("Departed") >= 0
-        ) {
+        } else if (/departed/i.test(sourceData["eventDescription"] as string)) {
           return 3250; // In-Transit
         }
         return 3001; // Logistics In-Progress
       },
-      AR: 3002, // Arrived
+      AR: function (
+        sourceData: Record<string, unknown>,
+      ): number {
+        const locationType = sourceData["locationType"] as string;
+        const locationTypeMap: { [key: string]: number } = {
+          "FEDEX_FACILITY": 3100, // Received by Carrier
+          "SORT_FACILITY": 3300,  // At destination sort facility
+          "DESTINATION_FEDEX_FACILITY": 3300 // At local FedEx facility
+        };
+        return locationTypeMap[locationType] ?? 3002; // Arrived, In-Transit (default)
+      },
       IT: function (sourceData: Record<string, unknown>): number {
         const exceptionCode = sourceData["exceptionCode"];
         if (exceptionCode == "67") {
@@ -55,9 +63,9 @@ export class Fdx {
       AF: 3001, // Logistics In-Progress
       CC: function (sourceData: Record<string, unknown>): number | undefined {
         const desc = sourceData["eventDescription"] as string;
-        if (desc.indexOf("Export") > 0) {
+        if (/export/i.test(desc)) {
           return 3200; // Customs Clearance: Export Released
-        } else if (desc.indexOf("Import") > 0) {
+        } else if (/import/i.test(desc)) {
           return 3400; // Customs Clearance: Import Released
         }
       },
@@ -67,12 +75,12 @@ export class Fdx {
     CD: {
       CD: function (sourceData: Record<string, unknown>): number | undefined {
         const desc = sourceData["eventDescription"] as string;
-        if (desc.indexOf("Import") > 0) {
+        if (/import/i.test(desc)) {
           return 3350; // Customs Clearance: Import In-Progress
         } else {
           return 3150; // Customs Clearance: Export In-Progress
         }
-      }
+      },
     },
     PU: {
       PU: 3050, // Picked up
