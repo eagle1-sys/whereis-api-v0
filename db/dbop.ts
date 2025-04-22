@@ -192,6 +192,7 @@ export async function queryEntity(
   }
 
   if (entity != undefined) {
+    // query events from database
     entity.events = await queryEvents(client, trackingID);
   }
   return entity;
@@ -264,8 +265,7 @@ async function queryEvents(
                data_provider
         FROM events
         WHERE operator_code = ${trackingID.operator}
-          AND tracking_num = ${trackingID.trackingNum}
-        ORDER BY when_;
+          AND tracking_num = ${trackingID.trackingNum};
     `;
 
   for (const row of result.rows) {

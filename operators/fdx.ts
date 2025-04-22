@@ -5,7 +5,6 @@
  *              and convert FedEx tracking data into an internal format with associated events.
  */
 
-import { logger } from "../tools/logger.ts";
 import { jsonToMd5 } from "../tools/util.ts";
 import {
   Entity,
@@ -13,6 +12,7 @@ import {
   ExceptionCode,
   StatusCode,
   TrackingID,
+  UserError,
 } from "../main/model.ts";
 
 /**
@@ -34,21 +34,26 @@ export class Fdx {
     IT: {
       DR: 3250, // In-Transit
       DP: function (sourceData: Record<string, unknown>): number {
-        if (sourceData["locationType"] == "ORIGIN_FEDEX_FACILITY") {
+        const locationType = sourceData.locationType as string;
+        const eventDescription = sourceData.eventDescription as string;
+
+        if (locationType === "ORIGIN_FEDEX_FACILITY") {
           return 3100; // Received by Carrier
-        } else if (/departed/i.test(sourceData["eventDescription"] as string)) {
+        }
+
+        if (/Departed FedEx hub/i.test(eventDescription)) {
           return 3250; // In-Transit
         }
-        return 3001; // Logistics In-Progress
+
+        return 3004; // Departed, In-Transit
       },
-      AR: function (
-        sourceData: Record<string, unknown>,
-      ): number {
+      AR: function (sourceData: Record<string, unknown>): number {
         const locationType = sourceData["locationType"] as string;
         const locationTypeMap: { [key: string]: number } = {
           "FEDEX_FACILITY": 3100, // Received by Carrier
-          "SORT_FACILITY": 3300,  // At destination sort facility
-          "DESTINATION_FEDEX_FACILITY": 3300 // At local FedEx facility
+          "ORIGIN_FEDEX_FACILITY": 3100, // Received by Carrier (just in case)
+          "SORT_FACILITY": 3300, // At destination sort facility
+          "DESTINATION_FEDEX_FACILITY": 3300, // At local FedEx facility
         };
         return locationTypeMap[locationType] ?? 3002; // Arrived, In-Transit (default)
       },
@@ -63,9 +68,9 @@ export class Fdx {
       AF: 3001, // Logistics In-Progress
       CC: function (sourceData: Record<string, unknown>): number | undefined {
         const desc = sourceData["eventDescription"] as string;
-        if (/export/i.test(desc)) {
+        if (/Export/i.test(desc)) {
           return 3200; // Customs Clearance: Export Released
-        } else if (/import/i.test(desc)) {
+        } else if (/Import/i.test(desc)) {
           return 3400; // Customs Clearance: Import Released
         }
       },
@@ -75,7 +80,7 @@ export class Fdx {
     CD: {
       CD: function (sourceData: Record<string, unknown>): number | undefined {
         const desc = sourceData["eventDescription"] as string;
-        if (/import/i.test(desc)) {
+        if (/Import/i.test(desc)) {
           return 3350; // Customs Clearance: Import In-Progress
         } else {
           return 3150; // Customs Clearance: Export In-Progress
@@ -183,10 +188,16 @@ export class Fdx {
   static async whereIs(
     trackingId: TrackingID,
     updateMethod: string,
-  ): Promise<Entity | string> {
+  ): Promise<Entity> {
     const trackingNum: string = trackingId.trackingNum;
-    const result = await this.getRoute(trackingNum);
-    if (result === undefined) return "404-01";
+    const result: Record<string, any> = await this.getRoute(trackingNum);
+    if (
+      result["output"]["completeTrackResults"][0]["trackResults"][0][
+        "error"
+      ] !== undefined
+    ) {
+      throw new UserError("404-01");
+    }
 
     return await this.convert(trackingId, result, updateMethod);
   }
@@ -241,38 +252,33 @@ export class Fdx {
   static async getRoute(
     trackingNumber: string,
   ): Promise<Record<string, unknown>> {
-    try {
-      // Prepare the request payload
-      const payload = {
-        "includeDetailedScans": true,
-        "trackingInfo": [
-          {
-            "trackingNumberInfo": {
-              "trackingNumber": trackingNumber,
-            },
+    // Prepare the request payload
+    const payload = {
+      "includeDetailedScans": true,
+      "trackingInfo": [
+        {
+          "trackingNumberInfo": {
+            "trackingNumber": trackingNumber,
           },
-        ],
-      };
-
-      // Send the API request
-      const token = await this.getToken();
-      const FedEx_Track_API_URL: string = Deno.env.get("FedEx_Track_API_URL") ??
-        "";
-      const response = await fetch(FedEx_Track_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-locale": "en_US",
-          "Authorization": "Bearer " + token,
         },
-        body: JSON.stringify(payload),
-      });
+      ],
+    };
 
-      return await response.json();
-    } catch (error) {
-      logger.error("Error fetching shipment details:", error);
-      throw error;
-    }
+    // Send the API request
+    const token = await this.getToken();
+    const FedEx_Track_API_URL: string = Deno.env.get("FedEx_Track_API_URL") ??
+      "";
+    const response = await fetch(FedEx_Track_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-locale": "en_US",
+        "Authorization": "Bearer " + token,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    return await response.json();
   }
 
   /**
@@ -314,10 +320,11 @@ export class Fdx {
       ),
     };
 
-    const scanEvents = trackResult["scanEvents"] as [unknown];
+    const scanEvents = trackResult["scanEvents"] as [];
     for (let i = scanEvents.length - 1; i >= 0; i--) {
       const event = new Event();
       const scanEvent = scanEvents[i] as Record<string, unknown>;
+
       const fdxStatusCode = scanEvent["derivedStatusCode"] as string;
       const fdxEventType = scanEvent["eventType"] as string;
       const eagle1status: number = Fdx.getStatusCode(
@@ -325,12 +332,14 @@ export class Fdx {
         fdxEventType,
         scanEvent,
       );
+      // Add trackingNum to scanEvent for universal eventId generation
+      scanEvent["trackingNum"] = trackingId.trackingNum;
       const eventId = "ev_" + await jsonToMd5(scanEvent);
       if (entity.isEventIdExist(eventId)) continue;
 
       event.eventId = eventId;
       event.operatorCode = "fdx";
-      event.trackingNum = completeTrackResult["trackingNumber"] as string;
+      event.trackingNum = trackingId.trackingNum;
       event.status = eagle1status;
       event.what = StatusCode.getDesc(eagle1status);
       event.when = scanEvent["date"] as string;

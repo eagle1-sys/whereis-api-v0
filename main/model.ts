@@ -189,31 +189,25 @@ export class TrackingID {
    * @param {string} strTrackingID - The tracking ID string to parse (e.g., "fdx-123456789012").
    * @returns [string, TrackingID] An array containing an error code (if any) and the parsed TrackingID object (or undefined).
    */
-  static parse(strTrackingID: string): [string, TrackingID | undefined] {
+  static parse(strTrackingID: string): TrackingID {
     const array = strTrackingID.split("-");
     if ("" == strTrackingID.trim()) {
-      return ["400-01", undefined];
+      throw new UserError("400-01");
     } else if (array.length != 2) {
-      return ["400-05", undefined];
+      throw new UserError("400-05");
     } else {
       const operator: string = array[0];
       const trackingNum: string = array[1];
       if (!this.operators.includes(operator)) {
-        return ["400-04", undefined];
+        throw new UserError("400-04");
       }
       if ("fdx" == operator) {
-        const errorCode = this.checkFedExTrackingNum(trackingNum);
-        if (errorCode != undefined) {
-          return [errorCode, undefined];
-        }
+        this.checkFedExTrackingNum(trackingNum);
       }
       if ("sfex" == operator) {
-        const errorCode = this.checkSFTrackingNum(trackingNum);
-        if (errorCode != undefined) {
-          return [errorCode, undefined];
-        }
+        this.checkSFTrackingNum(trackingNum);
       }
-      return ["", new TrackingID(operator, trackingNum)];
+      return new TrackingID(operator, trackingNum);
     }
   }
 
@@ -222,11 +216,10 @@ export class TrackingID {
    * @param {string} trackingNum - The tracking number to validate.
    * @returns {string | undefined} An error code if invalid (e.g., "400-02"), or undefined if valid.
    */
-  static checkFedExTrackingNum(trackingNum: string): string | undefined {
+  static checkFedExTrackingNum(trackingNum: string): void {
     if (trackingNum.length != 12) {
-      return "400-02";
+      throw new UserError("400-02");
     }
-    return undefined;
   }
 
   /**
@@ -234,11 +227,10 @@ export class TrackingID {
    * @param {string} trackingNum - The tracking number to validate.
    * @returns {string | undefined} An error code if invalid (e.g., "400-02"), or undefined if valid.
    */
-  static checkSFTrackingNum(trackingNum: string): string | undefined {
+  static checkSFTrackingNum(trackingNum: string): void {
     if (trackingNum.length != 15 || !trackingNum.startsWith("SF")) {
-      return "400-02";
+      throw new UserError("400-02");
     }
-    return undefined;
   }
 }
 
@@ -289,7 +281,7 @@ export class Entity {
     const additional: Record<string, unknown> = {};
 
     // Add origin and destination if they exist in extra
-    ['origin', 'destination'].forEach(key => {
+    ["origin", "destination"].forEach((key) => {
       if (key in extra) additional[key] = extra[key];
     });
 
@@ -301,7 +293,14 @@ export class Entity {
       ...(Object.keys(additional).length > 0 && { additional }),
     };
 
-    const events = this.events?.map(event => event.toJSON(fullData)) || [];
+    if (this.events) {
+      this.events.sort((a, b) => {
+        const dateA = a.when ? new Date(a.when).getTime() : 0;
+        const dateB = b.when ? new Date(b.when).getTime() : 0;
+        return dateA - dateB;
+      });
+    }
+    const events = this.events?.map((event) => event.toJSON(fullData)) || [];
 
     return { entity, events };
   }
@@ -331,6 +330,13 @@ export class Entity {
    */
   public lastEvent(): Event | undefined {
     if (this.events === undefined) return undefined;
+
+    // sort the events by "when" in ascending order
+    this.events.sort((a, b) => {
+      const dateA = a.when ? new Date(a.when).getTime() : 0;
+      const dateB = b.when ? new Date(b.when).getTime() : 0;
+      return dateA - dateB;
+    });
 
     return this.events[this.events.length - 1];
   }
@@ -411,10 +417,10 @@ export class Entity {
 
   /**
    * Retrieves the status details of the last event associated with this entity.
-   * 
+   *
    * This method fetches the most recent event and extracts key information
    * including the entity's ID, the event's status code, and the event description.
-   * 
+   *
    * @returns {Record<string, unknown> | undefined} An object containing the status details of the last event, or undefined if no events exist.
    *   The returned object has the following structure:
    *   - id: The ID of the entity (string | undefined)
@@ -432,7 +438,7 @@ export class Entity {
       whom: lastEvent.whom,
       when: lastEvent.when,
       where: lastEvent.where,
-      notes: lastEvent.notes
+      notes: lastEvent.notes,
     };
   }
 
@@ -469,7 +475,7 @@ export class Event {
   /** Code of the operator responsible for the event */
   operatorCode?: string;
   /** Status code of the event */
-  status?: number;
+  status: number;
   /** Description of the event */
   what?: string;
   /** Timestamp of when the event occurred */
@@ -499,6 +505,7 @@ export class Event {
   sourceData: Record<string, unknown>;
 
   constructor() {
+    this.status = -1;
     this.extra = {};
     this.sourceData = {};
   }
@@ -522,15 +529,23 @@ export class Event {
     const additional: Record<string, unknown> = {
       trackingNum: this.trackingNum,
       operatorCode: this.operatorCode,
-      dataProvider : this.dataProvider,
+      dataProvider: this.dataProvider,
       updateMethod: this.extra?.updateMethod,
-      updatedOn : this.extra?.updatedOn
+      updatedOn: this.extra?.updatedOn,
     };
 
-    if (this.exceptionCode != null) additional.exceptionCode = this.exceptionCode;
-    if (this.exceptionDesc != null) additional.exceptionDesc = this.exceptionDesc;
-    if (this.notificationCode != null) additional.notificationCode = this.notificationCode;
-    if (this.notificationDesc != null) additional.notificationDesc = this.notificationDesc;
+    if (this.exceptionCode != null) {
+      additional.exceptionCode = this.exceptionCode;
+    }
+    if (this.exceptionDesc != null) {
+      additional.exceptionDesc = this.exceptionDesc;
+    }
+    if (this.notificationCode != null) {
+      additional.notificationCode = this.notificationCode;
+    }
+    if (this.notificationDesc != null) {
+      additional.notificationDesc = this.notificationDesc;
+    }
 
     if (this.extra != null && "transitMode" in this.extra) {
       additional.transitMode = this.extra.transitMode;
@@ -543,5 +558,13 @@ export class Event {
     }
 
     return result;
+  }
+}
+
+export class UserError extends Error {
+  code: string;
+  constructor(code: string) {
+    super(ErrorRegistry.getMessage(code));
+    this.code = code;
   }
 }

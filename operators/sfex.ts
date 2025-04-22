@@ -5,9 +5,8 @@
  * and convert them into a structured object with associated `Event` details.
  */
 
-import { logger } from "../tools/logger.ts";
 import { jsonToMd5 } from "../tools/util.ts";
-import { Entity, Event, StatusCode, TrackingID } from "../main/model.ts";
+import {Entity, Event, StatusCode, TrackingID, UserError} from "../main/model.ts";
 import { crypto } from "https://deno.land/std@0.224.0/crypto/crypto.ts";
 
 /**
@@ -43,7 +42,7 @@ export class Sfex {
     },
     "205": function (sourceData: Record<string, unknown>): number {
       const secondaryStatusName = sourceData["secondaryStatusName"] as string;
-      if (secondaryStatusName.indexOf("已清关") >= 0) {
+      if (secondaryStatusName.indexOf("已清关") !== -1) {
         return 3400; // Customs Clearance: Import Released
       } else {
         return 3001; // Logistics In-Progress
@@ -51,7 +50,7 @@ export class Sfex {
     },
     "301": function (sourceData: Record<string, unknown>): number {
       const secondaryStatusName = sourceData["secondaryStatusName"] as string;
-      if (secondaryStatusName.indexOf("派送中") >= 0) {
+      if (secondaryStatusName.indexOf("派送中") !== -1) {
         return 3450; // Final Delivery In-Progress
       }
       return 3001; // Logistics In-Progress
@@ -111,19 +110,15 @@ export class Sfex {
     trackingId: TrackingID,
     extraParams: Record<string, string>,
     updateMethod: string,
-  ): Promise<Entity | string> {
+  ): Promise<Entity> {
     const result = await this.getRoute(
       trackingId.trackingNum,
       extraParams["phonenum"],
     );
 
-    if (result === undefined) {
-      return "404-01";
-    }
-
     const resultCode = result["apiResultCode"] as string;
     if (resultCode != "A1000") {
-      return resultCode;
+      throw new Error(resultCode);
     }
 
     return await this.convert(
@@ -174,26 +169,25 @@ export class Sfex {
     const SF_EXPRESS_API_URL = Deno.env.get("SF_EXPRESS_API_URL") ?? "";
     const SF_Express_PartnerID = Deno.env.get("SF_EXPRESS_PartnerID") ?? "";
     const SF_Express_CheckWord = Deno.env.get("SF_EXPRESS_CheckWord") ?? "";
-    try {
-      const msgData = {
-        trackingType: 1,
-        trackingNumber: trackingNumber,
-        checkPhoneNo: phoneNo,
-      };
-      const timestamp = Date.now();
-      const msgString = JSON.stringify(msgData);
-      const msgDigest = await Sfex.generateSignature(
+    const msgData = {
+      trackingType: 1,
+      trackingNumber: trackingNumber,
+      checkPhoneNo: phoneNo,
+    };
+    const timestamp = Date.now();
+    const msgString = JSON.stringify(msgData);
+    const msgDigest = await Sfex.generateSignature(
         msgString,
         timestamp,
         SF_Express_CheckWord,
-      );
+    );
 
-      const response = await fetch(SF_EXPRESS_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams(
+    const response = await fetch(SF_EXPRESS_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams(
           {
             partnerID: SF_Express_PartnerID,
             requestID: crypto.randomUUID(),
@@ -202,13 +196,9 @@ export class Sfex {
             msgDigest: msgDigest,
             msgData: msgString,
           },
-        ),
-      });
-      return await response.json();
-    } catch (error) {
-      logger.error("Error fetching shipment details:", error);
-      throw error;
-    }
+      ),
+    });
+    return await response.json();
   }
 
   /**
@@ -227,12 +217,12 @@ export class Sfex {
     result: Record<string, unknown>,
     params: Record<string, string>,
     updateMethod: string,
-  ): Promise<Entity | string> {
+  ): Promise<Entity> {
     const apiResult = JSON.parse(result["apiResultData"] as string);
     const routeResp = apiResult["msgData"]["routeResps"][0];
     const routes: [] = routeResp["routes"];
     if (routes.length == 0) {
-      return "404-01";
+      throw new UserError("404-01");
     }
 
     const entity: Entity = new Entity();
@@ -241,10 +231,6 @@ export class Sfex {
     entity.type = "waybill";
     entity.params = params;
     entity.extra = {};
-    routes.sort((a, b) =>
-      new Date(a["acceptTime"]).getTime() -
-      new Date(b["acceptTime"]).getTime()
-    );
     for (let i = 0; i < routes.length; i++) {
       const route = routes[i];
 

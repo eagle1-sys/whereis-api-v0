@@ -33,10 +33,7 @@ export async function syncRoutes() {
     client.queryObject("BEGIN");
     // for (const inProcessTrackingNum of inProcessTrackingNums) {
     for (const [id, params] of Object.entries(inProcessTrackingNums)) {
-      const [_error, trackingID] = TrackingID.parse(id);
-      if (trackingID === undefined) {
-        continue;
-      }
+      const trackingID = TrackingID.parse(id);
 
       const entity: Entity | string = await requestWhereIs(
         trackingID,

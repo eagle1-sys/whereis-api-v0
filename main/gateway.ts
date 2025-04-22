@@ -22,18 +22,24 @@ export async function requestWhereIs(
     trackingId: TrackingID,
     extraParams: Record<string, string>,
     updateMethod: string,
-): Promise<Entity | string> {
+): Promise<Entity | undefined> {
+    let entity: Entity | undefined;
     switch (trackingId.operator) {
         case "sfex":
-            return await Sfex.whereIs(
+            entity = await Sfex.whereIs(
                 trackingId,
                 extraParams,
                 updateMethod,
             );
+            break;
         case "fdx":
-            return await Fdx.whereIs(trackingId, updateMethod);
+            entity = await Fdx.whereIs(trackingId, updateMethod);
+            break
     }
-    return "";
+    if(entity!==undefined) {
+
+    }
+    return entity;
 }
 
 

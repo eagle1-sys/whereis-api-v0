@@ -11,7 +11,7 @@ import { logger } from "../tools/logger.ts";
 import { connect } from "../db/dbutil.ts";
 import { deleteEntity, isTokenValid } from "../db/dbop.ts";
 import { requestWhereIs } from "./gateway.ts";
-import { Entity, ErrorRegistry, TrackingID } from "./model.ts";
+import { Entity, ErrorRegistry, TrackingID, UserError } from "./model.ts";
 import { insertEntity, queryEntity } from "../db/dbop.ts";
 
 declare module "hono" {
@@ -51,8 +51,6 @@ export class Server {
     try {
       client = await connect();
       isValidToken = await isTokenValid(client, token);
-    } catch (error) {
-      logger.error(error);
     } finally {
       if (client) {
         client.release();
@@ -88,13 +86,13 @@ export class Server {
     const customBearerAuth = async (c: Context, next: Next) => {
       const authHeader = c.req.header("Authorization");
       if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return c.sendError("401-01");
+        throw new UserError("401-01");
       }
 
       const token = authHeader.split(" ")[1];
       const isValidToken = await this.verifyToken(token); // verify the token
       if (!isValidToken) {
-        return c.sendError("401-02");
+        throw new UserError("401-02");
       }
 
       // if token is valid
@@ -129,7 +127,7 @@ export class Server {
         url.pathname.endsWith("/status/") ||
         url.pathname.endsWith("/status")
       ) {
-        return c.sendError("400-01");
+        throw new UserError("400-01");
       }
       await next();
     });
@@ -159,19 +157,12 @@ export class Server {
      *   GET /v0/status/sfex-987654321?phonenum=1234567890
      */
     app.get("/v0/status/:id?", async (c) => {
-      const [error, trackingID, queryParams] = this.parseURL(c.req);
-      if (error) {
-        return c.sendError(error);
-      }
+      const [trackingID, queryParams] = this.parseURL(c.req);
 
       const status = await this.getStatus(
         trackingID as TrackingID,
         queryParams as Record<string, string>,
       );
-
-      if (typeof status === "string") {
-        return c.sendError(status);
-      }
 
       return c.body(JSON.stringify(status, null, 2), 200, {
         "Content-Type": "application/json; charset=utf-8",
@@ -183,13 +174,10 @@ export class Server {
      * Requires Bearer token authentication
      */
     app.get("/v0/whereis/:id", async (c) => {
-      const [error, trackingID, queryParams] = this.parseURL(c.req);
-      if (error != "") {
-        return c.sendError(error);
-      }
+      const [trackingID, queryParams] = this.parseURL(c.req);
 
       // get the full url string
-      let result: Entity | string;
+      let result: Entity | undefined;
       const refresh: boolean = "true" == c.req.query("refresh");
       const fullData: boolean = "true" == c.req.query("fulldata");
       if (refresh) {
@@ -225,21 +213,19 @@ export class Server {
 
     // error handling
     app.onError((err, c) => {
-      logger.error("Internal Server Error:", err);
-      return c.json({
-        message: "Internal Server Error",
-        error: err.message,
-      }, 500);
+      if (err instanceof UserError) {
+        return c.sendError((err as UserError).code);
+      } else {
+        logger.error(`${c.req.url}`);
+        logger.error(err);
+        return c.json({
+          message: "Internal Server Error",
+          code: "500",
+        }, 500);
+      }
     });
 
     Deno.serve({ port: this.port }, app.fetch);
-  }
-
-  /**
-   * Stops the server (currently just logs message)
-   */
-  stop(): void {
-    console.log(`Server is stopping...`);
   }
 
   /**
@@ -258,7 +244,7 @@ export class Server {
   private async getStatus(
     trackingID: TrackingID,
     queryParams: Record<string, string>,
-  ) {
+  ):Promise<Record<string, unknown> | undefined>  {
     let client;
     try {
       client = await connect();
@@ -270,7 +256,7 @@ export class Server {
           trackingID.operator === "sfex" &&
           entity.params?.phonenum !== queryParams.phonenum
         ) {
-          return "400-03";
+          throw new UserError("400-03");
         }
         return entity.getLastStatus();
       }
@@ -280,29 +266,21 @@ export class Server {
         trackingID,
         queryParams,
         "manual-pull",
-      ) || "404-01"; // Not found
+      );
 
-      if (typeof result === "string") {
-        return result; // Error code
+      if (result === undefined) {
+        throw new UserError("404-01"); // Not found in data provider
       }
 
-      if (result instanceof Entity) {
+      try {
         await client.queryObject("BEGIN");
-        try {
-          await insertEntity(client, result);
-          await client.queryObject("COMMIT");
-        } catch (error) {
-          await client.queryObject("ROLLBACK");
-          logger.error(`error occured during insert trackingNum ` + trackingID.toString());
-          throw error;
-        }
-        return result.getLastStatus();
+        await insertEntity(client, result);
+        await client.queryObject("COMMIT");
+      } catch (error) {
+        await client.queryObject("ROLLBACK");
+        throw error;
       }
-
-      return undefined; // No status found
-    } catch (error) {
-      logger.error(error);
-      return "500-01"; // Internal server error
+      return result.getLastStatus();
     } finally {
       if (client) {
         client.release();
@@ -321,7 +299,7 @@ export class Server {
     queryParams: Record<string, string>,
   ) {
     let client;
-    let entity: Entity | string = "";
+    let entity: Entity | undefined;
     try {
       client = await connect();
 
@@ -336,7 +314,7 @@ export class Server {
           entityInDB.params &&
           entityInDB.params["phonenum"] !== queryParams["phonenum"]
         ) {
-          return "400-03";
+          throw new UserError("400-03");
         }
         return entityInDB;
       }
@@ -347,14 +325,14 @@ export class Server {
         "manual-pull",
       );
       if (entity instanceof Entity) {
-        client.queryObject("BEGIN");
-        await insertEntity(client, entity);
-        client.queryObject("COMMIT");
-      }
-    } catch (error) {
-      logger.error(error);
-      if (client) {
-        client.queryObject("ROLLBACK");
+        try {
+          client.queryObject("BEGIN");
+          await insertEntity(client, entity);
+          client.queryObject("COMMIT");
+        } catch (err) {
+          client.queryObject("ROLLBACK");
+          throw err;
+        }
       }
     } finally {
       if (client) {
@@ -375,33 +353,32 @@ export class Server {
     queryParams: Record<string, string>,
   ) {
     // load from carrier
-    const entity: Entity | string = await requestWhereIs(
+    const entity: Entity | undefined = await requestWhereIs(
       trackingID,
       queryParams,
       "manual-pull",
     );
 
     // The refresh has failed to receive data from the data provider.
-    if (typeof entity === "string") {
-      return "404-03";
+    if (entity === undefined) {
+      throw new UserError("404-03");
     }
 
     // update to database
     let client;
     try {
       client = await connect();
+      client.queryObject("BEGIN");
       // step 1: delete the existing record first
       await deleteEntity(client, trackingID);
-
       // step 2: insert into database
-      client.queryObject("BEGIN");
       await insertEntity(client, entity);
       client.queryObject("COMMIT");
     } catch (error) {
-      logger.error(error);
       if (client) {
         client.queryObject("ROLLBACK");
       }
+      throw error;
     } finally {
       if (client) {
         client.release();
@@ -422,13 +399,10 @@ export class Server {
    */
   private parseURL(
     req: HonoRequest,
-  ): [string, TrackingID | undefined, Record<string, string> | undefined] {
+  ): [TrackingID, Record<string, string>] {
     // Carrier-TrackingNumber
     const id = req.param("id") ?? "";
-    const [error, trackingID] = TrackingID.parse(id);
-    if (trackingID == undefined) {
-      return [error, undefined, undefined];
-    }
+    const trackingID = TrackingID.parse(id);
 
     const queryParams = this.getExtraParams(
       req,
@@ -438,11 +412,11 @@ export class Server {
     if (trackingID.operator == "sfex") {
       const phoneNum = queryParams["phonenum"];
       if (phoneNum == undefined || phoneNum == "") {
-        return ["400-03", undefined, undefined];
+        throw new UserError("400-03");
       }
     }
 
-    return ["", trackingID, queryParams];
+    return [trackingID, queryParams];
   }
 
   /**
