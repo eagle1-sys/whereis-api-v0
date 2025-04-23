@@ -232,13 +232,14 @@ export class Sfex {
     entity.params = params;
     entity.extra = {};
     for (let i = 0; i < routes.length; i++) {
-      const route = routes[i];
+      const route = routes[i] as Record<string, unknown>;
 
-      const sfStatusCode = route["secondaryStatusCode"];
-      const sfOpCode = route["opCode"];
+      const sfStatusCode = route["secondaryStatusCode"] as string;
+      const sfOpCode = route["opCode"] as string;
       const status = Sfex.getStatusCode(sfStatusCode, sfOpCode, route);
       const event: Event = new Event();
 
+      route["trackingNum"] = trackingId.trackingNum;
       const eventId = "ev_" + await jsonToMd5(route);
       if (entity.isEventIdExist(eventId)) continue;
 
@@ -248,14 +249,14 @@ export class Sfex {
       event.status = status;
       event.what = StatusCode.getDesc(status);
       // acceptTime format: 2024-10-26 06:12:43
-      const acceptTime: string = route["acceptTime"];
+      const acceptTime: string = route["acceptTime"] as string;
       // convert to isoStringWithTimezone : "2024-10-26T06:12:43+08:00"
       event.when = acceptTime.replace(" ", "T") + "+08:00";
       const remark: string = (route["remark"] as string).trim();
       if (remark.startsWith("快件途经")) {
         event.where = remark.substring(4);
       } else {
-        event.where = route["acceptAddress"];
+        event.where = route["acceptAddress"] as string;
       }
       event.whom = "SF Express";
       event.notes = remark;

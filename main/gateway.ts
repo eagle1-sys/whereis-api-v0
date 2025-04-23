@@ -36,9 +36,6 @@ export async function requestWhereIs(
             entity = await Fdx.whereIs(trackingId, updateMethod);
             break
     }
-    if(entity!==undefined) {
-
-    }
     return entity;
 }
 
