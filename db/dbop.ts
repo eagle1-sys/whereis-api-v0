@@ -149,7 +149,7 @@ async function insertEvent(
   ];
 
   // Insert into DB table
-  const result = await client.queryObject(insertQuery, values);;
+  const result = await client.queryObject(insertQuery, values);
 
   return result?.rowCount;
 }
