@@ -23,7 +23,7 @@ export async function insertEntity(
   // SQL statement for inserting
   const insertQuery = `
         INSERT INTO entities (uuid, id, type, creation_time, completed, extra, params)
-        VALUES ($1, $2, $3, $4, $5, $6, $7);
+        VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (uuid) DO NOTHING;
     `;
 
   // The data to be inserted
@@ -121,11 +121,11 @@ async function insertEvent(
 ): Promise<number | undefined> {
   // SQL statement for inserting
   const insertQuery = `
-    INSERT INTO events (event_id, status, what_, when_, where_,
-                        whom_, notes, operator_code, tracking_num, data_provider,
-                        exception_code, exception_desc, notification_code, notification_desc, extra,
-                        source_data)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16);
+      INSERT INTO events (event_id, status, what_, when_, where_,
+                          whom_, notes, operator_code, tracking_num, data_provider,
+                          exception_code, exception_desc, notification_code, notification_desc, extra,
+                          source_data)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) ON CONFLICT(event_id) DO NOTHING;
   `;
 
   // The data to be inserted
@@ -149,7 +149,7 @@ async function insertEvent(
   ];
 
   // Insert into DB table
-  const result = await client.queryObject(insertQuery, values);
+  const result = await client.queryObject(insertQuery, values);;
 
   return result?.rowCount;
 }
