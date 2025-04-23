@@ -1,14 +1,14 @@
 # Eagle1 whereis API
 
 ## Goal
-The goal of this project is to solve one problem: to track the current location of a shipment through the simplest possible API query.
+We focus on one thing: making it easy to track a shipment’s locations over time with a simple, streamlined API query.
 
-## Concept
+## Problem
 Since different logistics providers have their own data formats and APIs, integrating various logistics data poses a significant challenge for app developers.
 
-## Track the location
+## Track locations over time
 
-### CURL
+### cURL
 ```shell
 curl https://api.eg1.io/v0/whereis/{{trackingID}} -H "Authorization: Bearer YOUR-TOKEN"
 ```
@@ -33,7 +33,7 @@ const response = await fetch(url, {
     "id": "fdx-888877776666",
     "type": "waybill",
     "uuid": "eg1_7e3f6f06-2710-4225-8067-62bebfc4x45c",
-    "createdOn": "2024-11-11T14:16:48-06:00",
+    "createdAt": "2024-11-11T14:16:48-06:00",
     "additional": {
       "origin": "San Francisco CA United States",
       "destination": "CENTRAL  Hong Kong SAR, China"
@@ -51,15 +51,15 @@ const response = await fetch(url, {
       "operatorCode": "fdx",
       "dataProvider": "FedEx",
       "updateMethod": "manual-pull",
-      "updatedOn": "2025-02-20T12:23:43.892Z"
+      "updatedAt": "2025-02-20T12:23:43.892Z"
     }
   }]
 }
 ```
 
-## Track the status
+## The latest status and location
 
-### CURL
+### cURL
 ```shell
 curl https://api.eg1.io/v0/status/{{trackingID}}
 ```
