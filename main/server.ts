@@ -193,14 +193,14 @@ export class Server {
         );
       }
 
-      if (typeof result === "string") {
-        // Error
-        return c.sendError(result);
-      } else if (result instanceof Entity) {
+      if (result instanceof Entity) {
         // send response
         return c.json(result.toJSON(fullData), 200, {
           "Content-Type": "application/json; charset=utf-8",
         });
+      } else {
+        // send error
+        return c.sendError("404-01");
       }
     });
 
@@ -244,7 +244,7 @@ export class Server {
   private async getStatus(
     trackingID: TrackingID,
     queryParams: Record<string, string>,
-  ):Promise<Record<string, unknown> | undefined>  {
+  ): Promise<Record<string, unknown> | undefined> {
     let client;
     try {
       client = await connect();
@@ -351,7 +351,7 @@ export class Server {
   private async getEntityFromProviderFirst(
     trackingID: TrackingID,
     queryParams: Record<string, string>,
-  ) {
+  ): Promise<Entity> {
     // load from carrier
     const entity: Entity | undefined = await requestWhereIs(
       trackingID,
