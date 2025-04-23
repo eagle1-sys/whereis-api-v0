@@ -357,7 +357,7 @@ export class Fdx {
       event.dataProvider = "FedEx";
       event.extra = {
         updateMethod: updateMethod,
-        updatedOn: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
       const exception = Fdx.getException(scanEvent);
       if (exception == undefined) {

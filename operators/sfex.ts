@@ -263,7 +263,7 @@ export class Sfex {
       event.dataProvider = "SF Express";
       event.extra = {
         updateMethod: updateMethod,
-        updatedOn: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
       event.sourceData = route;
       entity.addEvent(event);

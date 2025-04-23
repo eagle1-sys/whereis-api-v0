@@ -190,25 +190,30 @@ export class TrackingID {
    * @returns [string, TrackingID] An array containing an error code (if any) and the parsed TrackingID object (or undefined).
    */
   static parse(strTrackingID: string): TrackingID {
-    const array = strTrackingID.split("-");
-    if ("" == strTrackingID.trim()) {
+    const trimmedID = strTrackingID.trim();
+    if (trimmedID === "") {
       throw new UserError("400-01");
-    } else if (array.length != 2) {
-      throw new UserError("400-05");
-    } else {
-      const operator: string = array[0];
-      const trackingNum: string = array[1];
-      if (!this.operators.includes(operator)) {
-        throw new UserError("400-04");
-      }
-      if ("fdx" == operator) {
-        this.checkFedExTrackingNum(trackingNum);
-      }
-      if ("sfex" == operator) {
-        this.checkSFTrackingNum(trackingNum);
-      }
-      return new TrackingID(operator, trackingNum);
     }
+
+    const [operator, trackingNum] = trimmedID.split("-");
+    if (!operator || !trackingNum) {
+      throw new UserError("400-05");
+    }
+
+    if (!this.operators.includes(operator)) {
+      throw new UserError("400-04");
+    }
+
+    switch (operator) {
+      case "fdx":
+        this.checkFedExTrackingNum(trackingNum);
+        break;
+      case "sfex":
+        this.checkSFTrackingNum(trackingNum);
+        break;
+    }
+
+    return new TrackingID(operator, trackingNum);
   }
 
   /**
@@ -279,6 +284,12 @@ export class Entity {
   public toJSON(fullData: boolean = false): Record<string, unknown> {
     const extra = this.extra || {};
     const additional: Record<string, unknown> = {};
+    // sort the events first to ensure getCreationTime()/lastEvent() works correctly
+    this.events?.sort((a, b) => {
+      const dateA = a.when ? new Date(a.when).getTime() : 0;
+      const dateB = b.when ? new Date(b.when).getTime() : 0;
+      return dateA - dateB;
+    });
 
     // Add origin and destination if they exist in extra
     ["origin", "destination"].forEach((key) => {
@@ -289,17 +300,10 @@ export class Entity {
       id: this.id,
       type: this.type,
       uuid: this.uuid,
-      createdOn: this.getCreationTime(),
+      createdAt: this.getCreationTime(),
       ...(Object.keys(additional).length > 0 && { additional }),
     };
 
-    if (this.events) {
-      this.events.sort((a, b) => {
-        const dateA = a.when ? new Date(a.when).getTime() : 0;
-        const dateB = b.when ? new Date(b.when).getTime() : 0;
-        return dateA - dateB;
-      });
-    }
     const events = this.events?.map((event) => event.toJSON(fullData)) || [];
 
     return { entity, events };
@@ -531,7 +535,7 @@ export class Event {
       operatorCode: this.operatorCode,
       dataProvider: this.dataProvider,
       updateMethod: this.extra?.updateMethod,
-      updatedOn: this.extra?.updatedOn,
+      updatedAt: this.extra?.updatedAt,
     };
 
     if (this.exceptionCode != null) {
