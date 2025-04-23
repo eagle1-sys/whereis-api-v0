@@ -322,7 +322,6 @@ export class Fdx {
 
     const scanEvents = trackResult["scanEvents"] as [];
     for (let i = scanEvents.length - 1; i >= 0; i--) {
-      const event = new Event();
       const scanEvent = scanEvents[i] as Record<string, unknown>;
 
       const fdxStatusCode = scanEvent["derivedStatusCode"] as string;
@@ -332,14 +331,15 @@ export class Fdx {
         fdxEventType,
         scanEvent,
       );
-      // Add trackingNum to scanEvent for universal eventId generation
-      scanEvent["trackingNum"] = trackingId.trackingNum;
-      const eventId = "ev_" + await jsonToMd5(scanEvent);
+
+      const trackingNum = trackingId.trackingNum;
+      const eventId = "ev_fdx-" + trackingNum + "-" + await jsonToMd5(scanEvent);
       if (entity.isEventIdExist(eventId)) continue;
 
+      const event = new Event();
       event.eventId = eventId;
       event.operatorCode = "fdx";
-      event.trackingNum = trackingId.trackingNum;
+      event.trackingNum = trackingNum;
       event.status = eagle1status;
       event.what = StatusCode.getDesc(eagle1status);
       event.when = scanEvent["date"] as string;

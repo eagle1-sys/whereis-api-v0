@@ -6,7 +6,13 @@
  */
 
 import { jsonToMd5 } from "../tools/util.ts";
-import {Entity, Event, StatusCode, TrackingID, UserError} from "../main/model.ts";
+import {
+  Entity,
+  Event,
+  StatusCode,
+  TrackingID,
+  UserError,
+} from "../main/model.ts";
 import { crypto } from "https://deno.land/std@0.224.0/crypto/crypto.ts";
 
 /**
@@ -177,9 +183,9 @@ export class Sfex {
     const timestamp = Date.now();
     const msgString = JSON.stringify(msgData);
     const msgDigest = await Sfex.generateSignature(
-        msgString,
-        timestamp,
-        SF_Express_CheckWord,
+      msgString,
+      timestamp,
+      SF_Express_CheckWord,
     );
 
     const response = await fetch(SF_EXPRESS_API_URL, {
@@ -188,14 +194,14 @@ export class Sfex {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams(
-          {
-            partnerID: SF_Express_PartnerID,
-            requestID: crypto.randomUUID(),
-            serviceCode: "EXP_RECE_SEARCH_ROUTES",
-            timestamp: timestamp.toString(),
-            msgDigest: msgDigest,
-            msgData: msgString,
-          },
+        {
+          partnerID: SF_Express_PartnerID,
+          requestID: crypto.randomUUID(),
+          serviceCode: "EXP_RECE_SEARCH_ROUTES",
+          timestamp: timestamp.toString(),
+          msgDigest: msgDigest,
+          msgData: msgString,
+        },
       ),
     });
     return await response.json();
@@ -233,19 +239,18 @@ export class Sfex {
     entity.extra = {};
     for (let i = 0; i < routes.length; i++) {
       const route = routes[i] as Record<string, unknown>;
-
       const sfStatusCode = route["secondaryStatusCode"] as string;
       const sfOpCode = route["opCode"] as string;
       const status = Sfex.getStatusCode(sfStatusCode, sfOpCode, route);
-      const event: Event = new Event();
 
-      route["trackingNum"] = trackingId.trackingNum;
-      const eventId = "ev_" + await jsonToMd5(route);
+      const trackingNum = trackingId.trackingNum;
+      const eventId = "ev_sfex-" + trackingNum + "-" + await jsonToMd5(route);
       if (entity.isEventIdExist(eventId)) continue;
 
+      const event: Event = new Event();
       event.eventId = eventId;
       event.operatorCode = "sfex";
-      event.trackingNum = routeResp["mailNo"];
+      event.trackingNum = trackingNum;
       event.status = status;
       event.what = StatusCode.getDesc(status);
       // acceptTime format: 2024-10-26 06:12:43
