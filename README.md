@@ -6,16 +6,23 @@ We focus on one thing: making it easy to track a shipment’s locations over tim
 ## Problem
 Since different logistics providers have their own APIs and data formats, integrating various logistics data poses a significant challenge for app developers.
 
-## Track locations over time
+## Scope
+1. This prototype is written in TypeScript and runs on the [Deno runtime](https://deno.com).
+2. We have established a [standard status codes](https://github.com/eagle1-sys/whereis-api-v0/blob/main/metadata/status_codes.json) for logistics data.
+3. The initial integration supports two logistics operators: FedEx and SF Express.
+   
+## Examples
 
-### cURL
+### Track locations over time
+
+#### cURL
 ```shell
 curl https://api.eg1.io/v0/whereis/{{trackingID}} -H "Authorization: Bearer YOUR-TOKEN"
 ```
 
 > ***{{trackingID}}*** uses the structure `operatorCode-trackingNum`. Example: a FedEx trackingID is `fdx-888877776666`.
 
-### TypeScript
+#### TypeScript
 ```TypeScript
 const url = "https://api.eg1.io/v0/whereis/{{trackingID}}";
 const response = await fetch(url, {
@@ -26,7 +33,7 @@ const response = await fetch(url, {
 });
 ```
 
-### Response
+#### Response
 ```JSON
 {
   "entity": {
@@ -57,14 +64,16 @@ const response = await fetch(url, {
 }
 ```
 
-## The latest status and location
+---
 
-### cURL
+### The latest status and location
+
+#### cURL
 ```shell
 curl https://api.eg1.io/v0/status/{{trackingID}}
 ```
 
-### TypeScript
+#### TypeScript
 ```TypeScript
 const url = 'https://api.eg1.io/v0/status/{{trackingID}}';
 const response = await fetch(url, {
@@ -72,7 +81,7 @@ const response = await fetch(url, {
 });
 ```
 
-### Response
+#### Response
 ```json
 {
   "id": "fdx-888877776666",
@@ -85,7 +94,9 @@ const response = await fetch(url, {
 }
 ```
 
-## Deploying to Fly.io
+---
+
+# Deploying to Fly.io
 
 Follow these steps to deploy the application to Fly.io using the provided Dockerfile:
 
