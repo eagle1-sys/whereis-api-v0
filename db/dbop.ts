@@ -121,33 +121,31 @@ async function insertEvent(
 ): Promise<number | undefined> {
   // SQL statement for inserting
   const insertQuery = `
-        INSERT INTO events (
-            event_id, tracking_num, status, what, when_, where_, whom,
-            exception_code, exception_desc, notification_code, notification_desc,
-            notes, extra, source_data, data_provider,operator_code
-        ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
-        );
-        `;
+    INSERT INTO events (event_id, status, what_, when_, where_,
+                        whom_, notes, operator_code, tracking_num, data_provider,
+                        exception_code, exception_desc, notification_code, notification_desc, extra,
+                        source_data)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16);
+  `;
 
   // The data to be inserted
   const values = [
     event.eventId,
-    event.trackingNum,
     event.status,
     event.what,
     event.when,
     event.where,
     event.whom,
+    event.notes,
+    event.operatorCode,
+    event.trackingNum,
+    event.dataProvider,
     event.exceptionCode,
     event.exceptionDesc,
     event.notificationCode,
     event.notificationDesc,
-    event.notes,
     event.extra,
     event.sourceData,
-    event.dataProvider,
-    event.operatorCode,
   ];
 
   // Insert into DB table
@@ -248,21 +246,21 @@ async function queryEvents(
   const events: Event[] = [];
   const result = await client.queryArray`
         SELECT event_id,
-               operator_code,
-               tracking_num,
                status,
-               what,
+               what_,
+               whom_,
                when_,
                where_,
-               whom,
+               notes,
+               operator_code,
+               tracking_num,
+               data_provider,
                exception_code,
                exception_desc,
                notification_code,
                notification_desc,
-               notes,
                extra,
-               source_data,
-               data_provider
+               source_data
         FROM events
         WHERE operator_code = ${trackingID.operator}
           AND tracking_num = ${trackingID.trackingNum};
@@ -271,21 +269,21 @@ async function queryEvents(
   for (const row of result.rows) {
     const event = new Event();
     event.eventId = row[0] as string;
-    event.operatorCode = row[1] as string;
-    event.trackingNum = row[2] as string;
-    event.status = row[3] as number;
-    event.what = row[4] as string;
-    event.when = row[5] as string;
-    event.where = row[6] as string;
-    event.whom = row[7] as string;
-    event.exceptionCode = row[8] as number;
-    event.exceptionDesc = row[9] as string;
-    event.notificationCode = row[10] as number;
-    event.notificationDesc = row[11] as string;
-    event.notes = row[12] as string;
-    event.extra = row[13] as Record<string, string>;
-    event.sourceData = row[14] as Record<string, string>;
-    event.dataProvider = row[15] as string;
+    event.status = row[1] as number;
+    event.what = row[2] as string;
+    event.whom = row[3] as string;
+    event.when = row[4] as string;
+    event.where = row[5] as string;
+    event.notes = row[6] as string;
+    event.operatorCode = row[7] as string;
+    event.trackingNum = row[8] as string;
+    event.dataProvider = row[9] as string;
+    event.exceptionCode = row[10] as number;
+    event.exceptionDesc = row[11] as string;
+    event.notificationCode = row[12] as number;
+    event.notificationDesc = row[13] as string;
+    event.extra = row[14] as Record<string, string>;
+    event.sourceData = row[15] as Record<string, string>;
     events.push(event);
   }
 
