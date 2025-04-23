@@ -4,7 +4,7 @@
 We focus on one thing: making it easy to track a shipment’s locations over time with a simple, streamlined API query.
 
 ## Problem
-Since different logistics providers have their own data formats and APIs, integrating various logistics data poses a significant challenge for app developers.
+Since different logistics providers have their own APIs and data formats, integrating various logistics data poses a significant challenge for app developers.
 
 ## Track locations over time
 
@@ -13,7 +13,7 @@ Since different logistics providers have their own data formats and APIs, integr
 curl https://api.eg1.io/v0/whereis/{{trackingID}} -H "Authorization: Bearer YOUR-TOKEN"
 ```
 
-> ***{{trackingID}}*** is defined as `operatorCode-trackingNum`. For example, a FedEx trackingID: fdx-888877776666
+> ***{{trackingID}}*** uses the structure `operatorCode-trackingNum`. Example: a FedEx trackingID is `fdx-888877776666`.
 
 ### TypeScript
 ```TypeScript
