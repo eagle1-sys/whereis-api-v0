@@ -1,0 +1,18 @@
+# Ignore all hidden files
+**/.??*
+!.env
+
+**/docker-compose*
+**/Dockerfile*
+**/node_modules
+**/npm-debug.log
+**/obj
+
+**\.idea
+**\.github
+
+**\local
+# flyctl launch added from .gitignore
+fly.toml
+fly_test.toml
+.env.example
