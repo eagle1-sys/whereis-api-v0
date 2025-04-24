@@ -256,7 +256,7 @@ export class Server {
           trackingID.operator === "sfex" &&
           entity.params?.phonenum !== queryParams.phonenum
         ) {
-          throw new UserError("400-03");
+          throw new UserError("400-06");
         }
         return entity.getLastStatus();
       }
@@ -314,7 +314,7 @@ export class Server {
           entityInDB.params &&
           entityInDB.params["phonenum"] !== queryParams["phonenum"]
         ) {
-          throw new UserError("400-03");
+          throw new UserError("400-06");
         }
         return entityInDB;
       }
