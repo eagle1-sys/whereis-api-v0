@@ -1,10 +1,10 @@
 {
   "400-01": "Bad request: Missing tracking number as the slug.",
   "400-02": "Bad request: Invalid tracking number.",
-  "400-03": "Bad request: Missing parameter (phonenum), the last 4-digit phone number associated with the sfex shipment.",
+  "400-03": "Bad request: Missing parameter (phonenum), the last 4-digit phone number associated with the sfex trackingNum.",
   "400-04": "Bad request: Invalid operator code.",
   "400-05": "Bad request: Invalid slug notation.",
-  "400-06": "Bad request: Incorrect parameter (phonenum), the last 4-digit phone number associated with the sfex shipment.",
+  "400-06": "Bad request: Incorrect phonenum, the last 4-digit phone number associated with the sfex trackingNum.",
   "401-01": "Unauthorized: Missing authorization header or invalid format.",
   "401-02": "Unauthorized: Invalid access token.",
   "404-01": "Tracking number not found.",
