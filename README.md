@@ -1,21 +1,28 @@
 # Eagle1 whereis API
 
 ## Goal
-The goal of this project is to solve one problem: to track the current location of a shipment through the simplest possible API query.
+We focus on one thing: making it easy to track a shipment’s locations over time with a simple, streamlined API query.
 
-## Concept
-Since different logistics providers have their own data formats and APIs, integrating various logistics data poses a significant challenge for app developers.
+## Problem
+Since different logistics providers have their own APIs and data formats, integrating various logistics data poses a significant challenge for app developers.
 
-## Track the location
+## Scope
+1. This prototype is written in TypeScript and runs on the [Deno runtime](https://deno.com).
+2. We have defined [standard status codes](https://github.com/eagle1-sys/whereis-api-v0/blob/main/metadata/status_codes.json) for global logistics data.
+3. The initial integration supports two logistics operators: FedEx and SF Express.
+   
+## Examples
 
-### CURL
+### Track locations over time
+
+#### cURL
 ```shell
 curl https://api.eg1.io/v0/whereis/{{trackingID}} -H "Authorization: Bearer YOUR-TOKEN"
 ```
 
-> ***{{trackingID}}*** is defined as `operatorCode-trackingNum`. For example, a FedEx trackingID: fdx-888877776666
+> ***{{trackingID}}*** uses the structure `operatorCode-trackingNum`. Example: a FedEx trackingID is `fdx-888877776666`.
 
-### TypeScript
+#### TypeScript
 ```TypeScript
 const url = "https://api.eg1.io/v0/whereis/{{trackingID}}";
 const response = await fetch(url, {
@@ -26,14 +33,14 @@ const response = await fetch(url, {
 });
 ```
 
-### Response
+#### Response
 ```JSON
 {
   "entity": {
     "id": "fdx-888877776666",
     "type": "waybill",
     "uuid": "eg1_7e3f6f06-2710-4225-8067-62bebfc4x45c",
-    "createdOn": "2024-11-11T14:16:48-06:00",
+    "createdAt": "2024-11-11T14:16:48-06:00",
     "additional": {
       "origin": "San Francisco CA United States",
       "destination": "CENTRAL  Hong Kong SAR, China"
@@ -51,20 +58,22 @@ const response = await fetch(url, {
       "operatorCode": "fdx",
       "dataProvider": "FedEx",
       "updateMethod": "manual-pull",
-      "updatedOn": "2025-02-20T12:23:43.892Z"
+      "updatedAt": "2025-02-20T12:23:43.892Z"
     }
   }]
 }
 ```
 
-## Track the status
+---
 
-### CURL
+### The latest status and location
+
+#### cURL
 ```shell
 curl https://api.eg1.io/v0/status/{{trackingID}}
 ```
 
-### TypeScript
+#### TypeScript
 ```TypeScript
 const url = 'https://api.eg1.io/v0/status/{{trackingID}}';
 const response = await fetch(url, {
@@ -72,7 +81,7 @@ const response = await fetch(url, {
 });
 ```
 
-### Response
+#### Response
 ```json
 {
   "id": "fdx-888877776666",
@@ -85,7 +94,9 @@ const response = await fetch(url, {
 }
 ```
 
-## Deploying to Fly.io
+---
+
+# Deploying to Fly.io
 
 Follow these steps to deploy the application to Fly.io using the provided Dockerfile:
 
