@@ -40,7 +40,7 @@ export class Sfex {
     },
     "204": function (sourceData: Record<string, unknown>): number {
       const secondaryStatusName = sourceData["secondaryStatusName"] as string;
-      if (secondaryStatusName.indexOf("清关中") !== -1) {
+      if (/清关中/.test(secondaryStatusName)) {
         return 3350; // Customs Clearance: Import In-Progress
       } else {
         return 3001; // Logistics In-Progress
@@ -48,7 +48,7 @@ export class Sfex {
     },
     "205": function (sourceData: Record<string, unknown>): number {
       const secondaryStatusName = sourceData["secondaryStatusName"] as string;
-      if (secondaryStatusName.indexOf("已清关") !== -1) {
+      if (/已清关/.test(secondaryStatusName)) {
         return 3400; // Customs Clearance: Import Released
       } else {
         return 3001; // Logistics In-Progress
@@ -56,7 +56,7 @@ export class Sfex {
     },
     "301": function (sourceData: Record<string, unknown>): number {
       const secondaryStatusName = sourceData["secondaryStatusName"] as string;
-      if (secondaryStatusName.indexOf("派送中") !== -1) {
+      if (/派送中/.test(secondaryStatusName)) {
         return 3450; // Final Delivery In-Progress
       }
       return 3001; // Logistics In-Progress
