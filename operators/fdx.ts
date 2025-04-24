@@ -49,10 +49,14 @@ export class Fdx {
       },
       AR: function (sourceData: Record<string, unknown>): number {
         const locationType = sourceData["locationType"] as string;
+        const eventDescrition = sourceData["eventDescription"] as string;
+        if (locationType === "SORT_FACILITY" && /destination/i.test(eventDescrition)) {
+          return 3300; // At destination sort facility
+        }
+
         const locationTypeMap: { [key: string]: number } = {
           "FEDEX_FACILITY": 3100, // Received by Carrier
           "ORIGIN_FEDEX_FACILITY": 3100, // Received by Carrier (just in case)
-          "SORT_FACILITY": 3300, // At destination sort facility
           "DESTINATION_FEDEX_FACILITY": 3300, // At local FedEx facility
         };
         return locationTypeMap[locationType] ?? 3002; // Arrived, In-Transit (default)
@@ -333,7 +337,8 @@ export class Fdx {
       );
 
       const trackingNum = trackingId.trackingNum;
-      const eventId = "ev_fdx-" + trackingNum + "-" + await jsonToMd5(scanEvent);
+      const eventId = "ev_fdx-" + trackingNum + "-" +
+        await jsonToMd5(scanEvent);
       if (entity.isEventIdExist(eventId)) continue;
 
       const event = new Event();
