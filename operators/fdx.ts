@@ -55,7 +55,6 @@ export class Fdx {
         }
 
         const locationTypeMap: { [key: string]: number } = {
-          "FEDEX_FACILITY": 3100, // Received by Carrier
           "ORIGIN_FEDEX_FACILITY": 3100, // Received by Carrier (just in case)
           "DESTINATION_FEDEX_FACILITY": 3300, // At local FedEx facility
         };
