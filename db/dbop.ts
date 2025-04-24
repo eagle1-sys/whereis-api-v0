@@ -9,6 +9,7 @@
 
 import { PoolClient } from "https://deno.land/x/postgres@v0.19.3/mod.ts";
 import { Entity, Event, TrackingID } from "../main/model.ts";
+import { logger } from "../tools/logger.ts";
 
 /**
  * Insert object and events into table
@@ -118,14 +119,19 @@ export async function deleteEntity(
 async function insertEvent(
   client: PoolClient,
   event: Event,
-): Promise<number | undefined> {
+): Promise<string | undefined> {
+  // Validate input
+  if (!event || !event.eventId) {
+    throw new Error("Invalid event object: eventId is required");
+  }
+
   // SQL statement for inserting
   const insertQuery = `
       INSERT INTO events (event_id, status, what_, when_, where_,
                           whom_, notes, operator_code, tracking_num, data_provider,
                           exception_code, exception_desc, notification_code, notification_desc, extra,
                           source_data)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) ON CONFLICT(event_id) DO NOTHING;
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,$16) ON CONFLICT(event_id) DO NOTHING RETURNING event_id;
   `;
 
   // The data to be inserted
@@ -140,18 +146,31 @@ async function insertEvent(
     event.operatorCode,
     event.trackingNum,
     event.dataProvider,
-    event.exceptionCode,
-    event.exceptionDesc,
-    event.notificationCode,
-    event.notificationDesc,
-    event.extra,
-    event.sourceData,
+    event.exceptionCode || null,
+    event.exceptionDesc || null,
+    event.notificationCode || null,
+    event.notificationDesc || null,
+    event.extra || null,
+    event.sourceData || null,
   ];
 
-  // Insert into DB table
-  const result = await client.queryObject(insertQuery, values);
+  try {
+    // Insert into DB table
+    const result = await client.queryObject<{ event_id: string }>(
+      insertQuery,
+      values,
+    );
 
-  return result?.rowCount;
+    if (result.rows.length === 1) {
+      return result.rows[0].event_id;
+    }
+
+    // log the info if no event_id was inserted
+    logger.warn(`Insert event failed: ${event.eventId} `);
+  } catch (err) {
+    logger.error(`Error inserting event ${event.eventId}:`, err);
+  }
+  return undefined;
 }
 
 /**
