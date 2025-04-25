@@ -50,7 +50,10 @@ export class Fdx {
       AR: function (sourceData: Record<string, unknown>): number {
         const locationType = sourceData["locationType"] as string;
         const eventDescrition = sourceData["eventDescription"] as string;
-        if (locationType === "SORT_FACILITY" && /destination/i.test(eventDescrition)) {
+        if (
+          locationType === "SORT_FACILITY" &&
+          /destination/i.test(eventDescrition)
+        ) {
           return 3300; // At destination sort facility
         }
 
@@ -193,15 +196,7 @@ export class Fdx {
     updateMethod: string,
   ): Promise<Entity> {
     const trackingNum: string = trackingId.trackingNum;
-    const result: Record<string, any> = await this.getRoute(trackingNum);
-    if (
-      result["output"]["completeTrackResults"][0]["trackResults"][0][
-        "error"
-      ] !== undefined
-    ) {
-      throw new UserError("404-01");
-    }
-
+    const result: Record<string, unknown> = await this.getRoute(trackingNum);
     return await this.convert(trackingId, result, updateMethod);
   }
 
@@ -306,6 +301,11 @@ export class Fdx {
     >;
     const trackResults = completeTrackResult["trackResults"] as [unknown];
     const trackResult = trackResults[0] as Record<string, unknown>;
+
+    if (trackResult["error"] !== undefined) {
+      throw new UserError("404-01");
+    }
+
     entity.uuid = "eg1_" + crypto.randomUUID();
     entity.id = trackingId.toString();
     entity.params = {};
