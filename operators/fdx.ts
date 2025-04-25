@@ -142,25 +142,22 @@ export class Fdx {
     sourceData: Record<string, unknown>,
   ): Record<string, unknown> | undefined {
     const code_original = sourceData["exceptionCode"] as string;
-    if (code_original == "") {
+    if (!code_original || code_original === "71") {
       return undefined;
     }
-    if (code_original in Fdx.exceptionCodeMap) {
-      const execptionCode = Fdx.exceptionCodeMap[code_original];
-      return {
-        "exceptionCode": execptionCode,
-        "exceptionDesc": ExceptionCode.getDesc(execptionCode),
-        "notes": sourceData["eventDescription"] + ": " +
-          sourceData["exceptionDescription"],
-      };
-    } else {
-      return {
-        "exceptionCode": -1,
-        "exceptionDesc": "Unknown Exception",
-        "notes": sourceData["eventDescription"] + ": " +
-          sourceData["exceptionDescription"],
-      };
-    }
+
+    const exceptionCode = Fdx.exceptionCodeMap[code_original] ?? -1;
+    const exceptionDesc = exceptionCode === -1
+      ? "Unknown Exception"
+      : ExceptionCode.getDesc(exceptionCode);
+
+    return {
+      exceptionCode,
+      exceptionDesc,
+      notes: `${sourceData["eventDescription"]}: ${
+        sourceData["exceptionDescription"]
+      }`,
+    };
   }
 
   /**
