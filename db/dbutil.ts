@@ -3,6 +3,7 @@
  * @description Provides functions to initialize and manage PostgreSQL database connection pool
  */
 import { Pool, PoolClient } from "https://deno.land/x/postgres/mod.ts";
+import { delay } from "https://deno.land/std/async/delay.ts";
 import { logger } from "../tools/logger.ts";
 const POOL_CONNECTIONS = 20;
 
@@ -51,15 +52,36 @@ export async function connect(): Promise<PoolClient> {
       "Database pool not initialized. Call initializeDbPool first.",
     );
   }
-  try {
-    return await dbPool.connect();
-  } catch (error) {
-      if(error instanceof Error) {
-          logger.error("Error DBUTIL-01: Cannot connect to the database:", error.message);
-          throw new Error(`Error DBUTIL-01: Cannot connect to the database: ${error.message}`);
-      } else {
+
+  let retries = 0;
+  const maxRetries = 3;
+  const retryDelay = 1000;
+  while (retries < maxRetries) {
+    try {
+      return await dbPool.connect();
+    } catch (error) {
+      retries++;
+      if (retries >= maxRetries) {
+        if (error instanceof Error) {
+          logger.error(
+            "Error DBUTIL-01: Cannot connect to the database:",
+            error.message,
+          );
+          throw new Error(
+            `Error DBUTIL-01: Cannot connect to the database: ${error.message}`,
+          );
+        } else {
           logger.error("Unknown error connecting to the database");
           throw new Error("Failed to connect to the database: Unknown error");
+        }
       }
+      logger.warn(
+        `Connection attempt ${retries} failed. Retrying in ${retryDelay}ms...`,
+      );
+      await delay(retryDelay);
+    }
   }
+
+  // This line should never be reached due to the throw in the loop, but TypeScript needs it
+  throw new Error("Unexpected error in connect function");
 }
