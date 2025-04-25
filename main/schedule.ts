@@ -35,7 +35,7 @@ export async function syncRoutes() {
     for (const [id, params] of Object.entries(inProcessTrackingNums)) {
       const trackingID = TrackingID.parse(id);
 
-      const entity: Entity | string = await requestWhereIs(
+      const entity: Entity | undefined = await requestWhereIs(
         trackingID,
         params as Record<string, string>,
         "auto-pull",
