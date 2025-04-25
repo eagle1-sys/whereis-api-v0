@@ -8,11 +8,8 @@
 **/npm-debug.log
 **/obj
 
-**\.idea
-**\.github
-
-**\local
+**/local
 # flyctl launch added from .gitignore
-fly.toml
-fly_test.toml
-.env.example
+fly*.toml
+
+# - EOF -
