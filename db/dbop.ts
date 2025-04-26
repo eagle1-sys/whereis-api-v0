@@ -7,7 +7,7 @@
  * - Tracking number management
  */
 
-import { PoolClient } from "https://deno.land/x/postgres@v0.19.3/mod.ts";
+import { PoolClient } from "https://deno.land/x/postgres/mod.ts"; 
 import { Entity, Event, TrackingID } from "../main/model.ts";
 import { logger } from "../tools/logger.ts";
 
