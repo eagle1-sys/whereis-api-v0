@@ -106,9 +106,6 @@ export class Fdx {
 
   private static exceptionCodeMap: Record<string, number> = {
     "08": 907, // Recipient, Not Available
-    "17": 900, // Exception, Occurred
-    "67": 900, // Exception, Occurred
-    "A12": 900, // Exception, Occurred
   };
 
   /**
@@ -146,10 +143,8 @@ export class Fdx {
       return undefined;
     }
 
-    const exceptionCode = Fdx.exceptionCodeMap[code_original] ?? -1;
-    const exceptionDesc = exceptionCode === -1
-      ? "Unknown Exception"
-      : ExceptionCode.getDesc(exceptionCode);
+    const exceptionCode = Fdx.exceptionCodeMap[code_original] ?? 900;
+    const exceptionDesc = ExceptionCode.getDesc(exceptionCode);
 
     return {
       exceptionCode,
