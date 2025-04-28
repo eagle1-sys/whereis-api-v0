@@ -54,8 +54,8 @@ export async function connect(): Promise<PoolClient> {
   }
 
   let retries = 0;
-  const maxRetries = 3;
-  const retryDelay = 1000;
+  const maxRetries = 5;
+  const retryDelay = 200;
   while (retries < maxRetries) {
     try {
       return await dbPool.connect();
@@ -76,7 +76,7 @@ export async function connect(): Promise<PoolClient> {
         }
       }
       logger.warn(
-        `Connection attempt ${retries} failed. Retrying in ${retryDelay}ms...`,
+        `Connecting to database attempt ${retries} failed. Retrying in ${retryDelay}ms...`,
       );
       await delay(retryDelay);
     }
