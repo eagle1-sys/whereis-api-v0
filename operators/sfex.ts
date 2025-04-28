@@ -14,6 +14,7 @@ import {
   UserError,
 } from "../main/model.ts";
 import { crypto } from "https://deno.land/std@0.224.0/crypto/crypto.ts";
+import {logger} from "../tools/logger.ts";
 
 /**
  * SF Express API client class for tracking shipments and managing route data.
@@ -228,6 +229,7 @@ export class Sfex {
     const routeResp = apiResult["msgData"]["routeResps"][0];
     const routes: [] = routeResp["routes"];
     if (routes.length == 0) {
+      logger.error(`Context: SF-express`);
       throw new UserError("404-01");
     }
 

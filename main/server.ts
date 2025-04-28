@@ -200,6 +200,7 @@ export class Server {
         });
       } else {
         // send error
+        logger.error(`Entity not found for tracking ID: ${trackingID}`);
         return c.sendError("404-01");
       }
     });
@@ -218,6 +219,8 @@ export class Server {
       } else {
         logger.error(`${c.req.url}`);
         logger.error(err);
+        logger.error(err.cause);
+        logger.error(err.stack);
         return c.json({
           message: "Internal Server Error",
           code: "500",
@@ -269,6 +272,7 @@ export class Server {
       );
 
       if (result === undefined) {
+        logger.error(`Context: getStatus`);
         throw new UserError("404-01"); // Not found in data provider
       }
 
