@@ -473,7 +473,7 @@ export class Entity {
  */
 export class Event {
   /** Unique identifier for the event */
-  eventId?: string;
+  eventId: string;
   /** Tracking number associated with the event */
   trackingNum?: string;
   /** Code of the operator responsible for the event */
@@ -509,6 +509,7 @@ export class Event {
   sourceData: Record<string, unknown>;
 
   constructor() {
+    this.eventId = "";
     this.status = -1;
     this.extra = {};
     this.sourceData = {};

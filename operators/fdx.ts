@@ -14,6 +14,7 @@ import {
   TrackingID,
   UserError,
 } from "../main/model.ts";
+import { logger } from "../tools/logger.ts";
 
 /**
  * A class to interact with the FedEx tracking API and manage shipment tracking information.
@@ -135,35 +136,30 @@ export class Fdx {
     return 3001;
   }
 
-  static getException(
+  static getExceptionCode(
     sourceData: Record<string, unknown>,
-  ): Record<string, unknown> | undefined {
+  ): number | undefined {
     const code_original = sourceData["exceptionCode"] as string;
     if (!code_original || code_original === "71") {
       return undefined;
     }
 
-    const exceptionCode = Fdx.exceptionCodeMap[code_original] ?? 900;
-    const exceptionDesc = ExceptionCode.getDesc(exceptionCode);
-
-    return {
-      exceptionCode,
-      exceptionDesc,
-      notes: `${sourceData["eventDescription"]}: ${
-        sourceData["exceptionDescription"]
-      }`,
-    };
+    return Fdx.exceptionCodeMap[code_original] ?? 900;
   }
 
   /**
    * Constructs a location string from a scan location object.
-   * @param {Record<string, unknown>} scanLocation - The scan location data.
+   * @param {Record<string, unknown>} scanEvent - The scan location data.
    * @returns {string} A formatted string representing the location (e.g., "City State Country").
    */
-  static getWhere(scanLocation: Record<string, unknown>): string {
-    return (scanLocation["city"] ?? "") + " " +
+  static getWhere(scanEvent: Record<string, unknown>): string {
+    const scanLocation = scanEvent["scanLocation"] as Record<string, unknown>;
+    const where = (scanLocation["city"] ?? "") + " " +
       (scanLocation["stateOrProvinceCode"] ?? "") + " " +
       (scanLocation["countryName"] ?? "");
+
+    return where.trim() ||
+      (scanEvent["locationType"] === "CUSTOMER" ? "Customer location" : "");
   }
 
   /**
@@ -295,6 +291,7 @@ export class Fdx {
     const trackResult = trackResults[0] as Record<string, unknown>;
 
     if (trackResult["error"] !== undefined) {
+      logger.error(`Context: Fdx`);
       throw new UserError("404-01");
     }
 
@@ -315,57 +312,64 @@ export class Fdx {
       ),
     };
 
-    const scanEvents = trackResult["scanEvents"] as [];
-    for (let i = scanEvents.length - 1; i >= 0; i--) {
-      const scanEvent = scanEvents[i] as Record<string, unknown>;
-
-      const fdxStatusCode = scanEvent["derivedStatusCode"] as string;
-      const fdxEventType = scanEvent["eventType"] as string;
-      const eagle1status: number = Fdx.getStatusCode(
-        fdxStatusCode,
-        fdxEventType,
-        scanEvent,
-      );
-
-      const trackingNum = trackingId.trackingNum;
-      const eventId = "ev_fdx-" + trackingNum + "-" +
-        await jsonToMd5(scanEvent);
-      if (entity.isEventIdExist(eventId)) continue;
-
-      const event = new Event();
-      event.eventId = eventId;
-      event.operatorCode = "fdx";
-      event.trackingNum = trackingNum;
-      event.status = eagle1status;
-      event.what = StatusCode.getDesc(eagle1status);
-      event.when = scanEvent["date"] as string;
-      const where = Fdx.getWhere(
-        scanEvent["scanLocation"] as Record<string, unknown>,
-      );
-      if (where.trim().length > 0) {
-        event.where = where;
-      } else {
-        if (scanEvent["locationType"] == "CUSTOMER") {
-          event.where = "Customer location";
-        }
+    const scanEvents = trackResult["scanEvents"] as Record<string, unknown>[];
+    for (const scanEvent of scanEvents.reverse()) {
+      const event = await this.createEvent(scanEvent, trackingId, updateMethod);
+      if (event && !entity.isEventIdExist(event.eventId)) {
+        entity.addEvent(event);
       }
-      event.whom = "FedEx";
-      event.dataProvider = "FedEx";
-      event.extra = {
-        updateMethod: updateMethod,
-        updatedAt: new Date().toISOString(),
-      };
-      const exception = Fdx.getException(scanEvent);
-      if (exception == undefined) {
-        event.notes = scanEvent["eventDescription"] as string;
-      } else {
-        event.exceptionCode = exception["exceptionCode"] as number;
-        event.exceptionDesc = exception["exceptionDesc"] as string;
-        event.notes = exception["notes"] as string;
-      }
-      event.sourceData = scanEvent;
-      entity.addEvent(event as Event);
     }
+
     return entity;
+  }
+
+  private static async createEvent(
+    scanEvent: Record<string, unknown>,
+    trackingId: TrackingID,
+    updateMethod: string,
+  ): Promise<Event | null> {
+    const fdxStatusCode = scanEvent["derivedStatusCode"] as string;
+    const fdxEventType = scanEvent["eventType"] as string;
+    const eagle1status = Fdx.getStatusCode(
+      fdxStatusCode,
+      fdxEventType,
+      scanEvent,
+    );
+
+    const trackingNum = trackingId.trackingNum;
+    const event = new Event();
+    event.eventId = `ev_fdx-${trackingNum}-${await jsonToMd5(scanEvent)}`;
+    event.status = eagle1status;
+    event.what = StatusCode.getDesc(eagle1status);
+    event.whom = "FedEx";
+    event.when = scanEvent["date"] as string;
+    event.where = Fdx.getWhere(scanEvent);
+    event.operatorCode = trackingId.operator;
+    event.trackingNum = trackingNum;
+    event.dataProvider = "FedEx";
+
+    // process exception code if exists
+    const exceptionCode = Fdx.getExceptionCode(scanEvent);
+    if (exceptionCode !== undefined) {
+      event.exceptionCode = exceptionCode;
+      event.exceptionDesc = ExceptionCode.getDesc(exceptionCode);
+    }
+
+    // process notes
+    const eventDescription = scanEvent["eventDescription"] as string;
+    const sourceExceptionDesc = scanEvent["exceptionDescription"] as string;
+    if (sourceExceptionDesc && sourceExceptionDesc.trim() === "") {
+      event.notes = eventDescription;
+    } else {
+      event.notes = `${eventDescription}: ${sourceExceptionDesc}`;
+    }
+    // extra data and source data
+    event.extra = {
+      updateMethod: updateMethod,
+      updatedAt: new Date().toISOString(),
+    };
+    event.sourceData = scanEvent;
+
+    return event;
   }
 }
