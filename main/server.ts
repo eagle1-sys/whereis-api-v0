@@ -6,6 +6,7 @@
 
 import { Context, Hono, HonoRequest, Next } from "hono";
 import { ContentfulStatusCode } from "hono/utils/http-status";
+import { cors } from "hono/cors";
 
 import { logger } from "../tools/logger.ts";
 import { connect } from "../db/dbutil.ts";
@@ -98,6 +99,16 @@ export class Server {
       // if token is valid
       await next();
     };
+
+    app.use(
+      "/*",
+      cors({
+        origin: "*",
+        allowMethods: ["GET", "POST", "OPTIONS"],
+        allowHeaders: ["Content-Type", "Authorization"],
+        credentials: true,
+      }),
+    );
 
     // Extend Context class
     app.use("*", async (c, next) => {
