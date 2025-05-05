@@ -291,7 +291,10 @@ export class Fdx {
     const trackResult = trackResults[0] as Record<string, unknown>;
 
     if (trackResult["error"] !== undefined) {
-      logger.error(`Context: Fdx`);
+      logger.error(
+        `Error occurs during process ${trackingId.toString()}:` +
+          JSON.stringify(trackResult["error"]),
+      );
       throw new UserError("404-01");
     }
 
@@ -358,7 +361,7 @@ export class Fdx {
     // process notes
     const eventDescription = scanEvent["eventDescription"] as string;
     const sourceExceptionDesc = scanEvent["exceptionDescription"] as string;
-    if (sourceExceptionDesc && sourceExceptionDesc.trim() === "") {
+    if (sourceExceptionDesc.trim() === "") {
       event.notes = eventDescription;
     } else {
       event.notes = `${eventDescription}: ${sourceExceptionDesc}`;
