@@ -14,7 +14,7 @@ import {
   UserError,
 } from "../main/model.ts";
 import { crypto } from "https://deno.land/std@0.224.0/crypto/crypto.ts";
-import {logger} from "../tools/logger.ts";
+import { logger } from "../tools/logger.ts";
 
 /**
  * SF Express API client class for tracking shipments and managing route data.
@@ -26,7 +26,7 @@ export class Sfex {
    * @static
    * @type {Record<string, Record<string, number>>}
    */
-  private static statudCodeMap: Record<string, unknown> = {
+  private static statusCodeMap: Record<string, unknown> = {
     "101": {
       "50": 3100, // Received by Carrier
       "54": 3100, // Received by Carrier
@@ -84,7 +84,7 @@ export class Sfex {
     opCode: string,
     sourceData: Record<string, unknown>,
   ): number {
-    const statusMap = Sfex.statudCodeMap[statusCode];
+    const statusMap = Sfex.statusCodeMap[statusCode];
     if (!statusMap) return 3001;
 
     if (typeof statusMap === "function") {
@@ -229,7 +229,7 @@ export class Sfex {
     const routeResp = apiResult["msgData"]["routeResps"][0];
     const routes: [] = routeResp["routes"];
     if (routes.length == 0) {
-      logger.error(`Context: SF-express`);
+      logger.error(`Error occurs during process ${trackingId.toString()}`);
       throw new UserError("404-01");
     }
 
