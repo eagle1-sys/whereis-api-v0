@@ -107,6 +107,7 @@ export class Fdx {
 
   private static exceptionCodeMap: Record<string, number> = {
     "08": 907, // Recipient, Not Available
+    "29": 909, // Rerouted
   };
 
   /**
