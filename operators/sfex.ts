@@ -266,7 +266,7 @@ export class Sfex {
         event.where = route["acceptAddress"] as string;
       }
       event.whom = "SF Express";
-      event.notes = remark === event.what ? "" : remark;
+      event.notes = remark;
       event.dataProvider = "SF Express";
       event.extra = {
         updateMethod: updateMethod,
