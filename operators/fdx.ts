@@ -360,12 +360,12 @@ export class Fdx {
     }
 
     // process notes
-    const eventDescription = scanEvent["eventDescription"] as string;
-    const sourceExceptionDesc = scanEvent["exceptionDescription"] as string;
+    const eventDescription = (scanEvent["eventDescription"] as string).trim();
+    const sourceExceptionDesc = (scanEvent["exceptionDescription"] as string).trim();
     const notes = sourceExceptionDesc.trim() === ""
         ? eventDescription
         : `${eventDescription}: ${sourceExceptionDesc}`;
-    event.notes = notes === event.what ? "" : notes;
+    event.notes = notes.toLowerCase() === event.what.toLowerCase() ? "" : notes;
     // extra data and source data
     event.extra = {
       updateMethod: updateMethod,
