@@ -7,7 +7,7 @@
  * - Tracking number management
  */
 
-import { PoolClient } from "https://deno.land/x/postgres/mod.ts"; 
+import { PoolClient } from "https://deno.land/x/postgres/mod.ts";
 import { Entity, Event, TrackingID } from "../main/model.ts";
 import { logger } from "../tools/logger.ts";
 
@@ -79,7 +79,11 @@ export async function updateEntity(
       if (
         event.eventId !== undefined && eventIds.includes(event.eventId)
       ) continue;
-      await insertEvent(client, event);
+      logger.info(`Auto-pull: Try to save event with id ${event.eventId} `);
+      const eventId: string | undefined = await insertEvent(client, event);
+      if (eventId !== undefined) {
+        logger.info(`Auto-pull: event with id ${eventId} saved successfully`);
+      }
     }
   }
   return result?.rowCount;
