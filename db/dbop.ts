@@ -74,6 +74,7 @@ export async function updateEntity(
   ]);
 
   if (result.rowCount == 1) {
+    // step 1: insert new events that are not in the previous entity
     const events: Event[] = entity.events ?? [];
     for (const event of events) {
       if (
@@ -82,7 +83,15 @@ export async function updateEntity(
       logger.info(`Auto-pull: Try to save event with id ${event.eventId} `);
       const eventId: string | undefined = await insertEvent(client, event);
       if (eventId !== undefined) {
-        logger.info(`Auto-pull: event with id ${eventId} saved successfully`);
+        logger.info(`Auto-pull: Event with id ${eventId} saved successfully`);
+      }
+    }
+
+    // step 2: delete events that are not in the updated entity
+    for(const eventId of eventIds) {
+      if(!entity.includes(eventId)) {
+        logger.info(`Auto-pull: Delete event with id ${eventId}`);
+        await deleteEvent(client, eventId);
       }
     }
   }
@@ -175,6 +184,23 @@ async function insertEvent(
     logger.error(`Error inserting event ${event.eventId}:`, err);
   }
   return undefined;
+}
+
+export async function deleteEvent(
+    client: PoolClient,
+    eventID: string,
+): Promise<number | undefined> {
+  // delete event
+  const deleteEvent = `
+      DELETE
+      FROM events
+      WHERE event_id = $1
+  `;
+  const result = await client.queryObject(deleteEvent, [
+    eventID.toString(),
+  ]);
+
+  return result?.rowCount as number;
 }
 
 /**
