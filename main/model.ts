@@ -145,12 +145,22 @@ export class ErrorRegistry {
   }
 
   /**
-   * Gets the error message for a given error code.
-   * @param {string} code - The error code to look up.
-   * @returns {string} The error message, or an empty string if not found.
+   * Retrieves a message for a given error code and optionally replaces placeholders with provided parameters.
+   *
+   * @param code - The error code to look up in the error registry.
+   * @param params - An optional record of key-value pairs to replace placeholders in the message.
+   *                 Placeholders in the message should be in the format ${key}.
+   * @returns The error message with placeholders replaced if params are provided, or the original message if not.
+   *          Returns an empty string if the error code is not found in the registry.
    */
-  public static getMessage(code: string): string {
-    return this.instance.get(code) ?? "";
+  public static getMessage(code: string, params?: Record<string, string>): string {
+    const message = this.instance.get(code) ?? "";
+    if (params) {
+      return message.replace(/\$\{(\w+)}/g, (match, key) =>
+          Object.prototype.hasOwnProperty.call(params, key) ? params[key] : match
+      );
+    }
+    return message;
   }
 }
 

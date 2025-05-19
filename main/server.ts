@@ -23,7 +23,7 @@ declare module "hono" {
      * @param errorCode - The error code in format "HTTPSTATUS-CODE"
      * @returns Response object with JSON error payload
      */
-    sendError: (errorCode: string) => Response;
+    sendError: (errorCode: string, params?: Record<string, string>) => Response;
   }
 }
 
@@ -113,10 +113,10 @@ export class Server {
     // Extend Context class
     app.use("*", async (c, next) => {
       // add sendError method
-      c.sendError = (code: string) => {
+      c.sendError = (code: string, params?: Record<string, string>) => {
         const resp = {
           error: code,
-          message: ErrorRegistry.getMessage(code),
+          message: ErrorRegistry.getMessage(code, params),
         };
         return c.body(
           JSON.stringify(resp, null, 2),
@@ -168,11 +168,25 @@ export class Server {
      *   GET /v0/status/sfex-987654321?phonenum=1234567890
      */
     app.get("/v0/status/:id?", async (c) => {
-      const [trackingID, queryParams] = this.parseURL(c.req);
+      const [trackingID, parsedParams] = this.parseURL(c.req);
+
+      let invalidParams: string[] = [];
+      const queryParams = c.req.query();
+      if (trackingID.operator === "fdx") {
+        invalidParams = this.validateQueryParams(queryParams);
+      } else if (trackingID.operator === "sfex") {
+        invalidParams = this.validateQueryParams(
+          queryParams,
+          new Set(["phonenum"]),
+        );
+      }
+      if (invalidParams.length > 0) {
+        return c.sendError("400-07", { param: invalidParams.join(",") });
+      }
 
       const status = await this.getStatus(
         trackingID as TrackingID,
-        queryParams as Record<string, string>,
+        parsedParams as Record<string, string>,
       );
 
       return c.body(JSON.stringify(status, null, 2), 200, {
@@ -185,7 +199,24 @@ export class Server {
      * Requires Bearer token authentication
      */
     app.get("/v0/whereis/:id", async (c) => {
-      const [trackingID, queryParams] = this.parseURL(c.req);
+      const [trackingID, parsedParams] = this.parseURL(c.req);
+
+      let invalidParams: string[] = [];
+      const queryParams = c.req.query();
+      if (trackingID.operator === "fdx") {
+        invalidParams = this.validateQueryParams(
+          queryParams,
+          new Set(["fulldata", "refresh"]),
+        );
+      } else if (trackingID.operator === "sfex") {
+        invalidParams = this.validateQueryParams(
+          queryParams,
+          new Set(["fulldata", "refresh", "phonenum"]),
+        );
+      }
+      if (invalidParams.length > 0) {
+        return c.sendError("400-07", { param: invalidParams.join(",") });
+      }
 
       // get the full url string
       let result: Entity | undefined;
@@ -195,12 +226,12 @@ export class Server {
         // issue request to data provider
         result = await this.getEntityFromProviderFirst(
           trackingID as TrackingID,
-          queryParams as Record<string, string>,
+          parsedParams as Record<string, string>,
         );
       } else {
         result = await this.getEntityFromDatabaseFirst(
           trackingID as TrackingID,
-          queryParams as Record<string, string>,
+          parsedParams as Record<string, string>,
         );
       }
 
@@ -240,6 +271,21 @@ export class Server {
     });
 
     Deno.serve({ port: this.port }, app.fetch);
+  }
+
+  private validateQueryParams(
+    params: Record<string, string>,
+    validParams?: Set<string>,
+  ): string[] {
+    const invalidParams: string[] = [];
+
+    Object.keys(params).forEach((key) => {
+      if (validParams === undefined || !validParams.has(key)) {
+        invalidParams.push(key);
+      }
+    });
+
+    return invalidParams;
   }
 
   /**
