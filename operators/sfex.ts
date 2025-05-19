@@ -13,7 +13,7 @@ import {
   TrackingID,
   UserError,
 } from "../main/model.ts";
-import { crypto } from "https://deno.land/std@0.224.0/crypto/crypto.ts";
+import { crypto } from "jsr:@std/crypto@0.224.0";
 import { logger } from "../tools/logger.ts";
 
 /**
