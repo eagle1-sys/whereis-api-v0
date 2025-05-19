@@ -5,7 +5,8 @@
  * from JSON objects using Deno's crypto module.
  */
 
-import { crypto } from "https://deno.land/std@0.200.0/crypto/mod.ts";
+import { crypto } from "jsr:@std/crypto@0.224.0";
+
 
 /**
  * Asynchronously loads and parses a JSON file from the filesystem.
@@ -15,11 +16,6 @@ import { crypto } from "https://deno.land/std@0.200.0/crypto/mod.ts";
  * @param {string} filePath - The path to the JSON file to be loaded
  * @returns {Promise<Record<string, unknown>>} A promise that resolves to the parsed JSON object
  * @throws {Error} If file reading or JSON parsing fails
- * @example
- * ```typescript
- * const jsonData = await loadJSONFromFs('./data.json');
- * console.log(jsonData);
- * ```
  */
 export async function loadJSONFromFs(
     filePath: string,
