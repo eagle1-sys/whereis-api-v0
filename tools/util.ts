@@ -5,7 +5,8 @@
  * from JSON objects using Deno's crypto module.
  */
 
-import { crypto } from "jsr:@std/crypto@0.224.0";
+// import { crypto } from "jsr:@std/crypto@0.224.0";
+import { crypto } from "@std/crypto";
 
 
 /**
