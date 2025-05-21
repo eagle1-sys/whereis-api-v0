@@ -12,7 +12,8 @@
     "@std/bytes/copy": "https://deno.land/std/bytes/copy.ts",
     "@std/fmt/colors": "https://deno.land/std/fmt/colors.ts",
     "@std/encoding/base64": "https://deno.land/std/encoding/base64.ts",
-    "@std/encoding/hex": "https://deno.land/std/encoding/hex.ts"
+    "@std/encoding/hex": "https://deno.land/std/encoding/hex.ts",
+    "postgresjs": "https://deno.land/x/postgresjs/mod.js"
   },
   "nodeModulesDir": "auto"
 }

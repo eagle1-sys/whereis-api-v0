@@ -7,130 +7,115 @@
  * - Tracking number management
  */
 
-import { PoolClient } from "https://deno.land/x/postgres/mod.ts";
+import postgres from "postgresjs";
 import { Entity, Event, TrackingID } from "../main/model.ts";
 import { logger } from "../tools/logger.ts";
+import { JSONValue } from "../main/model.ts";
 
 /**
  * Insert object and events into table
- * @param client PoolClient
+ * @param {ReturnType<typeof postgres>} sql - The PostgreSQL client instance
  * @param entity Entity object with events
  * @returns {Promise<number | undefined>} A promise that resolves to the number of affected rows on success, or undefined if the operation fails.
  */
 export async function insertEntity(
-  client: PoolClient,
+  sql: ReturnType<typeof postgres>,
   entity: Entity,
 ): Promise<number | undefined> {
-  // SQL statement for inserting
-  const insertQuery = `
+  try { // SQL statement for inserting
+    const result = await sql`
         INSERT INTO entities (uuid, id, type, creation_time, completed, extra, params)
-        VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (uuid) DO NOTHING;
-    `;
+        VALUES (${entity.uuid},
+                ${entity.id},
+                ${entity.type},
+                ${entity.getCreationTime()},
+                ${entity.isCompleted()},
+                ${sql.json(entity.extra)},
+                ${sql.json(entity.params)}) `;
 
-  // The data to be inserted
-  const values = [
-    entity.uuid,
-    entity.id,
-    entity.type,
-    entity.getCreationTime(),
-    entity.isCompleted(),
-    entity.extra,
-    entity.params,
-  ];
-
-  // Insert into DB table
-  const result = await client.queryObject(insertQuery, values);
-
-  if (result.rowCount == 1 && entity.events != undefined) {
-    for (const event of entity.events) {
-      // raise exception if any error occurs during event insertion
-      await insertEvent(client, event);
+    if (result.count == 1 && entity.events != undefined) {
+      for (const event of entity.events) {
+        // raise exception if any error occurs during event insertion
+        await insertEvent(sql, event);
+      }
     }
+  } catch (e) {
+    console.log(e);
   }
 
-  return result?.rowCount;
+  return 1;
 }
 
 /**
  * Update existing entity record & append new event data to event table
- * @param client - PoolClient
+ * @param {ReturnType<typeof postgres>} sql - The PostgreSQL client instance
  * @param entity - Entity object with updated event(s)
  * @param eventIds - Existing eventIDs
  * @returns {Promise<number | undefined>} A promise that resolves to the number of affected rows on success, or undefined if the operation fails.
  */
 export async function updateEntity(
-  client: PoolClient,
+  sql: ReturnType<typeof postgres>,
   entity: Entity,
   eventIds: string[],
 ): Promise<number | undefined> {
-  // SQL statement for updating
-  const updateQuery = `
-        UPDATE entities SET completed=$1 WHERE id=$2
-        `;
-  // update the entity record
-  const result = await client.queryObject(updateQuery, [
-    entity.isCompleted(),
-    entity.id,
-  ]);
+  try { // update the entity record
+    const result = await sql`
+      update entities set completed = ${entity.isCompleted()} where id = ${entity
+      .id as string}
+    `;
 
-  if (result.rowCount == 1) {
-    // step 1: insert new events that are not in the previous entity
-    const events: Event[] = entity.events ?? [];
-    for (const event of events) {
-      if (
-        event.eventId !== undefined && eventIds.includes(event.eventId)
-      ) continue;
-      logger.info(`Auto-pull: Try to save event with id ${event.eventId} `);
-      const eventId: string | undefined = await insertEvent(client, event);
-      if (eventId !== undefined) {
-        logger.info(`Auto-pull: Event with id ${eventId} saved successfully`);
+    if (result.count == 1) {
+      // step 1: insert new events that are not in the previous entity
+      const events: Event[] = entity.events ?? [];
+      for (const event of events) {
+        if (event.eventId !== undefined && eventIds.includes(event.eventId)) {
+          continue;
+        }
+        await insertEvent(sql, event);
+      }
+
+      // step 2: delete events that are not in the updated entity
+      for(const eventId of eventIds) {
+        if(!entity.includes(eventId)) {
+          logger.info(`Auto-pull: Delete event with id ${eventId}`);
+          await deleteEvent(sql, eventId);
+        }
       }
     }
-
-    // step 2: delete events that are not in the updated entity
-    for(const eventId of eventIds) {
-      if(!entity.includes(eventId)) {
-        logger.info(`Auto-pull: Delete event with id ${eventId}`);
-        await deleteEvent(client, eventId);
-      }
-    }
+    return 1;
+  } catch (e) {
+    logger.error(`Error updating entity: ${e}`);
+    return undefined;
   }
-  return result?.rowCount;
 }
 
 export async function deleteEntity(
-  client: PoolClient,
+  sql: ReturnType<typeof postgres>,
   trackingID: TrackingID,
 ): Promise<number | undefined> {
   // delete events
-  const deleteEvents = `
-        DELETE FROM events WHERE operator_code=$1 AND tracking_num=$2
-        `;
-  const result1 = await client.queryObject(deleteEvents, [
-    trackingID.operator,
-    trackingID.trackingNum,
-  ]);
-
-  const deleteEntity = `
-      DELETE
-      FROM entities
-      WHERE id = $1
+  const result1 = await sql`
+      DELETE FROM events
+      WHERE operator_code = ${trackingID.operator}
+        AND tracking_num = ${trackingID.trackingNum}
   `;
-  const result2 = await client.queryObject(deleteEntity, [
-    trackingID.toString(),
-  ]);
 
-  return result1?.rowCount as number + (result2?.rowCount as number);
+  const result2 = await sql`
+    DELETE
+    FROM entities
+    WHERE id = ${trackingID.toString()}
+  `;
+  return result1.count + result2.count;
 }
 
 /**
  * Insert one event data into table
- * @param client PoolClient
+ @param {ReturnType<typeof postgres>} sql - The PostgreSQL client instance
  * @param event Event object
  * @returns {Promise<number | undefined>} A promise that resolves to the number of affected rows on success, or undefined if the operation fails.
  */
 async function insertEvent(
-  client: PoolClient,
+  sql: ReturnType<typeof postgres>,
   event: Event,
 ): Promise<string | undefined> {
   // Validate input
@@ -138,44 +123,35 @@ async function insertEvent(
     throw new Error("Invalid event object: eventId is required");
   }
 
-  // SQL statement for inserting
-  const insertQuery = `
-      INSERT INTO events (event_id, status, what_, when_, where_,
-                          whom_, notes, operator_code, tracking_num, data_provider,
-                          exception_code, exception_desc, notification_code, notification_desc, extra,
-                          source_data)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,$16) ON CONFLICT(event_id) DO NOTHING RETURNING event_id;
-  `;
-
-  // The data to be inserted
-  const values = [
-    event.eventId,
-    event.status,
-    event.what,
-    event.when,
-    event.where,
-    event.whom,
-    event.notes,
-    event.operatorCode,
-    event.trackingNum,
-    event.dataProvider,
-    event.exceptionCode || null,
-    event.exceptionDesc || null,
-    event.notificationCode || null,
-    event.notificationDesc || null,
-    event.extra || null,
-    event.sourceData || null,
-  ];
-
   try {
     // Insert into DB table
-    const result = await client.queryObject<{ event_id: string }>(
-      insertQuery,
-      values,
-    );
+    // SQL statement for inserting
+    const result = await sql`
+        INSERT INTO events (event_id, status, what_, when_, where_,
+                            whom_, notes, operator_code, tracking_num, data_provider,
+                            exception_code, exception_desc, notification_code, notification_desc, extra,
+                            source_data)
+        VALUES (${event.eventId},
+                ${event.status},
+                ${event.what ?? ""},
+                ${event.when ?? ""},
+                ${event.where ?? ""},
+                ${event.whom ?? ""},
+                ${event.notes ?? ""},
+                ${event.operatorCode ?? ""},
+                ${event.trackingNum ?? ""},
+                ${event.dataProvider ?? ""},
+                ${event.exceptionCode || null},
+                ${event.exceptionDesc || null},
+                ${event.notificationCode || null},
+                ${event.notificationDesc || null},
+                ${sql.json(ensureJSONSafe(event.extra ?? {}))},
+                ${sql.json(ensureJSONSafe(event.sourceData ?? {}))}
+               ) ON CONFLICT(event_id) DO NOTHING RETURNING event_id;
+    `;
 
-    if (result.rows.length === 1) {
-      return result.rows[0].event_id;
+    if (result.count === 1) {
+      return result[0].event_id;
     }
 
     // log the info if no event_id was inserted
@@ -187,33 +163,28 @@ async function insertEvent(
 }
 
 export async function deleteEvent(
-    client: PoolClient,
-    eventID: string,
+  sql: ReturnType<typeof postgres>,
+  eventID: string,
 ): Promise<number | undefined> {
-  // delete event
-  const deleteEvent = `
-      DELETE
-      FROM events
-      WHERE event_id = $1
+  // delete events
+  const result = await sql`
+      DELETE FROM events
+      WHERE event_id = ${eventID}
   `;
-  const result = await client.queryObject(deleteEvent, [
-    eventID.toString(),
-  ]);
-
-  return result?.rowCount as number;
+  return result.count;
 }
 
 /**
  * Query entity from DB by trackingID
- * @param client PoolClient
+ @param {ReturnType<typeof postgres>} sql - The PostgreSQL client instance
  * @param trackingID
  * @return {Promise<Entity | undefined>} A promise that resolves to the entity object if found, or undefined.
  */
 export async function queryEntity(
-  client: PoolClient,
+  sql: ReturnType<typeof postgres>,
   trackingID: TrackingID,
 ): Promise<Entity | undefined> {
-  const result = await client.queryArray`
+  const rows = await sql`
         SELECT uuid,
                id,
                type,
@@ -226,74 +197,37 @@ export async function queryEntity(
     `;
 
   let entity: Entity | undefined;
-  if (result.rows.length == 1) {
+  if (rows.length == 1) {
     entity = new Entity();
-    const row = result.rows[0];
-    entity.uuid = row[0] as string;
-    entity.id = row[1] as string;
-    entity.type = row[2] as string;
-    entity.completed = row[3] as boolean;
-    entity.extra = row[4] as Record<string, string>;
-    entity.params = row[5] as Record<string, string>;
-    entity.creationTime = row[6] as string;
+    const row = rows[0];
+    entity.uuid = row.uuid;
+    entity.id = row.id;
+    entity.type = row.type;
+    entity.completed = row.completed;
+    entity.extra = row.extra as Record<string, string>;
+    entity.params = row.params as Record<string, string>;
+    entity.creationTime = row.creationTime as string;
   }
 
   if (entity != undefined) {
     // query events from database
-    entity.events = await queryEvents(client, trackingID);
+    entity.events = await queryEvents(sql, trackingID);
   }
   return entity;
 }
 
 /**
- * Query status by trackingID
- * @param client
- * @param trackingID
- * @returns {Promise<Record<string, unknown> | undefined>} A promise that resolves to JSON object if found, or undefined.
- */
-export async function queryStatus(
-  client: PoolClient,
-  trackingID: TrackingID,
-): Promise<Record<string, unknown> | undefined> {
-  const result = await client.queryArray`
-        SELECT status,
-               what,
-               exception_code,
-               exception_desc
-        FROM events
-        WHERE operator_code = ${trackingID.operator}
-          AND tracking_num = ${trackingID.trackingNum}
-        ORDER BY when_ DESC LIMIT 1;
-    `;
-
-  if (result.rows.length == 1) {
-    const row = result.rows[0];
-    return {
-      id: trackingID.toString(),
-      status: row[0] as number,
-      what: row[1] as string,
-      ...(row[2] != null &&
-        { exceptionCode: row[2] as string }),
-      ...(row[3] != null &&
-        { exceptionDesc: row[3] as string }),
-    };
-  }
-
-  return undefined;
-}
-
-/**
  * Query events by trackingID
- * @param client
+ @param {ReturnType<typeof postgres>} sql - The PostgreSQL client instance
  * @param trackingID
  * @returns {Promise<Event[]>} A promise that resolves to object event array
  */
 async function queryEvents(
-  client: PoolClient,
+  sql: ReturnType<typeof postgres>,
   trackingID: TrackingID,
 ): Promise<Event[]> {
   const events: Event[] = [];
-  const result = await client.queryArray`
+  const rows = await sql`
         SELECT event_id,
                status,
                what_,
@@ -315,24 +249,24 @@ async function queryEvents(
           AND tracking_num = ${trackingID.trackingNum};
     `;
 
-  for (const row of result.rows) {
+  for (const row of rows) {
     const event = new Event();
-    event.eventId = row[0] as string;
-    event.status = row[1] as number;
-    event.what = row[2] as string;
-    event.whom = row[3] as string;
-    event.when = row[4] as string;
-    event.where = row[5] as string;
-    event.notes = row[6] as string;
-    event.operatorCode = row[7] as string;
-    event.trackingNum = row[8] as string;
-    event.dataProvider = row[9] as string;
-    event.exceptionCode = row[10] as number;
-    event.exceptionDesc = row[11] as string;
-    event.notificationCode = row[12] as number;
-    event.notificationDesc = row[13] as string;
-    event.extra = row[14] as Record<string, string>;
-    event.sourceData = row[15] as Record<string, string>;
+    event.eventId = row.event_id as string;
+    event.status = row.status as number;
+    event.what = row.what_ as string;
+    event.whom = row.whom_ as string;
+    event.when = row.when_ as string;
+    event.where = row.where_ as string;
+    event.notes = row.notes as string;
+    event.operatorCode = row.operator_code as string;
+    event.trackingNum = row.tracking_num as string;
+    event.dataProvider = row.data_provider as string;
+    event.exceptionCode = row.exception_code as number;
+    event.exceptionDesc = row.exception_desc as string;
+    event.notificationCode = row.notification_code as number;
+    event.notificationDesc = row.notification_desc as string;
+    event.extra = row.extra as Record<string, string>;
+    event.sourceData = row.source_data as Record<string, string>;
     events.push(event);
   }
 
@@ -341,23 +275,23 @@ async function queryEvents(
 
 /**
  * Query eventIDs by trackingID
- * @param client
+ * @param {ReturnType<typeof postgres>} sql - The PostgreSQL client instance
  * @param trackingID
  * @returns {Promise<string[]>} A promise resolves to event id array
  */
 export async function queryEventIds(
-  client: PoolClient,
+  sql: ReturnType<typeof postgres>,
   trackingID: TrackingID,
 ): Promise<string[]> {
   const eventIds: string[] = [];
-  const result = await client.queryArray`
+  const rows = await sql`
         SELECT event_id
         FROM events
         WHERE operator_code = ${trackingID.operator}
           AND tracking_num = ${trackingID.trackingNum};
     `;
 
-  for (const row of result.rows) {
+  for (const row of rows) {
     eventIds.push(row[0] as string);
   }
   return eventIds;
@@ -365,21 +299,21 @@ export async function queryEventIds(
 
 /**
  * Get in-procesing tracking numbers
- * @param client
+ * @param {ReturnType<typeof postgres>} sql - The PostgreSQL client instance
  * @returns {Promise<Record<string, unknown>>} A promise resolves to JSON object
  */
 export async function getInProcessingTrackingNums(
-  client: PoolClient,
+  sql: ReturnType<typeof postgres>,
 ): Promise<Record<string, unknown>> {
   const trackingNums: Record<string, unknown> = {};
-  const result = await client.queryArray`
+  const rows = await sql`
         SELECT id, params
         FROM entities
         WHERE completed = false;
     `;
 
-  for (const row of result.rows) {
-    trackingNums[row[0] as string] = row[1];
+  for (const row of rows) {
+    trackingNums[row.id as string] = row.params as Record<string, string>;
   }
 
   return trackingNums;
@@ -387,19 +321,37 @@ export async function getInProcessingTrackingNums(
 
 /**
  * Query token from DB
- * @param client PoolClient
+ * @param {ReturnType<typeof postgres>} sql - The PostgreSQL client instance
  * @param token
  * @return {Promise<boolean>} A promise that resolves to true if found, or false.
  */
 export async function isTokenValid(
-  client: PoolClient,
+  sql: ReturnType<typeof postgres>,
   token: string,
 ): Promise<boolean> {
-  const result = await client.queryArray`
+  const rows = await sql`
         SELECT id
         FROM tokens
         WHERE id = ${token};
     `;
 
-  return result.rows.length == 1;
+  return rows.length == 1;
+}
+
+function ensureJSONSafe(obj: unknown): JSONValue {
+  if (typeof obj === "object" && obj !== null) {
+    return Object.fromEntries(
+      Object.entries(obj).map(([k, v]) => [k, ensureJSONSafe(v)]),
+    );
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(ensureJSONSafe);
+  }
+  if (
+    typeof obj === "string" || typeof obj === "number" ||
+    typeof obj === "boolean" || obj === null
+  ) {
+    return obj;
+  }
+  return String(obj);
 }

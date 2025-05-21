@@ -4,10 +4,11 @@
  * metadata initialization, database setup, scheduling, and server startup.
  */
 import { logger } from "../tools/logger.ts";
-import { initializeDbPool } from "../db/dbutil.ts";
 import { Server } from "./server.ts";
 import { syncRoutes } from "./schedule.ts";
 import { loadEnv, loadMetaData } from "./app.ts";
+import {initConnection} from "../db/dbutil.ts";
+
 
 /**
  * Main entry point of the application.
@@ -20,7 +21,7 @@ import { loadEnv, loadMetaData } from "./app.ts";
 async function main(): Promise<void> {
   await loadEnv(); // load environment variable first
   await loadMetaData(); // load file system data
-  initializeDbPool(); // initialize database connection pool
+  await initConnection();
 
   /**
    * Starts a scheduler that periodically synchronizes tracking routes.

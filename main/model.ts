@@ -257,33 +257,35 @@ export class TrackingID {
  */
 export class Entity {
   /** Unique identifier for the object */
-  uuid?: string;
+  uuid: string;
   /** Object identifier. ex: fdx-779879860040 */
-  id?: string;
+  id: string;
   /** Type of the object. ex: waybill */
-  type?: string;
+  type: string;
   /** Indicates if the event related to object is completed */
-  completed?: boolean;
+  completed: boolean;
   /** Indicates the timestamp of the first event */
-  creationTime?: string;
+  creationTime: string;
   /** Additional metadata for the object */
-  extra?: Record<string, string>;
+  extra: Record<string, string>;
   /** Parameters associated with the object. ex:{phonenum:'1234'} */
-  params?: Record<string, string>;
+  params: Record<string, string>;
   /** List of events associated with the object */
-  events?: Event[] = [];
+  events: Event[] = [];
 
   /**
    * Constructs an Entity instance.
-   * @param {string} [id] - The object identifier.
-   * @param {string} [type] - The type of the object.
    */
   constructor(
-    id?: string,
-    type?: string,
   ) {
-    this.id = id;
-    this.type = type;
+    this.uuid = "";
+    this.id = "";
+    this.type = "";
+    this.completed = false;
+    this.creationTime = "";
+    this.extra = {};
+    this.params = {};
+    this.events = [];
   }
 
   /**
@@ -470,8 +472,8 @@ export class Entity {
    */
   public getCreationTime(): string {
     if (
-      this.events === undefined ||
-      this.events.length == 0
+        this.events === undefined ||
+        this.events.length == 0
     ) return "";
 
     const when = this.events[0]?.when;
@@ -526,9 +528,6 @@ export class Entity {
 
 /**
  * A class representing an event associated with an object.
- * @author samshdn
- * @version 0.1.1
- * @date 2025-2-28
  */
 export class Event {
   /** Unique identifier for the event */
@@ -632,3 +631,11 @@ export class UserError extends Error {
     this.code = code;
   }
 }
+
+export type JSONValue =
+    | string
+    | number
+    | boolean
+    | null
+    | { [key: string]: JSONValue }
+    | JSONValue[];

@@ -7,9 +7,8 @@
 import { Context, Hono, HonoRequest, Next } from "hono";
 import { ContentfulStatusCode } from "hono/utils/http-status";
 import { cors } from "hono/cors";
-
+import { sql } from "../db/dbutil.ts";
 import { logger } from "../tools/logger.ts";
-import { connect } from "../db/dbutil.ts";
 import { deleteEntity, isTokenValid } from "../db/dbop.ts";
 import { requestWhereIs } from "./gateway.ts";
 import { Entity, ErrorRegistry, TrackingID, UserError } from "./model.ts";
@@ -47,17 +46,7 @@ export class Server {
    * @returns boolean indicating if token is valid
    */
   private async verifyToken(token: string): Promise<boolean> {
-    let client;
-    let isValidToken = false;
-    try {
-      client = await connect();
-      isValidToken = await isTokenValid(client, token);
-    } finally {
-      if (client) {
-        client.release();
-      }
-    }
-    return isValidToken;
+    return await isTokenValid(sql, token);
   }
 
   /**
@@ -302,51 +291,42 @@ export class Server {
    * @throws Will throw an error if there's an issue with database operations.
    */
   private async getStatus(
-    trackingID: TrackingID,
-    queryParams: Record<string, string>,
+      trackingID: TrackingID,
+      queryParams: Record<string, string>,
   ): Promise<Record<string, unknown> | undefined> {
-    let client;
-    try {
-      client = await connect();
-
-      // Try to get entity from database first
-      const entity = await queryEntity(client, trackingID);
-      if (entity) {
-        if (
+    // Try to get entity from database first
+    const entity = await queryEntity(sql, trackingID);
+    if (entity) {
+      if (
           trackingID.operator === "sfex" &&
           entity.params?.phonenum !== queryParams.phonenum
-        ) {
-          throw new UserError("400-06");
-        }
-        return entity.getLastStatus();
+      ) {
+        throw new UserError("400-06");
       }
+      return entity.getLastStatus();
+    }
 
-      // If not in database, request from data provider
-      const result = await requestWhereIs(
+    // If not in database, request from data provider
+    const result = await requestWhereIs(
         trackingID,
         queryParams,
         "manual-pull",
-      );
+    );
 
-      if (result === undefined) {
-        logger.error(`Context: getStatus`);
-        throw new UserError("404-01"); // Not found in data provider
-      }
-
-      try {
-        await client.queryObject("BEGIN");
-        await insertEntity(client, result);
-        await client.queryObject("COMMIT");
-      } catch (error) {
-        await client.queryObject("ROLLBACK");
-        throw error;
-      }
-      return result.getLastStatus();
-    } finally {
-      if (client) {
-        client.release();
-      }
+    if (result === undefined) {
+      logger.error(`Context: getStatus`);
+      throw new UserError("404-01"); // Not found in data provider
     }
+
+    try {
+      await sql.begin(async (sql) => {
+        await insertEntity(sql, result);
+        return true;
+      });
+    } catch (error) {
+      throw error;
+    }
+    return result.getLastStatus();
   }
 
   /**
@@ -356,24 +336,21 @@ export class Server {
    * @returns An Entity object on success or a string error code if an error occurs
    */
   private async getEntityFromDatabaseFirst(
-    trackingID: TrackingID,
-    queryParams: Record<string, string>,
+      trackingID: TrackingID,
+      queryParams: Record<string, string>,
   ) {
-    let client;
     let entity: Entity | undefined;
     try {
-      client = await connect();
-
       // try to load from database first
       const entityInDB: Entity | undefined = await queryEntity(
-        client,
-        trackingID,
+          sql,
+          trackingID,
       );
       if (entityInDB !== undefined) {
         if (
-          trackingID.operator === "sfex" &&
-          entityInDB.params &&
-          entityInDB.params["phonenum"] !== queryParams["phonenum"]
+            trackingID.operator === "sfex" &&
+            entityInDB.params &&
+            entityInDB.params["phonenum"] !== queryParams["phonenum"]
         ) {
           throw new UserError("400-06");
         }
@@ -381,24 +358,21 @@ export class Server {
       }
 
       entity = await requestWhereIs(
-        trackingID,
-        queryParams,
-        "manual-pull",
+          trackingID,
+          queryParams,
+          "manual-pull",
       );
       if (entity instanceof Entity) {
         try {
-          client.queryObject("BEGIN");
-          await insertEntity(client, entity);
-          client.queryObject("COMMIT");
+          await sql.begin(async (sql) => {
+            await insertEntity(sql, entity as Entity);
+          });
         } catch (err) {
-          client.queryObject("ROLLBACK");
           throw err;
         }
       }
     } finally {
-      if (client) {
-        client.release();
-      }
+      //await sql.end();
     }
     return entity;
   }
@@ -410,14 +384,14 @@ export class Server {
    * @returns An Entity object on success or a string error code if an error occurs
    */
   private async getEntityFromProviderFirst(
-    trackingID: TrackingID,
-    queryParams: Record<string, string>,
+      trackingID: TrackingID,
+      queryParams: Record<string, string>,
   ): Promise<Entity> {
     // load from carrier
     const entity: Entity | undefined = await requestWhereIs(
-      trackingID,
-      queryParams,
-      "manual-pull",
+        trackingID,
+        queryParams,
+        "manual-pull",
     );
 
     // The refresh has failed to receive data from the data provider.
@@ -426,24 +400,18 @@ export class Server {
     }
 
     // update to database
-    let client;
     try {
-      client = await connect();
-      client.queryObject("BEGIN");
-      // step 1: delete the existing record first
-      await deleteEntity(client, trackingID);
-      // step 2: insert into database
-      await insertEntity(client, entity);
-      client.queryObject("COMMIT");
+      await sql.begin(async (sql) => {
+        // step 1: delete the existing record first
+        await deleteEntity(sql, trackingID);
+        // step 2: insert into database
+        await insertEntity(sql, entity);
+        return true;
+      });
     } catch (error) {
-      if (client) {
-        client.queryObject("ROLLBACK");
-      }
       throw error;
     } finally {
-      if (client) {
-        client.release();
-      }
+      //await sql.end();
     }
 
     return entity;
