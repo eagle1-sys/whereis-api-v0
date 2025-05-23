@@ -292,7 +292,7 @@ export async function queryEventIds(
     `;
 
   for (const row of rows) {
-    eventIds.push(row[0] as string);
+    eventIds.push(row.event_id as string);
   }
   return eventIds;
 }
