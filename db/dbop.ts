@@ -68,9 +68,10 @@ export async function updateEntity(
       // step 1: insert new events that are not in the previous entity
       const events: Event[] = entity.events ?? [];
       for (const event of events) {
-        if (event.eventId !== undefined && eventIds.includes(event.eventId)) {
+        if (eventIds.includes(event.eventId)) {
           continue;
         }
+        logger.info(`Auto-pull: Insert event with id ${event.eventId}`);
         await insertEvent(sql, event);
       }
 
