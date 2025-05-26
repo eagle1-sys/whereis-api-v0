@@ -76,8 +76,8 @@ export async function updateEntity(
       }
 
       // step 2: delete events that are not in the updated entity
-      for(const eventId of eventIds) {
-        if(!entity.includes(eventId)) {
+      for (const eventId of eventIds) {
+        if (!entity.includes(eventId)) {
           logger.info(`Auto-pull: Delete event with id ${eventId}`);
           await deleteEvent(sql, eventId);
         }
@@ -345,7 +345,7 @@ function ensureJSONSafe(obj: unknown): JSONValue {
       Object.entries(obj).map(([k, v]) => [k, ensureJSONSafe(v)]),
     );
   }
-  if (Array.isArray(obj)) {
+  if (obj !== null && Array.isArray(obj)) {
     return obj.map(ensureJSONSafe);
   }
   if (
