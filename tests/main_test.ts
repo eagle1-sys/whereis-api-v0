@@ -90,7 +90,7 @@ async function getFedExRoute(data: any): Promise<void> {
   const input = data["input"];
   const output = data["output"];
   const trackingNum = input["trackingNum"];
-  const result = await Fdx.getRoute(trackingNum);
+  const result = await Fdx.getRoute(trackingNum) as any;
   assert(result != undefined);
   const events = result["output"]["completeTrackResults"][0]["trackResults"][0][
     "scanEvents"
@@ -107,7 +107,7 @@ async function getSfExRoute(data: any): Promise<void> {
   const input = data["input"];
   const output = data["output"];
   const response = await Sfex.getRoute(input["trackingNum"], input["phone"]);
-  const apiResultData = JSON.parse(response["apiResultData"]);
+  const apiResultData = JSON.parse(response["apiResultData"] as string);
   const routes = apiResultData["msgData"]["routeResps"][0]["routes"];
   assert(routes.length == output["routeNum"]);
 }
