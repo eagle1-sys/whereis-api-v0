@@ -8,11 +8,10 @@
     "@std/crypto": "jsr:@std/crypto@^1.0.5",
     "hono": "jsr:@hono/hono@^4.7.5",
     "@std/assert": "jsr:@std/assert@1",
-    "@std/path": "https://deno.land/std/path/mod.ts",
-    "@std/bytes/copy": "https://deno.land/std/bytes/copy.ts",
-    "@std/fmt/colors": "https://deno.land/std/fmt/colors.ts",
-    "@std/encoding/base64": "https://deno.land/std/encoding/base64.ts",
-    "@std/encoding/hex": "https://deno.land/std/encoding/hex.ts",
+    "@std/path": "jsr:@std/path",
+    "@std/bytes": "jsr:@std/bytes",
+    "@std/fmt": "jsr:@std/fmt",
+    "@std/encoding": "jsr:@std/encoding",
     "postgresjs": "https://deno.land/x/postgresjs/mod.js"
   },
   "nodeModulesDir": "auto"
