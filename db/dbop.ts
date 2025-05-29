@@ -79,7 +79,8 @@ export async function updateEntity(
       for (const eventId of eventIds) {
         if (!entity.includes(eventId)) {
           logger.info(`Auto-pull: Delete event with id ${eventId}`);
-          await deleteEvent(sql, eventId);
+          // await deleteEvent(sql, eventId);
+          await markEventAsDeleted(sql, eventId);
         }
       }
     }
@@ -171,6 +172,22 @@ export async function deleteEvent(
   const result = await sql`
       DELETE FROM events
       WHERE event_id = ${eventID}
+  `;
+  return result.count;
+}
+
+export async function markEventAsDeleted(
+  sql: ReturnType<typeof postgres>,
+  eventID: string,
+): Promise<number | undefined> {
+  const fromIdx = eventID.indexOf("-");
+  const uptoIdx = eventID.lastIndexOf("-");
+  const trackingNum = eventID.substring(fromIdx + 1, uptoIdx) + "-delete";
+  // mark the tracking_num as deleted
+  const result = await sql`
+      update events
+      set tracking_num = ${trackingNum}
+      where event_id = ${eventID}
   `;
   return result.count;
 }
