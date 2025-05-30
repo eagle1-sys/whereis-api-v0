@@ -79,8 +79,8 @@ export async function updateEntity(
       for (const eventId of eventIds) {
         if (!entity.includes(eventId)) {
           logger.info(`Auto-pull: Delete event with id ${eventId}`);
-          // await deleteEvent(sql, eventId);
-          await markEventAsDeleted(sql, eventId);
+           await deleteEvent(sql, eventId);
+          //await markEventAsDeleted(sql, eventId);
         }
       }
     }
