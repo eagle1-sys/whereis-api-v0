@@ -367,14 +367,16 @@ export async function isTokenValid(
 }
 
 function ensureJSONSafe(obj: unknown): JSONValue {
+  if (obj !== null && Array.isArray(obj)) {
+    return obj.map(ensureJSONSafe);
+  }
+
   if (typeof obj === "object" && obj !== null) {
     return Object.fromEntries(
       Object.entries(obj).map(([k, v]) => [k, ensureJSONSafe(v)]),
     );
   }
-  if (obj !== null && Array.isArray(obj)) {
-    return obj.map(ensureJSONSafe);
-  }
+
   if (
     typeof obj === "string" || typeof obj === "number" ||
     typeof obj === "boolean" || obj === null
