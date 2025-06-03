@@ -265,7 +265,7 @@ export class Sfex {
     const eventTime: string = acceptTime.replace(" ", "T") + "+08:00";
     const date = new Date(eventTime);
     const secondsSinceEpoch = Math.floor(date.getTime() / 1000);
-    event.eventId = `ev_fdx-${trackingNum}-${secondsSinceEpoch}-${status}`;
+    event.eventId = `ev_sfex-${trackingNum}-${secondsSinceEpoch}-${status}`;
     event.operatorCode = "sfex";
     event.trackingNum = trackingNum;
     event.status = status;
