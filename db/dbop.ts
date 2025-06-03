@@ -47,47 +47,56 @@ export async function insertEntity(
 }
 
 /**
- * Update existing entity record & append new event data to event table
- * @param {ReturnType<typeof postgres>} sql - The PostgreSQL client instance
- * @param entity - Entity object with updated event(s)
- * @param eventIds - Existing eventIDs
- * @returns {Promise<number | undefined>} A promise that resolves to the number of affected rows on success, or undefined if the operation fails.
+ * Updates an existing entity record and manages associated events in the database.
+ * This function performs three main operations:
+ * 1. Updates the entity's completion status if it's completed.
+ * 2. Inserts new events associated with the entity.
+ * 3. Removes events that are no longer associated with the entity.
+ *
+ * @param sql - The PostgreSQL client instance used for database operations.
+ * @param entity - The Entity object containing updated information and events.
+ * @param eventIdsNew - An array of event IDs that need to be inserted.
+ * @param eventIdsToBeRemoved - An array of event IDs that need to be removed from the database.
+ * @returns A Promise that resolves to 1 if the update was successful, or undefined if an error occurred.
  */
 export async function updateEntity(
   sql: ReturnType<typeof postgres>,
   entity: Entity,
-  eventIds: string[],
-): Promise<number | undefined> {
-  try { // update the entity record
-    const result = await sql`
-      update entities set completed = ${entity.isCompleted()} where id = ${entity
-      .id as string}
+  eventIdsNew: string[],
+  eventIdsToBeRemoved: string[],
+): Promise<boolean> {
+  // update the entity record
+  try {
+    // step 2: update the entity record ONLY when the entity is completed
+    if (entity.isCompleted()) {
+      await sql`
+      update entities set completed = true where id = ${entity.id as string}
     `;
+    }
 
-    if (result.count == 1) {
-      // step 1: insert new events that are not in the previous entity
-      const events: Event[] = entity.events ?? [];
+    // step 2: insert new events
+    if (eventIdsNew.length > 0) {
+      const events: Event[] = entity.events.filter((event) =>
+        eventIdsNew.includes(event.eventId)
+      );
       for (const event of events) {
-        if (eventIds.includes(event.eventId)) {
-          continue;
-        }
         logger.info(`Auto-pull: Insert event with id ${event.eventId}`);
         await insertEvent(sql, event);
       }
+    }
 
-      // step 2: delete events that are not in the updated entity
-      for (const eventId of eventIds) {
-        if (!entity.includes(eventId)) {
-          logger.info(`Auto-pull: Delete event with id ${eventId}`);
-           await deleteEvent(sql, eventId);
-          //await markEventAsDeleted(sql, eventId);
-        }
+    // step 3: remove events that are not in the updated entity
+    if(eventIdsToBeRemoved.length>0) {
+      for (const eventId of eventIdsToBeRemoved) {
+        logger.info(`Auto-pull: Delete event with id ${eventId}`);
+        await deleteEvent(sql, eventId);
       }
     }
-    return 1;
+
+    return true;
   } catch (e) {
     logger.error(`Error updating entity: ${e}`);
-    return undefined;
+    return false;
   }
 }
 
@@ -264,7 +273,8 @@ async function queryEvents(
                source_data
         FROM events
         WHERE operator_code = ${trackingID.operator}
-          AND tracking_num = ${trackingID.trackingNum};
+          AND tracking_num = ${trackingID.trackingNum}
+        ORDER BY event_id ASC;
     `;
 
   for (const row of rows) {

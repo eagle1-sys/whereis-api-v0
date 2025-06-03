@@ -5,7 +5,6 @@
  * and convert them into a structured object with associated `Event` details.
  */
 
-import { jsonToMd5 } from "../tools/util.ts";
 import {
   Entity,
   Event,
@@ -71,6 +70,61 @@ export class Sfex {
   };
 
   /**
+   * Generate a signed digest for API requests
+   * @param {string} msgString - The request payload as a string
+   * @param timestamp - the time
+   * @param {string} checkWord - The application key
+   * @returns {string} - The signed digest
+   */
+  private static async generateSignature(
+    msgString: string,
+    timestamp: number,
+    checkWord: string,
+  ): Promise<string> {
+    // Encode the input data
+    const encoder = new TextEncoder();
+    const data = encoder.encode(
+      encodeURIComponent(msgString + timestamp + checkWord),
+    );
+    const hashBuffer = await crypto.subtle.digest("MD5", data);
+    // Output base64 string
+    const hashArray = new Uint8Array(hashBuffer);
+    return btoa(String.fromCharCode(...hashArray));
+  }
+
+  /**
+   * Queries the location and status of a shipment using its tracking number.
+   * @static
+   * @async
+   * @param {TrackingID} trackingId - The tracking ID defined by eagle1.
+   * @param {Record<string, string>} extraParams - Additional parameters, including phone number.
+   * @param {string} updateMethod - The method used to update the tracking information.
+   * @returns {Promise<Entity | undefined>} A promise that resolves to an object or undefined if no data is found.
+   */
+  static async whereIs(
+    trackingId: TrackingID,
+    extraParams: Record<string, string>,
+    updateMethod: string,
+  ): Promise<Entity> {
+    const result = await this.getRoute(
+      trackingId.trackingNum,
+      extraParams["phonenum"],
+    );
+
+    const resultCode = result["apiResultCode"] as string;
+    if (resultCode != "A1000") {
+      throw new Error(resultCode);
+    }
+
+    return this.convert(
+      trackingId,
+      result,
+      extraParams,
+      updateMethod,
+    );
+  }
+
+  /**
    * Retrieves the internal event code based on SF Express status and operation codes.
    *
    * @static
@@ -102,61 +156,6 @@ export class Sfex {
     }
 
     return 3001;
-  }
-
-  /**
-   * Queries the location and status of a shipment using its tracking number.
-   * @static
-   * @async
-   * @param {TrackingID} trackingId - The tracking ID defined by eagle1.
-   * @param {Record<string, string>} extraParams - Additional parameters, including phone number.
-   * @param {string} updateMethod - The method used to update the tracking information.
-   * @returns {Promise<Entity | undefined>} A promise that resolves to an object or undefined if no data is found.
-   */
-  static async whereIs(
-    trackingId: TrackingID,
-    extraParams: Record<string, string>,
-    updateMethod: string,
-  ): Promise<Entity> {
-    const result = await this.getRoute(
-      trackingId.trackingNum,
-      extraParams["phonenum"],
-    );
-
-    const resultCode = result["apiResultCode"] as string;
-    if (resultCode != "A1000") {
-      throw new Error(resultCode);
-    }
-
-    return await this.convert(
-      trackingId,
-      result,
-      extraParams,
-      updateMethod,
-    );
-  }
-
-  /**
-   * Generate a signed digest for API requests
-   * @param {string} msgString - The request payload as a string
-   * @param timestamp - the time
-   * @param {string} checkWord - The application key
-   * @returns {string} - The signed digest
-   */
-  private static async generateSignature(
-    msgString: string,
-    timestamp: number,
-    checkWord: string,
-  ): Promise<string> {
-    // Encode the input data
-    const encoder = new TextEncoder();
-    const data = encoder.encode(
-      encodeURIComponent(msgString + timestamp + checkWord),
-    );
-    const hashBuffer = await crypto.subtle.digest("MD5", data);
-    // Output base64 string
-    const hashArray = new Uint8Array(hashBuffer);
-    return btoa(String.fromCharCode(...hashArray));
   }
 
   /**
@@ -219,12 +218,12 @@ export class Sfex {
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Promise<Entity | undefined>} A promise that resolves to an object or undefined if no routes are found.
    */
-  private static async convert(
+  private static convert(
     trackingId: TrackingID,
     result: Record<string, unknown>,
     params: Record<string, string>,
     updateMethod: string,
-  ): Promise<Entity> {
+  ): Entity {
     const apiResult = JSON.parse(result["apiResultData"] as string);
     const routeResp = apiResult["msgData"]["routeResps"][0];
     const routes: [] = routeResp["routes"];
@@ -239,42 +238,56 @@ export class Sfex {
     entity.type = "waybill";
     entity.params = params;
     entity.extra = {};
-    for (let i = 0; i < routes.length; i++) {
-      const route = routes[i] as Record<string, unknown>;
-      const sfStatusCode = route["secondaryStatusCode"] as string;
-      const sfOpCode = route["opCode"] as string;
-      const status = Sfex.getStatusCode(sfStatusCode, sfOpCode, route);
-
-      const trackingNum = trackingId.trackingNum;
-      const eventId = "ev_sfex-" + trackingNum + "-" + await jsonToMd5(route);
-      if (entity.isEventIdExist(eventId)) continue;
-
-      const event: Event = new Event();
-      event.eventId = eventId;
-      event.operatorCode = "sfex";
-      event.trackingNum = trackingNum;
-      event.status = status;
-      event.what = StatusCode.getDesc(status);
-      // acceptTime format: 2024-10-26 06:12:43
-      const acceptTime: string = route["acceptTime"] as string;
-      // convert to isoStringWithTimezone : "2024-10-26T06:12:43+08:00"
-      event.when = acceptTime.replace(" ", "T") + "+08:00";
-      const remark: string = (route["remark"] as string).trim();
-      if (remark.startsWith("快件途经")) {
-        event.where = remark.substring(4);
-      } else {
-        event.where = route["acceptAddress"] as string;
+    for (const route of routes) {
+      const event = this.createEvent(route, trackingId, updateMethod);
+      if (event && !entity.isEventIdExist(event.eventId)) {
+        entity.addEvent(event);
       }
-      event.whom = "SF Express";
-      event.notes = remark.toLowerCase() === event.what.toLowerCase() ? "" : remark;
-      event.dataProvider = "SF Express";
-      event.extra = {
-        updateMethod: updateMethod,
-        updatedAt: new Date().toISOString(),
-      };
-      event.sourceData = route;
-      entity.addEvent(event);
     }
+
     return entity;
+  }
+
+  private static createEvent(
+    route: Record<string, unknown>,
+    trackingId: TrackingID,
+    updateMethod: string,
+  ): Event {
+    const trackingNum = trackingId.trackingNum;
+    const sfStatusCode = route["secondaryStatusCode"] as string;
+    const sfOpCode = route["opCode"] as string;
+    const status = Sfex.getStatusCode(sfStatusCode, sfOpCode, route);
+
+    const event: Event = new Event();
+    // acceptTime format: 2024-10-26 06:12:43
+    const acceptTime: string = route["acceptTime"] as string;
+    // convert to isoStringWithTimezone : "2024-10-26T06:12:43+08:00"
+    const eventTime: string = acceptTime.replace(" ", "T") + "+08:00";
+    const date = new Date(eventTime);
+    const secondsSinceEpoch = Math.floor(date.getTime() / 1000);
+    event.eventId = `ev_fdx-${trackingNum}-${secondsSinceEpoch}-${status}`;
+    event.operatorCode = "sfex";
+    event.trackingNum = trackingNum;
+    event.status = status;
+    event.what = StatusCode.getDesc(status);
+    event.when = eventTime;
+    const remark: string = (route["remark"] as string).trim();
+    if (remark.startsWith("快件途经")) {
+      event.where = remark.substring(4);
+    } else {
+      event.where = route["acceptAddress"] as string;
+    }
+    event.whom = "SF Express";
+    event.notes = remark.toLowerCase() === event.what.toLowerCase()
+      ? ""
+      : remark;
+    event.dataProvider = "SF Express";
+    event.extra = {
+      updateMethod: updateMethod,
+      updatedAt: new Date().toISOString(),
+    };
+    event.sourceData = route;
+
+    return event;
   }
 }

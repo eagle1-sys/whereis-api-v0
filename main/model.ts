@@ -297,7 +297,7 @@ export class Entity {
     const extra = this.extra || {};
     const additional: Record<string, unknown> = {};
     // sort the events first to ensure getCreationTime()/lastEvent() works correctly
-    this.events?.sort((a, b) => {
+    this.events.sort((a, b) => {
       const dateA = a.when ? new Date(a.when).getTime() : 0;
       const dateB = b.when ? new Date(b.when).getTime() : 0;
       return dateA - dateB;

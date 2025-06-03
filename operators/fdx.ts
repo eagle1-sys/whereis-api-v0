@@ -5,7 +5,6 @@
  *              and convert FedEx tracking data into an internal format with associated events.
  */
 
-import { jsonToMd5 } from "../tools/util.ts";
 import {
   Entity,
   Event,
@@ -111,6 +110,62 @@ export class Fdx {
   };
 
   /**
+   * Fetches and manages the FedEx API authentication token.
+   * @returns {Promise<string>} A promise resolving to the current or newly fetched token.
+   * @throws {Error} If the token cannot be retrieved from the FedEx API.
+   */
+  static async getToken(): Promise<string> {
+    // Refresh the token 5 seconds before expiration.
+    if (Date.now() > this.expireTime - 5000) {
+      const fedEx_API_URL: string = Deno.env.get("FedEx_API_URL") ?? "";
+      const fedEx_Client_ID: string = Deno.env.get("FedEx_Client_ID") ??
+        "";
+      const fedEx_Client_Secret: string = Deno.env.get("FedEx_Client_Secret") ??
+        "";
+      try {
+        const response = await fetch(fedEx_API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            grant_type: "client_credentials",
+            client_id: fedEx_Client_ID,
+            client_secret: fedEx_Client_Secret,
+          }),
+        });
+        const data = await response.json();
+        this.token = data["access_token"];
+        this.expireTime = Date.now() + data["expires_in"] * 1000;
+      } catch (error) {
+        console.error("Could not get JSON:", error);
+        throw error;
+      }
+    }
+
+    if (this.expireTime > 0) {
+      return this.token;
+    } else {
+      return "";
+    }
+  }
+
+  /**
+   * Retrieves the current location and tracking details for a given tracking number.
+   * @param {TrackingID} trackingId - The tracking ID defined by eagle1.
+   * @param {string} updateMethod - The method used to update the tracking information.
+   * @returns {Promise<Entity | undefined>} A promise resolving to the tracking entity or undefined if not found.
+   */
+  static async whereIs(
+    trackingId: TrackingID,
+    updateMethod: string,
+  ): Promise<Entity> {
+    const trackingNum: string = trackingId.trackingNum;
+    const result: Record<string, unknown> = await this.getRoute(trackingNum);
+    return this.convert(trackingId, result, updateMethod);
+  }
+
+  /**
    * Retrieves the internal event code based on FedEx status code, event type, and source data.
    * @param {string} derivedStatusCode - The derived status code from FedEx.
    * @param {string} eventType - The type of event from FedEx.
@@ -175,62 +230,6 @@ export class Fdx {
   }
 
   /**
-   * Retrieves the current location and tracking details for a given tracking number.
-   * @param {TrackingID} trackingId - The tracking ID defined by eagle1.
-   * @param {string} updateMethod - The method used to update the tracking information.
-   * @returns {Promise<Entity | undefined>} A promise resolving to the tracking entity or undefined if not found.
-   */
-  static async whereIs(
-    trackingId: TrackingID,
-    updateMethod: string,
-  ): Promise<Entity> {
-    const trackingNum: string = trackingId.trackingNum;
-    const result: Record<string, unknown> = await this.getRoute(trackingNum);
-    return await this.convert(trackingId, result, updateMethod);
-  }
-
-  /**
-   * Fetches and manages the FedEx API authentication token.
-   * @returns {Promise<string>} A promise resolving to the current or newly fetched token.
-   * @throws {Error} If the token cannot be retrieved from the FedEx API.
-   */
-  static async getToken(): Promise<string> {
-    // Refresh the token 5 seconds before expiration.
-    if (Date.now() > this.expireTime - 5000) {
-      const fedEx_API_URL: string = Deno.env.get("FedEx_API_URL") ?? "";
-      const fedEx_Client_ID: string = Deno.env.get("FedEx_Client_ID") ??
-        "";
-      const fedEx_Client_Secret: string = Deno.env.get("FedEx_Client_Secret") ??
-        "";
-      try {
-        const response = await fetch(fedEx_API_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams({
-            grant_type: "client_credentials",
-            client_id: fedEx_Client_ID,
-            client_secret: fedEx_Client_Secret,
-          }),
-        });
-        const data = await response.json();
-        this.token = data["access_token"];
-        this.expireTime = Date.now() + data["expires_in"] * 1000;
-      } catch (error) {
-        console.error("Could not get JSON:", error);
-        throw error;
-      }
-    }
-
-    if (this.expireTime > 0) {
-      return this.token;
-    } else {
-      return "";
-    }
-  }
-
-  /**
    * Fetches the shipment route details for a given tracking number from the FedEx API.
    * @param {string} trackingNumber - The FedEx tracking number.
    * @returns {Promise<Record<string, unknown>>} A promise resolving to the raw API response data.
@@ -276,11 +275,11 @@ export class Fdx {
    * @returns {Promise<Entity>} A promise resolving to the constructed Entity object.
    * @private
    */
-  private static async convert(
+  private static convert(
     trackingId: TrackingID,
     result: Record<string, unknown>,
     updateMethod: string,
-  ): Promise<Entity> {
+  ): Entity {
     const entity: Entity = new Entity();
     const output = result["output"] as Record<string, unknown>;
     const completeTrackResults = output["completeTrackResults"] as [unknown];
@@ -318,7 +317,7 @@ export class Fdx {
 
     const scanEvents = trackResult["scanEvents"] as Record<string, unknown>[];
     for (const scanEvent of scanEvents.reverse()) {
-      const event = await this.createEvent(scanEvent, trackingId, updateMethod);
+      const event = this.createEvent(scanEvent, trackingId, updateMethod);
       if (event && !entity.isEventIdExist(event.eventId)) {
         entity.addEvent(event);
       }
@@ -327,14 +326,14 @@ export class Fdx {
     return entity;
   }
 
-  private static async createEvent(
+  private static createEvent(
     scanEvent: Record<string, unknown>,
     trackingId: TrackingID,
     updateMethod: string,
-  ): Promise<Event | null> {
+  ): Event {
     const fdxStatusCode = scanEvent["derivedStatusCode"] as string;
     const fdxEventType = scanEvent["eventType"] as string;
-    const eagle1status = Fdx.getStatusCode(
+    const status = Fdx.getStatusCode(
       fdxStatusCode,
       fdxEventType,
       scanEvent,
@@ -342,11 +341,15 @@ export class Fdx {
 
     const trackingNum = trackingId.trackingNum;
     const event = new Event();
-    event.eventId = `ev_fdx-${trackingNum}-${await jsonToMd5(scanEvent)}`;
-    event.status = eagle1status;
-    event.what = StatusCode.getDesc(eagle1status);
+    // isoString
+    const eventTime = scanEvent["date"] as string;
+    const date = new Date(eventTime);
+    const secondsSinceEpoch = Math.floor(date.getTime() / 1000);
+    event.eventId = `ev_fdx-${trackingNum}-${secondsSinceEpoch}-${status}`;
+    event.status = status;
+    event.what = StatusCode.getDesc(status);
     event.whom = "FedEx";
-    event.when = scanEvent["date"] as string;
+    event.when = eventTime;
     event.where = Fdx.getWhere(scanEvent);
     event.operatorCode = trackingId.operator;
     event.trackingNum = trackingNum;
@@ -361,10 +364,11 @@ export class Fdx {
 
     // process notes
     const eventDescription = (scanEvent["eventDescription"] as string).trim();
-    const sourceExceptionDesc = (scanEvent["exceptionDescription"] as string).trim();
+    const sourceExceptionDesc = (scanEvent["exceptionDescription"] as string)
+      .trim();
     const notes = sourceExceptionDesc.trim() === ""
-        ? eventDescription
-        : `${eventDescription}: ${sourceExceptionDesc}`;
+      ? eventDescription
+      : `${eventDescription}: ${sourceExceptionDesc}`;
     event.notes = notes.toLowerCase() === event.what.toLowerCase() ? "" : notes;
     // extra data and source data
     event.extra = {

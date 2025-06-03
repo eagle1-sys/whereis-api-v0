@@ -28,24 +28,38 @@ export async function syncRoutes() {
   try {
     inProcessTrackingNums = await getInProcessingTrackingNums(sql);
 
-    await sql.begin(async sql => {
+    await sql.begin(async (sql) => {
       for (const [id, params] of Object.entries(inProcessTrackingNums)) {
         const trackingID = TrackingID.parse(id);
 
+        // step 1: fetch latest status from external data provider
         const entity: Entity | undefined = await requestWhereIs(
-            trackingID,
-            params as Record<string, string>,
-            "auto-pull",
+          trackingID,
+          params as Record<string, string>,
+          "auto-pull",
         );
         if (entity === undefined) continue;
 
-        const eventIds: string[] = await queryEventIds(
-            sql,
-            trackingID,
+        // step 2: compare eventIds in the database and fresh eventIds
+        let dataChanged = true; // assume data changed
+        const eventIdsFresh: string[] = entity.eventIds();
+        const eventIdsInDb: string[] = await queryEventIds(
+          sql,
+          trackingID,
         );
-        if (entity instanceof Entity && entity.isRevised(eventIds)) {
-          // update the object
-          await updateEntity(sql, entity, eventIds);
+        const eventIdsNew = eventIdsFresh.filter((item) =>
+          !eventIdsInDb.includes(item)
+        );
+        const eventIdsToBeRemoved = eventIdsInDb.filter((item) =>
+          !eventIdsFresh.includes(item)
+        );
+        if (eventIdsNew.length === 0 && eventIdsToBeRemoved.length === 0) {
+          dataChanged = false; // no change in data
+        }
+
+        // step 3：update the database
+        if (dataChanged) {
+          await updateEntity(sql, entity, eventIdsNew, eventIdsToBeRemoved);
         }
       }
       return true;
