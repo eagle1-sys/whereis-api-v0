@@ -57,7 +57,7 @@ export async function insertEntity(
  * @param entity - The Entity object containing updated information and events.
  * @param eventIdsNew - An array of event IDs that need to be inserted.
  * @param eventIdsToBeRemoved - An array of event IDs that need to be removed from the database.
- * @returns A Promise that resolves to 1 if the update was successful, or undefined if an error occurred.
+ * @returns A Promise that resolves to true if the update was successful, or false if an error occurred.
  */
 export async function updateEntity(
   sql: ReturnType<typeof postgres>,
