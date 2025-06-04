@@ -209,14 +209,11 @@ export class Sfex {
 
   /**
    * Converts raw SF Express route data into a structured  object with events.
-   * @private
-   * @static
-   * @async
    * @param {TrackingID} trackingId - The tracking ID defined by eagle1.
    * @param {Record<string, unknown>} result - The raw API response data.
    * @param {Record<string, string>} params - Additional parameters for the object.
    * @param {string} updateMethod - The method used to update the tracking information.
-   * @returns {Promise<Entity | undefined>} A promise that resolves to an object or undefined if no routes are found.
+   * @returns {Entity} An Entity object represents the shipment data.
    */
   private static convert(
     trackingId: TrackingID,
@@ -248,6 +245,14 @@ export class Sfex {
     return entity;
   }
 
+  /**
+   * Creates an Event object from SF Express route data.
+   *
+   * @param route - The route information from SF Express API.
+   * @param trackingId - The tracking ID object containing the tracking number.
+   * @param updateMethod - The method used to update the tracking information.
+   * @returns An Event object containing detailed information about the shipment status.
+   */
   private static createEvent(
     route: Record<string, unknown>,
     trackingId: TrackingID,
@@ -265,7 +270,7 @@ export class Sfex {
     const eventTime: string = acceptTime.replace(" ", "T") + "+08:00";
     const date = new Date(eventTime);
     const secondsSinceEpoch = Math.floor(date.getTime() / 1000);
-    event.eventId = `ev_sfex-${trackingNum}-${secondsSinceEpoch}-${status}`;
+    event.eventId = `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
     event.operatorCode = "sfex";
     event.trackingNum = trackingNum;
     event.status = status;

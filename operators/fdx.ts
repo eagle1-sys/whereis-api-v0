@@ -272,7 +272,7 @@ export class Fdx {
    * @param {TrackingID} trackingId - The tracking ID defined by eagle1.
    * @param {Record<string, unknown>} result - The raw API response data.
    * @param {string} updateMethod - The method used to update the tracking information.
-   * @returns {Promise<Entity>} A promise resolving to the constructed Entity object.
+   * @returns {Entity} An Entity object represents the trackingId's status.
    * @private
    */
   private static convert(
@@ -326,6 +326,17 @@ export class Fdx {
     return entity;
   }
 
+  /**
+   * Creates an Event object from a FedEx scan event.
+   *
+   * This function processes a FedEx scan event and converts it into an internal Event object,
+   * including status codes, timestamps, location information, and any exception details.
+   *
+   * @param {Record<string, unknown>} scanEvent - The raw scan event data from FedEx API.
+   * @param {TrackingID} trackingId - The tracking ID object containing the tracking number and operator.
+   * @param {string} updateMethod - The method used to update the tracking information.
+   * @returns {Event} A new Event object populated with data from the FedEx scan event.
+   */
   private static createEvent(
     scanEvent: Record<string, unknown>,
     trackingId: TrackingID,
@@ -345,7 +356,7 @@ export class Fdx {
     const eventTime = scanEvent["date"] as string;
     const date = new Date(eventTime);
     const secondsSinceEpoch = Math.floor(date.getTime() / 1000);
-    event.eventId = `ev_fdx-${trackingNum}-${secondsSinceEpoch}-${status}`;
+    event.eventId = `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
     event.status = status;
     event.what = StatusCode.getDesc(status);
     event.whom = "FedEx";
