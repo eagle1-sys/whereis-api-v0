@@ -1,0 +1,8 @@
+{
+  "server": {
+    "protocol": "http",
+    "host": "localhost",
+    "port": 8080
+  },
+  "bearerToken": "Your-Token"
+}

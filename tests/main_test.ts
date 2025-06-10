@@ -5,161 +5,66 @@
  * The tests use Deno's testing framework and assert module for validation.
  */
 
-import { assert, assertEquals } from "@std/assert";
-import { jsonToMd5, loadJSONFromFs } from "../tools/util.ts";
-import { Fdx } from "../operators/fdx.ts";
-import { Sfex } from "../operators/sfex.ts";
-import "https://deno.land/x/dotenv@v3.2.2/load.ts";
+import { loadJSONFromFs } from "../tools/util.ts";
 import { loadEnv, loadMetaData } from "../main/app.ts";
 
-// load environment variable first
-await loadEnv();
-// load file system data
-await loadMetaData();
+// Read CLI parameters
+const cliArgs = Deno.args;
 
-// Load testing config data from file system
-const testData: Record<string, any> = await loadJSONFromFs(
-  "./test/test_data.json",
-);
+let testData: Record<string, unknown> | null = null;
 
-// Define function Map
-const functionMap: { [key: string]: (arg: any) => any } = {
-  "md5": md5Test,
-  "getFedExToken": getFedExToken,
-  "getFedExRoute": getFedExRoute,
-  "getSfExRoute": getSfExRoute,
-  "whereIs": whereIs,
-  "getStatus": getStatus,
-};
+async function initTestConfig() {
+  if (testData === null) {
+    // Load environment variables and metadata
+    await loadEnv();
+    await loadMetaData();
 
-// Read the server & token info
-const server = testData.server;
-const protocol = server.protocol;
-const domain = server.host;
-const port = server.port;
-// Bearer token
-const bearerToken = testData.bearerToken;
+    // Default file name for testing data
+    let fileName = "config_dev.json";
+    if (cliArgs.length > 0) {
+      fileName = cliArgs[0];
+    }
+    // The testing config data file is expected to be in the "tests" directory
+    const filePath = `${Deno.cwd()}/tests/${fileName}`;
 
-// Execute the tests
-const tests: [] = testData.tests;
-for (let i = 0; i < tests.length; i++) {
-  const test = tests[i];
-  const funcName = test["name"];
-  const testDesc = test["desc"];
-  const funcData = test["data"];
-  if (funcName in functionMap) {
-    if (test["async"]) {
-      Deno.test(testDesc, async () => {
-        await functionMap[funcName](funcData);
-      });
-    } else {
-      Deno.test(testDesc, () => {
-        functionMap[funcName](funcData);
-      });
+    try {
+      // Check if the file exists
+      await Deno.stat(filePath);
+
+      // Load testing config data from file system
+      testData = await loadJSONFromFs(filePath);
+    } catch (error) {
+      if (error instanceof Deno.errors.NotFound) {
+        console.error(`Error: The file "${fileName}" does not exist.`);
+        Deno.exit(1); // Exit the program with an error code
+      } else {
+        console.error(`Error reading file "${fileName}":`, error);
+        Deno.exit(1);
+      }
     }
   }
 }
 
-/**
- * Tests MD5 hash generation from JSON input
- * @param {any} data - Test data containing input and expected output
- * @returns {Promise<void>} - Resolves when test completes
- */
-async function md5Test(data: any): Promise<void> {
-  const input = data["input"];
-  const output = data["output"];
-  const md5Hash = await jsonToMd5(input);
-  assertEquals(md5Hash, output["md5hash"]);
-}
+export async function getTestConfig() {
+  await initTestConfig();
 
-/**
- * Tests FedEx token retrieval
- * @returns {Promise<void>} - Resolves when test completes
- */
-async function getFedExToken(): Promise<void> {
-  const token = await Fdx.getToken();
-  assertEquals(token.length, 1269);
-}
-
-/**
- * Tests FedEx route tracking functionality
- * @param {any} data - Test data containing tracking number and expected output
- * @returns {Promise<void>} - Resolves when test completes
- */
-async function getFedExRoute(data: any): Promise<void> {
-  const input = data["input"];
-  const output = data["output"];
-  const trackingNum = input["trackingNum"];
-  const result = await Fdx.getRoute(trackingNum) as any;
-  assert(result != undefined);
-  const events = result["output"]["completeTrackResults"][0]["trackResults"][0][
-    "scanEvents"
-  ];
-  assert(events.length == output["eventNum"]);
-}
-
-/**
- * Tests SF Express route tracking functionality
- * @param {any} data - Test data containing tracking number, phone, and expected output
- * @returns {Promise<void>} - Resolves when test completes
- */
-async function getSfExRoute(data: any): Promise<void> {
-  const input = data["input"];
-  const output = data["output"];
-  const response = await Sfex.getRoute(input["trackingNum"], input["phone"]);
-  const apiResultData = JSON.parse(response["apiResultData"] as string);
-  const routes = apiResultData["msgData"]["routeResps"][0]["routes"];
-  assert(routes.length == output["routeNum"]);
-}
-
-/**
- * Tests package location tracking API endpoint
- * @param {any} data - Test data containing tracking ID, extra parameters, and expected output
- * @returns {Promise<void>} - Resolves when test completes
- */
-async function whereIs(data: any): Promise<void> {
-  const input = data["input"];
-  const output = data["output"];
-  const trackingId: string = input["id"];
-  const extra: Record<string, any> = input["extra"];
-  let url = `${protocol}://${domain}:${port}/v0/whereis/${trackingId}`;
-  if (extra !== undefined) {
-    const params = new URLSearchParams(extra);
-    url = url + "?" + params.toString();
+  if (!testData || typeof testData !== "object") {
+    throw new Error("Test data is not properly initialized");
   }
 
-  // issue http request
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "Authorization": `Bearer ${bearerToken}`,
-    },
-  });
-
-  const responseJSON = await response.json();
-  // console.log(responseJSON);
-  assert(responseJSON["events"].length == output["eventNum"]);
+  return {
+    protocol: (testData as { server: { protocol: string } }).server.protocol,
+    host: (testData as { server: { host: string } }).server.host,
+    port: (testData as { server: { port: number } }).server.port,
+    bearerToken: testData.bearerToken as string,
+  };
 }
 
-/**
- * Tests package status API endpoint
- * @param {any} data - Test data containing tracking ID and expected output
- * @returns {Promise<void>} - Resolves when test completes
- */
-async function getStatus(data: any): Promise<void> {
-  const input = data["input"];
-  const output = data["output"];
-  const trackingId: string = input["id"];
-  const url = `${protocol}://${domain}:${port}/v0/status/${trackingId}`;
-  // issue http request
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "Authorization": `Bearer ${bearerToken}`,
-    },
-  });
-  // convert to json
-  const responseJSON = await response.json();
-  // console.log(responseJSON);
-  assert(responseJSON["status"] == output["status"]);
-}
+// Initialize test configuration
+await initTestConfig();
+
+import "./get_fdx_token_test.ts";
+import "./get_fdx_events_test.ts";
+import "./get_sfex_routes_test.ts";
+import "./whereis_api_test.ts";
+import "./status_api_test.ts";
