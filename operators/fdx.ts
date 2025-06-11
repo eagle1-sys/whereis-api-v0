@@ -102,6 +102,9 @@ export class Fdx {
     DE: {
       DE: 3450, // Final Delivery In-Progress
     },
+    CA: {
+      CA: 3007, // Process Stopped
+    },
   };
 
   private static exceptionCodeMap: Record<string, number> = {
