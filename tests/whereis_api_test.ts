@@ -14,10 +14,44 @@
  * This setup ensures that the tests are run against the correct environment with proper authentication.
  */
 import { assert } from "@std/assert";
-import { getTestConfig } from "./main_test.ts";
-
+import { getHttpStatusFromErrorCode, getTestConfig } from "./main_test.ts";
 
 const testDatas = [
+  {
+    "input": { "id": "", "extra": {} },
+    "output": { "error": "400-01" },
+    "memo": "Missing tracking number.",
+  },
+  {
+    "input": { "id": "sfex-SF123456789", "extra": { "phonenum": "5567" } },
+    "output": { "error": "400-02" },
+    "memo": "Invalid tracking number.",
+  },
+  {
+    "input": { "id": "sfex-SF3122082959115", "extra": { "phonenum": "" } },
+    "output": { "error": "400-03" },
+    "memo": "Missing phone number.",
+  },
+  {
+    "input": { "id": "fake-SF3122082959115", "extra": { "phonenum": "5567" } },
+    "output": { "error": "400-04" },
+    "memo": "Invalid operator code.",
+  },
+  {
+    "input": { "id": "SF3122082959115", "extra": { "phonenum": "5567" } },
+    "output": { "error": "400-05" },
+    "memo": "Invalid slug notation.",
+  },
+  {
+    "input": { "id": "sfex-SF3182998070266", "extra": { "phonenum": "6994" } },
+    "output": { "error": "400-06" },
+    "memo": "Incorrect phonenum. correct phonenum is 6993",
+  },
+  {
+    "input": { "id": "fdx-881383013147", "extra": { "full_data": "true" } },
+    "output": { "error": "400-07" },
+    "memo": "Incorrect phonenum. correct phonenum is 6993",
+  },
   {
     "input": { "id": "sfex-SF3122082959115", "extra": { "phonenum": "5567" } },
     "output": { "error": "404-01" },
@@ -32,6 +66,35 @@ const testDatas = [
   },
 ];
 
+Deno.test("Test missing auth header", async () => {
+  // Initialize test configuration
+  const { protocol, host, port } = await getTestConfig();
+  const url = `${protocol}://${host}:${port}/v0/whereis/fdx-779879860040`;
+
+  // issue http request
+  const response = await fetch(url, {
+    method: "GET",
+  });
+
+  await assertResponse(response, { "error": "401-01" });
+});
+
+Deno.test("Test invalid token", async () => {
+  // Initialize test configuration
+  const { protocol, host, port } = await getTestConfig();
+  const url = `${protocol}://${host}:${port}/v0/whereis/fdx-779879860040`;
+
+  // issue http request
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer JUNK`,
+    },
+  });
+
+  await assertResponse(response, { "error": "401-02" });
+});
+
 Deno.test("Test whereis API", async () => {
   // Initialize test configuration
   const { protocol, host, port, bearerToken } = await getTestConfig();
@@ -41,10 +104,10 @@ Deno.test("Test whereis API", async () => {
     const input = data["input"];
     const output = data["output"];
     const trackingId: string = input["id"];
-    const extra: { [key: string]: string | undefined } | undefined = input["extra"];
+    const extra: { [key: string]: string | undefined } | undefined =
+      input["extra"];
     let url = `${protocol}://${host}:${port}/v0/whereis/${trackingId}`;
     if (extra !== undefined) {
-      //const params = new URLSearchParams(extra);
       const params = new URLSearchParams(extra as Record<string, string>);
       url = url + "?" + params.toString();
     }
@@ -57,17 +120,42 @@ Deno.test("Test whereis API", async () => {
       },
     });
 
-    const responseJSON = await response.json();
-    if (Object.prototype.hasOwnProperty.call(output, "error")) {
-      assert(
-        Object.prototype.hasOwnProperty.call(responseJSON, "error") &&
-          responseJSON["error"] == output["error"],
-      );
-    } else {
-      assert(
-        Object.prototype.hasOwnProperty.call(responseJSON, "events") &&
-          responseJSON["events"].length == output["eventNum"],
-      );
-    }
+    await assertResponse(response, output);
   }
 });
+
+async function assertResponse(
+  response: Response,
+  output: Record<string, unknown>,
+) {
+  const responseJSON = await response.json();
+  const hasOwnProperty = Object.prototype.hasOwnProperty;
+
+  if (hasOwnProperty.call(output, "error")) {
+    const expectedStatus = getHttpStatusFromErrorCode(output.error as string);
+    assert(
+      response.status === expectedStatus,
+      `Expected HTTP status ${expectedStatus}, but got ${response.status}`,
+    );
+
+    assert(
+      hasOwnProperty.call(responseJSON, "error"),
+      `Expected error response, but got: ${JSON.stringify(responseJSON)}`,
+    );
+    assert(
+      responseJSON.error === output.error,
+      `Expected error "${output.error}", but got "${responseJSON.error}"`,
+    );
+  } else if (hasOwnProperty.call(output, "eventNum")) {
+    assert(
+      hasOwnProperty.call(responseJSON, "events"),
+      `Expected events in response, but got: ${JSON.stringify(responseJSON)}`,
+    );
+    assert(
+      responseJSON.events.length === output.eventNum,
+      `Expected ${output.eventNum} events, but got ${responseJSON.events.length}`,
+    );
+  } else {
+    throw new Error(`Unexpected output format: ${JSON.stringify(output)}`);
+  }
+}
