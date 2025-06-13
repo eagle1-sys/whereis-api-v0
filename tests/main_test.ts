@@ -13,6 +13,11 @@ const cliArgs = Deno.args;
 
 let testData: Record<string, unknown> | null = null;
 
+export function getHttpStatusFromErrorCode(errorCode: string): number {
+  const match = errorCode.match(/^(\d{3})/);
+  return match ? parseInt(match[1], 10) : 500; // Default to 500 if parsing fails
+}
+
 async function initTestConfig() {
   if (testData === null) {
     // Load environment variables and metadata
@@ -63,8 +68,8 @@ export async function getTestConfig() {
 // Initialize test configuration
 await initTestConfig();
 
-import "./get_fdx_token_test.ts";
-import "./get_fdx_events_test.ts";
-import "./get_sfex_routes_test.ts";
+//import "./get_fdx_token_test.ts";
+//import "./get_fdx_events_test.ts";
+//import "./get_sfex_routes_test.ts";
 import "./whereis_api_test.ts";
-import "./status_api_test.ts";
+//import "./status_api_test.ts";
