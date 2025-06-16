@@ -5,6 +5,7 @@
  * The tests use Deno's testing framework and assert module for validation.
  */
 
+import { assert } from "@std/assert";
 import { loadJSONFromFs } from "../tools/util.ts";
 import { loadEnv, loadMetaData } from "../main/app.ts";
 
@@ -65,6 +66,26 @@ export async function getTestConfig() {
   };
 }
 
+export function assertErrorCode(responseStatus:number, responseJSON:any,
+                                output: Record<string, unknown>) {
+  const hasOwnProperty = Object.prototype.hasOwnProperty;
+  const expectedStatus = getHttpStatusFromErrorCode(output.error as string);
+  assert(
+      responseStatus === expectedStatus,
+      `Expected HTTP status ${expectedStatus}, but got ${responseStatus}`,
+  );
+
+  assert(
+      hasOwnProperty.call(responseJSON, "error"),
+      `Expected error response, but got: ${JSON.stringify(responseJSON)}`,
+  );
+
+  assert(
+      responseJSON.error === output.error,
+      `Expected error "${output.error}", but got "${responseJSON.error}"`,
+  );
+}
+
 // Initialize test configuration
 await initTestConfig();
 
@@ -72,4 +93,4 @@ await initTestConfig();
 //import "./get_fdx_events_test.ts";
 //import "./get_sfex_routes_test.ts";
 import "./whereis_api_test.ts";
-//import "./status_api_test.ts";
+import "./status_api_test.ts";

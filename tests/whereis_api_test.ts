@@ -14,7 +14,7 @@
  * This setup ensures that the tests are run against the correct environment with proper authentication.
  */
 import { assert } from "@std/assert";
-import { getHttpStatusFromErrorCode, getTestConfig } from "./main_test.ts";
+import { assertErrorCode, getTestConfig } from "./main_test.ts";
 
 const testDatas = [
   {
@@ -56,13 +56,13 @@ const testDatas = [
     "input": { "id": "sfex-SF3122082959115", "extra": { "phonenum": "5567" } },
     "output": { "error": "404-01" },
     "memo":
-      "Completed waybills cannot be queried for route data after 3 months.",
+      "Completed SF waybills cannot be queried for route data after 3 months.",
   },
   {
     "input": { "id": "fdx-779879860040" },
     "output": { "eventNum": 1 },
     "memo":
-      "Completed waybills will have most of their events data removed after a period of time.",
+      "Completed FedEx waybills will have most of their events data removed after a period of time.",
   },
 ];
 
@@ -129,33 +129,31 @@ async function assertResponse(
   output: Record<string, unknown>,
 ) {
   const responseJSON = await response.json();
-  const hasOwnProperty = Object.prototype.hasOwnProperty;
 
-  if (hasOwnProperty.call(output, "error")) {
-    const expectedStatus = getHttpStatusFromErrorCode(output.error as string);
-    assert(
-      response.status === expectedStatus,
-      `Expected HTTP status ${expectedStatus}, but got ${response.status}`,
-    );
+  switch (true) {
+    case "error" in output: {
+      //await assertStatus(response, output);
+      assertErrorCode(response.status, responseJSON, output);
+      break;
+    }
 
-    assert(
-      hasOwnProperty.call(responseJSON, "error"),
-      `Expected error response, but got: ${JSON.stringify(responseJSON)}`,
-    );
-    assert(
-      responseJSON.error === output.error,
-      `Expected error "${output.error}", but got "${responseJSON.error}"`,
-    );
-  } else if (hasOwnProperty.call(output, "eventNum")) {
-    assert(
-      hasOwnProperty.call(responseJSON, "events"),
-      `Expected events in response, but got: ${JSON.stringify(responseJSON)}`,
-    );
-    assert(
-      responseJSON.events.length === output.eventNum,
-      `Expected ${output.eventNum} events, but got ${responseJSON.events.length}`,
-    );
-  } else {
-    throw new Error(`Unexpected output format: ${JSON.stringify(output)}`);
+    case "eventNum" in output: {
+      const events = responseJSON.events ?? [];
+      const expectedEventNum = output.eventNum as number;
+
+      assert(
+        Array.isArray(events),
+        `Expected events in response, but got: ${JSON.stringify(responseJSON)}`,
+      );
+      assert(
+        events.length === expectedEventNum,
+        `Expected ${expectedEventNum} events, but got ${events.length}`,
+      );
+      break;
+    }
+
+    default: {
+      throw new Error(`Unexpected output format: ${JSON.stringify(output)}`);
+    }
   }
 }

@@ -23,14 +23,52 @@
  * This comprehensive test suite ensures the reliability and accuracy of the status API across different carriers and scenarios.
  */
 import { assert } from "@std/assert";
-import { getTestConfig } from "./main_test.ts";
+import {
+  assertErrorCode,
+  getTestConfig,
+} from "./main_test.ts";
 
 const testDatas = [
+  {
+    "input": { "id": "", "extra": {} },
+    "output": { "error": "400-01" },
+    "memo": "Missing tracking number.",
+  },
+  {
+    "input": { "id": "sfex-SF123456789", "extra": { "phonenum": "5567" } },
+    "output": { "error": "400-02" },
+    "memo": "Invalid tracking number.",
+  },
+  {
+    "input": { "id": "sfex-SF3122082959115", "extra": { "phonenum": "" } },
+    "output": { "error": "400-03" },
+    "memo": "Missing phone number.",
+  },
+  {
+    "input": { "id": "fake-SF3122082959115", "extra": { "phonenum": "5567" } },
+    "output": { "error": "400-04" },
+    "memo": "Invalid operator code.",
+  },
+  {
+    "input": { "id": "SF3122082959115", "extra": { "phonenum": "5567" } },
+    "output": { "error": "400-05" },
+    "memo": "Invalid slug notation.",
+  },
+  {
+    "input": { "id": "sfex-SF3182998070266", "extra": { "phonenum": "6994" } },
+    "output": { "error": "400-06" },
+    "memo": "Incorrect phonenum. correct phonenum is 6993",
+  },
+  {
+    "input": { "id": "fdx-881383013147", "extra": { "full_data": "true" } },
+    "output": { "error": "400-07" },
+    "memo": "Incorrect phonenum. correct phonenum is 6993",
+  },
   {
     "input": { "id": "sfex-SF3122082959115", "extra": { "phonenum": "5567" } },
     "output": { "error": "404-01" },
     "memo":
-      "Completed waybills cannot be queried for route data after 3 months.",
+        "Completed SF waybills cannot be queried for route data after 3 months.",
   },
   {
     "input": { "id": "fdx-779879860040" },
@@ -49,7 +87,8 @@ Deno.test("Test status API", async () => {
     const input = data["input"];
     const output = data["output"];
     const trackingId: string = input["id"];
-    const extra: { [key: string]: string | undefined } | undefined = input["extra"];
+    const extra: { [key: string]: string | undefined } | undefined =
+      input["extra"];
     let url = `${protocol}://${host}:${port}/v0/status/${trackingId}`;
     if (extra !== undefined) {
       //const params = new URLSearchParams(extra);
@@ -62,17 +101,39 @@ Deno.test("Test status API", async () => {
       method: "GET",
     });
 
-    const responseJSON = await response.json();
-    if (Object.prototype.hasOwnProperty.call(output, "error")) {
-      assert(
-        Object.prototype.hasOwnProperty.call(responseJSON, "error") &&
-          responseJSON["error"] == output["error"],
-      );
-    } else {
-      assert(
-        Object.prototype.hasOwnProperty.call(responseJSON, "status") &&
-          responseJSON["status"] == output["status"],
-      );
-    }
+    await assertResponse(response, output);
   }
 });
+
+
+async function assertResponse(
+    response: Response,
+    output: Record<string, unknown>,
+) {
+  const responseJSON = await response.json();
+
+  switch (true) {
+    case "error" in output: {
+      //await assertStatus(response, output);
+      assertErrorCode(response.status, responseJSON, output);
+      break;
+    }
+
+    case "status" in output: {
+      const status = responseJSON.status;
+      assert(
+          status!== undefined,
+          `Expected status in response, but got: ${JSON.stringify(responseJSON)}`,
+      );
+      assert(
+          responseJSON.status === output.status,
+          `Expected status ${output.status} , but got ${responseJSON.status}`,
+      );
+      break;
+    }
+
+    default: {
+      throw new Error(`Unexpected output format: ${JSON.stringify(output)}`);
+    }
+  }
+}
