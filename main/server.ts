@@ -4,6 +4,7 @@
  * Handles HTTP requests, database operations, and carrier API integrations with Bearer token authentication.
  */
 
+import postgres from "postgresjs";
 import { Context, Hono, HonoRequest, Next } from "hono";
 import { ContentfulStatusCode } from "hono/utils/http-status";
 import { cors } from "hono/cors";
@@ -100,7 +101,7 @@ export class Server {
     );
 
     // Extend Context class
-    app.use("*", async (c, next) => {
+    app.use("*", async (c: Context, next: Next) => {
       // add sendError method
       c.sendError = (code: string, params?: Record<string, string>) => {
         const resp = {
@@ -119,7 +120,7 @@ export class Server {
     });
 
     // url syntax validation middleware
-    app.use("*", async (c, next) => {
+    app.use("*", async (c: Context, next: Next) => {
       const url = new URL(c.req.url);
       if (
         url.pathname.endsWith("/whereis/") ||
@@ -156,7 +157,7 @@ export class Server {
      *   GET /v0/status/fdx-123456789
      *   GET /v0/status/sfex-987654321?phonenum=1234567890
      */
-    app.get("/v0/status/:id?", async (c) => {
+    app.get("/v0/status/:id?", async (c: Context) => {
       const [trackingID, parsedParams] = this.parseURL(c.req);
 
       let invalidParams: string[] = [];
@@ -187,7 +188,7 @@ export class Server {
      * GET /v0/whereis/:id - Retrieves location information for a tracking ID
      * Requires Bearer token authentication
      */
-    app.get("/v0/whereis/:id", async (c) => {
+    app.get("/v0/whereis/:id", async (c: Context) => {
       const [trackingID, parsedParams] = this.parseURL(c.req);
 
       let invalidParams: string[] = [];
@@ -239,19 +240,19 @@ export class Server {
     /**
      * GET /apistatus - Health check endpoint
      */
-    app.get("/apistatus", (c) => {
+    app.get("/apistatus", (c: Context) => {
       return c.html(""); // For empty slug, we should not return anything
     });
 
     // error handling
-    app.onError((err, c) => {
+    app.onError((err: unknown, c: Context) => {
       if (err instanceof UserError) {
         return c.sendError((err as UserError).code);
       } else {
         logger.error(`${c.req.url}`);
         logger.error(err);
-        logger.error(err.cause);
-        logger.error(err.stack);
+        logger.error((err as Error).cause);
+        logger.error((err as Error).stack);
         return c.json({
           message: "Internal Server Error",
           code: "500",
@@ -291,15 +292,15 @@ export class Server {
    * @throws Will throw an error if there's an issue with database operations.
    */
   private async getStatus(
-      trackingID: TrackingID,
-      queryParams: Record<string, string>,
+    trackingID: TrackingID,
+    queryParams: Record<string, string>,
   ): Promise<Record<string, unknown> | undefined> {
     // Try to get entity from database first
     const entity = await queryEntity(sql, trackingID);
     if (entity) {
       if (
-          trackingID.operator === "sfex" &&
-          entity.params?.phonenum !== queryParams.phonenum
+        trackingID.operator === "sfex" &&
+        entity.params?.phonenum !== queryParams.phonenum
       ) {
         throw new UserError("400-06");
       }
@@ -308,9 +309,9 @@ export class Server {
 
     // If not in database, request from data provider
     const result = await requestWhereIs(
-        trackingID,
-        queryParams,
-        "manual-pull",
+      trackingID,
+      queryParams,
+      "manual-pull",
     );
 
     if (result === undefined) {
@@ -319,7 +320,7 @@ export class Server {
     }
 
     try {
-      await sql.begin(async (sql) => {
+      await sql.begin(async (sql: ReturnType<typeof postgres>) => {
         await insertEntity(sql, result);
         return true;
       });
@@ -336,21 +337,21 @@ export class Server {
    * @returns An Entity object on success or a string error code if an error occurs
    */
   private async getEntityFromDatabaseFirst(
-      trackingID: TrackingID,
-      queryParams: Record<string, string>,
+    trackingID: TrackingID,
+    queryParams: Record<string, string>,
   ) {
     let entity: Entity | undefined;
     try {
       // try to load from database first
       const entityInDB: Entity | undefined = await queryEntity(
-          sql,
-          trackingID,
+        sql,
+        trackingID,
       );
       if (entityInDB !== undefined) {
         if (
-            trackingID.operator === "sfex" &&
-            entityInDB.params &&
-            entityInDB.params["phonenum"] !== queryParams["phonenum"]
+          trackingID.operator === "sfex" &&
+          entityInDB.params &&
+          entityInDB.params["phonenum"] !== queryParams["phonenum"]
         ) {
           throw new UserError("400-06");
         }
@@ -358,13 +359,13 @@ export class Server {
       }
 
       entity = await requestWhereIs(
-          trackingID,
-          queryParams,
-          "manual-pull",
+        trackingID,
+        queryParams,
+        "manual-pull",
       );
       if (entity instanceof Entity) {
         try {
-          await sql.begin(async (sql) => {
+          await sql.begin(async (sql: ReturnType<typeof postgres>) => {
             await insertEntity(sql, entity as Entity);
           });
         } catch (err) {
@@ -384,14 +385,14 @@ export class Server {
    * @returns An Entity object on success or a string error code if an error occurs
    */
   private async getEntityFromProviderFirst(
-      trackingID: TrackingID,
-      queryParams: Record<string, string>,
+    trackingID: TrackingID,
+    queryParams: Record<string, string>,
   ): Promise<Entity> {
     // load from carrier
     const entity: Entity | undefined = await requestWhereIs(
-        trackingID,
-        queryParams,
-        "manual-pull",
+      trackingID,
+      queryParams,
+      "manual-pull",
     );
 
     // The refresh has failed to receive data from the data provider.
@@ -401,7 +402,7 @@ export class Server {
 
     // update to database
     try {
-      await sql.begin(async (sql) => {
+      await sql.begin(async (sql: ReturnType<typeof postgres>) => {
         // step 1: delete the existing record first
         await deleteEntity(sql, trackingID);
         // step 2: insert into database
