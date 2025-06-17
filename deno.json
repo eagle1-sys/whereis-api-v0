@@ -14,5 +14,5 @@
     "postgresjs": "https://deno.land/x/postgresjs/mod.js",
     "@cross/log": "jsr:@cross/log"
   },
-  "nodeModulesDir": "auto"
+  "nodeModulesDir": "false"
 }
