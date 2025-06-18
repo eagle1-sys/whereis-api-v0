@@ -25,16 +25,6 @@ const testDatas = [
   },
 ];
 
-interface FdxRouteResult {
-  output: {
-    completeTrackResults: Array<{
-      trackResults: Array<{
-        scanEvents: unknown[];
-      }>;
-    }>;
-  };
-}
-
 Deno.test("Test get scan events from FedEx", async () => {
   for (let i = 0; i < testDatas.length; i++) {
     const data = testDatas[i];

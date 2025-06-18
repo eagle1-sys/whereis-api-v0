@@ -39,6 +39,8 @@ async function initTestConfig() {
 
       // Load testing config data from file system
       testData = await loadJSONFromFs(filePath);
+      // Set testData values to Deno.env
+      setToEnv(testData);
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) {
         console.error(`Error: The file "${fileName}" does not exist.`);
@@ -51,38 +53,42 @@ async function initTestConfig() {
   }
 }
 
-export async function getTestConfig() {
-  await initTestConfig();
-
-  if (!testData || typeof testData !== "object") {
-    throw new Error("Test data is not properly initialized");
+function setToEnv(data: Record<string, unknown>) {
+  if (data && typeof data === "object") {
+    for (const [key, value] of Object.entries(data)) {
+      if (
+        typeof value === "string" ||
+        typeof value === "number" ||
+        typeof value === "boolean"
+      ) {
+        Deno.env.set(key, String(value));
+      } else if (typeof value === "object" && value !== null) {
+        setToEnv(value as Record<string, unknown>);
+      }
+    }
   }
-
-  return {
-    protocol: (testData as { server: { protocol: string } }).server.protocol,
-    host: (testData as { server: { host: string } }).server.host,
-    port: (testData as { server: { port: number } }).server.port,
-    bearerToken: testData.bearerToken as string,
-  };
 }
 
-export function assertErrorCode(responseStatus:number, responseJSON:Record<string, unknown>,
-                                output: Record<string, unknown>) {
+export function assertErrorCode(
+  responseStatus: number,
+  responseJSON: Record<string, unknown>,
+  output: Record<string, unknown>,
+) {
   const hasOwnProperty = Object.prototype.hasOwnProperty;
   const expectedStatus = getHttpStatusFromErrorCode(output.error as string);
   assert(
-      responseStatus === expectedStatus,
-      `Expected HTTP status ${expectedStatus}, but got ${responseStatus}`,
+    responseStatus === expectedStatus,
+    `Expected HTTP status ${expectedStatus}, but got ${responseStatus}`,
   );
 
   assert(
-      hasOwnProperty.call(responseJSON, "error"),
-      `Expected error response, but got: ${JSON.stringify(responseJSON)}`,
+    hasOwnProperty.call(responseJSON, "error"),
+    `Expected error response, but got: ${JSON.stringify(responseJSON)}`,
   );
 
   assert(
-      responseJSON.error === output.error,
-      `Expected error "${output.error}", but got "${responseJSON.error}"`,
+    responseJSON.error === output.error,
+    `Expected error "${output.error}", but got "${responseJSON.error}"`,
   );
 }
 

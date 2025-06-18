@@ -23,10 +23,7 @@
  * This comprehensive test suite ensures the reliability and accuracy of the status API across different carriers and scenarios.
  */
 import { assert } from "@std/assert";
-import {
-  assertErrorCode,
-  getTestConfig,
-} from "./main_test.ts";
+import { assertErrorCode } from "./main_test.ts";
 
 const testDatas = [
   {
@@ -68,7 +65,7 @@ const testDatas = [
     "input": { "id": "sfex-SF3122082959115", "extra": { "phonenum": "5567" } },
     "output": { "error": "404-01" },
     "memo":
-        "Completed SF waybills cannot be queried for route data after 3 months.",
+      "Completed SF waybills cannot be queried for route data after 3 months.",
   },
   {
     "input": { "id": "fdx-779879860040" },
@@ -79,8 +76,10 @@ const testDatas = [
 ];
 
 Deno.test("Test status API", async () => {
-  // Initialize test configuration
-  const { protocol, host, port } = await getTestConfig();
+  // Get configuration from environment variables
+  const protocol = Deno.env.get("TEST_PROTOCOL");
+  const host = Deno.env.get("TEST_HOST");
+  const port = Deno.env.get("TEST_PORT");
 
   for (let i = 0; i < testDatas.length; i++) {
     const data = testDatas[i];
@@ -105,10 +104,9 @@ Deno.test("Test status API", async () => {
   }
 });
 
-
 async function assertResponse(
-    response: Response,
-    output: Record<string, unknown>,
+  response: Response,
+  output: Record<string, unknown>,
 ) {
   const responseJSON = await response.json();
 
@@ -122,12 +120,12 @@ async function assertResponse(
     case "status" in output: {
       const status = responseJSON.status;
       assert(
-          status!== undefined,
-          `Expected status in response, but got: ${JSON.stringify(responseJSON)}`,
+        status !== undefined,
+        `Expected status in response, but got: ${JSON.stringify(responseJSON)}`,
       );
       assert(
-          responseJSON.status === output.status,
-          `Expected status ${output.status} , but got ${responseJSON.status}`,
+        responseJSON.status === output.status,
+        `Expected status ${output.status} , but got ${responseJSON.status}`,
       );
       break;
     }

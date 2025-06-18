@@ -14,7 +14,7 @@
  * This setup ensures that the tests are run against the correct environment with proper authentication.
  */
 import { assert } from "@std/assert";
-import { assertErrorCode, getTestConfig } from "./main_test.ts";
+import { assertErrorCode } from "./main_test.ts";
 
 const testDatas = [
   {
@@ -68,7 +68,10 @@ const testDatas = [
 
 Deno.test("Test missing auth header", async () => {
   // Initialize test configuration
-  const { protocol, host, port } = await getTestConfig();
+  const protocol = Deno.env.get("TEST_PROTOCOL");
+  const host = Deno.env.get("TEST_HOST");
+  const port = Deno.env.get("TEST_PORT");
+
   const url = `${protocol}://${host}:${port}/v0/whereis/fdx-779879860040`;
 
   // issue http request
@@ -81,7 +84,10 @@ Deno.test("Test missing auth header", async () => {
 
 Deno.test("Test invalid token", async () => {
   // Initialize test configuration
-  const { protocol, host, port } = await getTestConfig();
+  const protocol = Deno.env.get("TEST_PROTOCOL");
+  const host = Deno.env.get("TEST_HOST");
+  const port = Deno.env.get("TEST_PORT");
+
   const url = `${protocol}://${host}:${port}/v0/whereis/fdx-779879860040`;
 
   // issue http request
@@ -97,7 +103,10 @@ Deno.test("Test invalid token", async () => {
 
 Deno.test("Test whereis API", async () => {
   // Initialize test configuration
-  const { protocol, host, port, bearerToken } = await getTestConfig();
+  const protocol = Deno.env.get("TEST_PROTOCOL");
+  const host = Deno.env.get("TEST_HOST");
+  const port = Deno.env.get("TEST_PORT");
+  const bearerToken = Deno.env.get("TEST_TOKEN");
 
   for (let i = 0; i < testDatas.length; i++) {
     const data = testDatas[i];
