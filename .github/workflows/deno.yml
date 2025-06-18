@@ -39,4 +39,23 @@ jobs:
         run: deno lint
 
       - name: Run tests
+        env:
+          PORT: ${{ secrets.PORT }}
+          PULL_DATA_INTERVAL: ${{ secrets.PULL_DATA_INTERVAL }}
+          FedEx_API_URL: ${{ secrets.FedEx_API_URL }}
+          FedEx_Track_API_URL: ${{ secrets.FedEx_Track_API_URL }}
+          FedEx_Client_ID: ${{ secrets.FedEx_Client_ID }}
+          FedEx_Client_Secret: ${{ secrets.FedEx_Client_Secret }}
+          SF_EXPRESS_API_URL: ${{ secrets.SF_EXPRESS_API_URL }}
+          SF_EXPRESS_PartnerID: ${{ secrets.SF_EXPRESS_PartnerID }}
+          SF_EXPRESS_CheckWord: ${{ secrets.SF_EXPRESS_CheckWord }}
+          DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
+          DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+          DATABASE_PORT: ${{ secrets.DATABASE_PORT }}
+          DATABASE_USER: ${{ secrets.DATABASE_USER }}
+          TEST_PROTOCOL: ${{ secrets.TEST_PROTOCOL }}
+          TEST_HOST: ${{ secrets.TEST_HOST }}
+          TEST_PORT: ${{ secrets.TEST_PORT }}
+          TEST_TOKEN: ${{ secrets.TEST_TOKEN }}
         run: deno test -A tests/main_test.ts
