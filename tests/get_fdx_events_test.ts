@@ -25,18 +25,34 @@ const testDatas = [
   },
 ];
 
+interface FdxRouteResult {
+  output: {
+    completeTrackResults: Array<{
+      trackResults: Array<{
+        scanEvents: unknown[];
+      }>;
+    }>;
+  };
+}
+
 Deno.test("Test get scan events from FedEx", async () => {
   for (let i = 0; i < testDatas.length; i++) {
     const data = testDatas[i];
     const input = data["input"];
     const output = data["output"];
     const trackingNum = input["trackingNum"];
-    const result = await Fdx.getRoute(trackingNum) as any;
+    const result = await Fdx.getRoute(trackingNum) as Record<string, unknown>;
     assert(result != undefined);
-    const events =
-      result["output"]["completeTrackResults"][0]["trackResults"][0][
-        "scanEvents"
-      ];
-    assert(events.length == output["eventNum"]);
+    const fexOutput = result["output"] as Record<string, unknown>;
+    const completeTrackResults = fexOutput["completeTrackResults"] as [unknown];
+    const completeTrackResult = completeTrackResults[0] as Record<string,unknown>;
+    const trackResults = completeTrackResult["trackResults"] as [unknown];
+    const trackResult = trackResults[0] as Record<string, unknown>;
+    const scanEvents = trackResult["scanEvents"] as Record<string, unknown>[];
+    //const events =
+    //  result["output"]["completeTrackResults"][0]["trackResults"][0][
+    //    "scanEvents"
+    //  ];
+    assert(scanEvents.length == output["eventNum"]);
   }
 });

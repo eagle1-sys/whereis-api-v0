@@ -66,7 +66,7 @@ export async function getTestConfig() {
   };
 }
 
-export function assertErrorCode(responseStatus:number, responseJSON:any,
+export function assertErrorCode(responseStatus:number, responseJSON:Record<string, unknown>,
                                 output: Record<string, unknown>) {
   const hasOwnProperty = Object.prototype.hasOwnProperty;
   const expectedStatus = getHttpStatusFromErrorCode(output.error as string);
@@ -89,8 +89,8 @@ export function assertErrorCode(responseStatus:number, responseJSON:any,
 // Initialize test configuration
 await initTestConfig();
 
-//import "./get_fdx_token_test.ts";
-//import "./get_fdx_events_test.ts";
-//import "./get_sfex_routes_test.ts";
+import "./get_fdx_token_test.ts";
+import "./get_fdx_events_test.ts";
+import "./get_sfex_routes_test.ts";
 import "./whereis_api_test.ts";
 import "./status_api_test.ts";
