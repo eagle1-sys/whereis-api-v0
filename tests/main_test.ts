@@ -42,6 +42,7 @@ async function initTestConfig() {
       // Set testData values to Deno.env
       setToEnv(testData);
     } catch (error) {
+      console.error(`Error reading file "${fileName}":`, error);
       //if (error instanceof Deno.errors.NotFound) {
       //  console.error(`Error: The file "${fileName}" does not exist.`);
       //  Deno.exit(1); // Exit the program with an error code
