@@ -14,6 +14,7 @@
  * This setup ensures that the tests are run against the correct environment with proper authentication.
  */
 import { assert } from "@std/assert";
+import {config} from "../config.ts";
 import { assertErrorCode } from "./main_test.ts";
 
 const testDatas = [
@@ -67,12 +68,7 @@ const testDatas = [
 ];
 
 Deno.test("Test missing auth header", async () => {
-  // Initialize test configuration
-  const protocol = Deno.env.get("TEST_PROTOCOL");
-  const host = Deno.env.get("TEST_HOST");
-  const port = Deno.env.get("TEST_PORT");
-
-  const url = `${protocol}://${host}:${port}/v0/whereis/fdx-779879860040`;
+  const url = `${config.testing.url}/v0/whereis/fdx-779879860040`;
 
   // issue http request
   const response = await fetch(url, {
@@ -83,12 +79,7 @@ Deno.test("Test missing auth header", async () => {
 });
 
 Deno.test("Test invalid token", async () => {
-  // Initialize test configuration
-  const protocol = Deno.env.get("TEST_PROTOCOL");
-  const host = Deno.env.get("TEST_HOST");
-  const port = Deno.env.get("TEST_PORT");
-
-  const url = `${protocol}://${host}:${port}/v0/whereis/fdx-779879860040`;
+  const url = `${config.testing.url}/v0/whereis/fdx-779879860040`;
 
   // issue http request
   const response = await fetch(url, {
@@ -102,11 +93,7 @@ Deno.test("Test invalid token", async () => {
 });
 
 Deno.test("Test whereis API", async () => {
-  // Initialize test configuration
-  const protocol = Deno.env.get("TEST_PROTOCOL");
-  const host = Deno.env.get("TEST_HOST");
-  const port = Deno.env.get("TEST_PORT");
-  const bearerToken = Deno.env.get("TEST_TOKEN");
+  const bearerToken = Deno.env.get("TESTING_TOKEN");
 
   for (let i = 0; i < testDatas.length; i++) {
     const data = testDatas[i];
@@ -115,7 +102,7 @@ Deno.test("Test whereis API", async () => {
     const trackingId: string = input["id"];
     const extra: { [key: string]: string | undefined } | undefined =
       input["extra"];
-    let url = `${protocol}://${host}:${port}/v0/whereis/${trackingId}`;
+    let url = `${config.testing.url}/v0/whereis/${trackingId}`;
     if (extra !== undefined) {
       const params = new URLSearchParams(extra as Record<string, string>);
       url = url + "?" + params.toString();

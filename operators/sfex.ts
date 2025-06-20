@@ -13,6 +13,7 @@ import {
   UserError,
 } from "../main/model.ts";
 import { crypto } from "@std/crypto";
+import { config } from "../config.ts";
 import { logger } from "../tools/logger.ts";
 
 /**
@@ -172,9 +173,9 @@ export class Sfex {
     phoneNo: string,
   ): Promise<Record<string, unknown>> {
     // live
-    const SF_EXPRESS_API_URL = Deno.env.get("SF_EXPRESS_API_URL") ?? "";
-    const SF_Express_PartnerID = Deno.env.get("SF_EXPRESS_PartnerID") ?? "";
-    const SF_Express_CheckWord = Deno.env.get("SF_EXPRESS_CheckWord") ?? "";
+    const sfexApiUrl = config.sfex.apiUrl ?? "";
+    const sfexPartnerId = Deno.env.get("SFEX_PARTNER_ID") ?? "";
+    const sfexCheckWord = Deno.env.get("SFEX_CHECK_WORD") ?? "";
     const msgData = {
       trackingType: 1,
       trackingNumber: trackingNumber,
@@ -185,17 +186,17 @@ export class Sfex {
     const msgDigest = await Sfex.generateSignature(
       msgString,
       timestamp,
-      SF_Express_CheckWord,
+      sfexCheckWord,
     );
 
-    const response = await fetch(SF_EXPRESS_API_URL, {
+    const response = await fetch(sfexApiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams(
         {
-          partnerID: SF_Express_PartnerID,
+          partnerID: sfexPartnerId,
           requestID: crypto.randomUUID(),
           serviceCode: "EXP_RECE_SEARCH_ROUTES",
           timestamp: timestamp.toString(),
@@ -225,7 +226,7 @@ export class Sfex {
     const routeResp = apiResult["msgData"]["routeResps"][0];
     const routes: [] = routeResp["routes"];
     if (routes.length == 0) {
-      logger.error(`Error occurs during process ${trackingId.toString()}`);
+      logger.error(`No routes were obtained while querying the tracking ID ${trackingId.toString()}`);
       throw new UserError("404-01");
     }
 

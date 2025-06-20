@@ -3,12 +3,12 @@
  * @description This module serves as the entry point for the application, handling environment loading,
  * metadata initialization, database setup, scheduling, and server startup.
  */
+import { config } from "../config.ts";
 import { logger } from "../tools/logger.ts";
 import { Server } from "./server.ts";
 import { syncRoutes } from "./schedule.ts";
 import { loadEnv, loadMetaData } from "./app.ts";
-import {initConnection} from "../db/dbutil.ts";
-
+import { initConnection } from "../db/dbutil.ts";
 
 /**
  * Main entry point of the application.
@@ -27,16 +27,15 @@ async function main(): Promise<void> {
    * Starts a scheduler that periodically synchronizes tracking routes.
    * The task runs every 60 seconds using a cron job.
    */
-  const intervalStr = Deno.env.get("PULL_DATA_INTERVAL");
-  const interval = intervalStr ? parseInt(intervalStr, 10) : 5;
+  const interval = config.service.dataInterval ?? 5;
   Deno.cron("Sync routes", { minute: { every: interval } }, () => {
     syncRoutes();
   }).then((_r) => {
     logger.info("The scheduler started.");
   });
 
-  const portNo = Deno.env.get("PORT");
-  const server = new Server(Number(portNo));
+  const portNo = config.service.port;
+  const server = new Server(portNo);
   server.start();
   logger.info(`server started on port ${portNo}`);
 }

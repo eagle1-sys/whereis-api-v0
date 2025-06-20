@@ -13,6 +13,7 @@ import {
   TrackingID,
   UserError,
 } from "../main/model.ts";
+import { config } from "../config.ts";
 import { logger } from "../tools/logger.ts";
 
 /**
@@ -120,21 +121,20 @@ export class Fdx {
   static async getToken(): Promise<string> {
     // Refresh the token 5 seconds before expiration.
     if (Date.now() > this.expireTime - 5000) {
-      const fedEx_API_URL: string = Deno.env.get("FedEx_API_URL") ?? "";
-      const fedEx_Client_ID: string = Deno.env.get("FedEx_Client_ID") ??
-        "";
-      const fedEx_Client_Secret: string = Deno.env.get("FedEx_Client_Secret") ??
+      const fdxApiUrl: string = config.fdx.apiUrl ?? "";
+      const fdxClientId: string = Deno.env.get("FDX_CLIENT_ID") ?? "";
+      const fdxClientSecret: string = Deno.env.get("FDX_CLIENT_SECRET") ??
         "";
       try {
-        const response = await fetch(fedEx_API_URL, {
+        const response = await fetch(fdxApiUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
           },
           body: new URLSearchParams({
             grant_type: "client_credentials",
-            client_id: fedEx_Client_ID,
-            client_secret: fedEx_Client_Secret,
+            client_id: fdxClientId,
+            client_secret: fdxClientSecret,
           }),
         });
         const data = await response.json();
@@ -255,9 +255,8 @@ export class Fdx {
 
     // Send the API request
     const token = await this.getToken();
-    const FedEx_Track_API_URL: string = Deno.env.get("FedEx_Track_API_URL") ??
-      "";
-    const response = await fetch(FedEx_Track_API_URL, {
+    const fdxTrackApiUrl: string = config.fdx.trackApiUrl ?? "";
+    const response = await fetch(fdxTrackApiUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -359,7 +358,8 @@ export class Fdx {
     const eventTime = scanEvent["date"] as string;
     const date = new Date(eventTime);
     const secondsSinceEpoch = Math.floor(date.getTime() / 1000);
-    event.eventId = `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
+    event.eventId =
+      `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
     event.status = status;
     event.what = StatusCode.getDesc(status);
     event.whom = "FedEx";
