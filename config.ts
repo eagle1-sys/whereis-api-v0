@@ -16,7 +16,6 @@ export const config = {
     apiUrl: "https://bspgw.sf-express.com/std/service",
   },
   testing: {
-    //url: "http://localhost:8080",
-    url: "https://api.eg1.io",
+    url: "https://whereis-api-v0-test.fly.dev"
   },
 };
