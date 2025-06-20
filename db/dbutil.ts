@@ -3,6 +3,7 @@
  * @description Provides functions to initialize and manage PostgreSQL database connection pool
  */
 import postgres from "postgresjs";
+import { config } from "../config.ts";
 import { logger } from "../tools/logger.ts";
 
 let sql: ReturnType<typeof postgres>;
@@ -11,9 +12,9 @@ export function initConnection() {
   try {
     sql = postgres({
       host: Deno.env.get("DATABASE_HOST"),
-      port: Number(Deno.env.get("DATABASE_PORT")),
-      database: Deno.env.get("DATABASE_NAME"),
-      username: Deno.env.get("DATABASE_USER"),
+      port: config.database.port,
+      database: config.database.name,
+      username: config.database.username,
       password: Deno.env.get("DATABASE_PASSWORD"),
       max: 20, // Maximum number of connections in the pool
       max_lifetime: null, // Max lifetime in seconds (more info below)
