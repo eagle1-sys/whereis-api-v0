@@ -226,7 +226,7 @@ export class Sfex {
     const routeResp = apiResult["msgData"]["routeResps"][0];
     const routes: [] = routeResp["routes"];
     if (routes.length == 0) {
-      logger.error(`Error occurs during process ${trackingId.toString()}`);
+      logger.error(`No routes were obtained while querying the tracking ID ${trackingId.toString()}`);
       throw new UserError("404-01");
     }
 
