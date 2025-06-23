@@ -14,7 +14,7 @@ import {
 } from "../db/dbop.ts";
 import { logger } from "../tools/logger.ts";
 import { requestWhereIs } from "./gateway.ts";
-import { Entity, TrackingID } from "./model.ts";
+import { Entity, TrackingID, UserError } from "./model.ts";
 
 /**
  * Synchronizes tracking routes by fetching in-process tracking numbers,
@@ -66,6 +66,17 @@ export async function syncRoutes() {
       return true;
     });
   } catch (error) {
-    logger.error(error);
+    // ignore the UserError
+    if (!(error instanceof UserError)) {
+      if (error instanceof Error) {
+        logger.error(`Error in syncRoutes: ${error.message}`);
+        logger.error(`Stack trace: ${error.stack}`);
+        if (error.cause) {
+          logger.error(`Caused by: ${error.cause}`);
+        }
+      } else {
+        logger.error(`Unknown error in syncRoutes: ${String(error)}`);
+      }
+    }
   }
 }
