@@ -5,6 +5,7 @@
  * query their latest status, and update the database accordingly. It handles
  * database transactions and error logging to ensure data consistency.
  */
+import postgres from "postgresjs";
 import { sql } from "../db/dbutil.ts";
 import {
   getInProcessingTrackingNums,
@@ -28,7 +29,7 @@ export async function syncRoutes() {
   try {
     inProcessTrackingNums = await getInProcessingTrackingNums(sql);
 
-    await sql.begin(async (sql) => {
+    await sql.begin(async (sql: ReturnType<typeof postgres>) => {
       for (const [id, params] of Object.entries(inProcessTrackingNums)) {
         const trackingID = TrackingID.parse(id);
 
