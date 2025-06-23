@@ -247,12 +247,18 @@ export class Server {
     // error handling
     app.onError((err: unknown, c: Context) => {
       if (err instanceof UserError) {
-        return c.sendError((err as UserError).code);
+        return c.sendError(err.code);
       } else {
-        logger.error(`${c.req.url}`);
-        logger.error(err);
-        logger.error((err as Error).cause);
-        logger.error((err as Error).stack);
+        if (err instanceof Error) {
+          logger.error(`${c.req.url}`);
+          logger.error(err.message);
+          logger.error(err.stack);
+          if (err.cause) {
+            logger.error(`Caused by: ${err.cause}`);
+          }
+        } else {
+          logger.error(`Unknown error in http request handling: ${String(err)}`);
+        }
         return c.json({
           message: "Internal Server Error",
           code: "500",
