@@ -42,32 +42,6 @@ export class Server {
   }
 
   /**
-   * Verifies if the provided token is valid
-   * @param token - The Bearer token to verify
-   * @returns boolean indicating if token is valid
-   */
-  private async verifyToken(token: string): Promise<boolean> {
-    return await isTokenValid(sql, token);
-  }
-
-  /**
-   * Extracts HTTP status code from error code string
-   * @param errorCode - Error code in format "HTTPSTATUS-CODE"
-   * @returns Numeric HTTP status code
-   * @throws Error if errorCode format is invalid
-   */
-  private getHttpCode(errorCode: string): number {
-    const parts = errorCode.split("-");
-    const httpStatusCode = Number(parts[0]);
-    // validate the first part
-    if (isNaN(httpStatusCode)) {
-      throw new Error("Invalid parameter");
-    }
-
-    return httpStatusCode;
-  }
-
-  /**
    * Starts the HTTP server with configured routes
    */
   start(): void {
@@ -104,29 +78,19 @@ export class Server {
     app.use("*", async (c: Context, next: Next) => {
       // add sendError method
       c.sendError = (code: string, params?: Record<string, string>) => {
-        const resp = {
-          error: code,
-          message: ErrorRegistry.getMessage(code, params),
-        };
-        return c.body(
-          JSON.stringify(resp, null, 2),
-          this.getHttpCode(code) as ContentfulStatusCode,
-          {
-            "Content-Type": "application/json",
-          },
-        );
+        return this.sendError(c, code, params);
       };
       await next();
     });
 
     // url syntax validation middleware
     app.use("*", async (c: Context, next: Next) => {
-      const url = new URL(c.req.url);
+      const pathName = new URL(c.req.url).pathname;
       if (
-        url.pathname.endsWith("/whereis/") ||
-        url.pathname.endsWith("/whereis") ||
-        url.pathname.endsWith("/status/") ||
-        url.pathname.endsWith("/status")
+        pathName.endsWith("/whereis/") ||
+        pathName.endsWith("/whereis") ||
+        pathName.endsWith("/status/") ||
+        pathName.endsWith("/status")
       ) {
         throw new UserError("400-01");
       }
@@ -159,25 +123,20 @@ export class Server {
      */
     app.get("/v0/status/:id?", async (c: Context) => {
       const [trackingID, parsedParams] = this.parseURL(c.req);
-
-      let invalidParams: string[] = [];
       const queryParams = c.req.query();
-      if (trackingID.operator === "fdx") {
-        invalidParams = this.validateQueryParams(queryParams);
-      } else if (trackingID.operator === "sfex") {
-        invalidParams = this.validateQueryParams(
-          queryParams,
-          new Set(["phonenum"]),
-        );
-      }
+
+      const validParamsConfig: Record<string, string[]> = {
+        fdx: [],
+        sfex: ["phonenum"],
+      };
+      const validParams = new Set(validParamsConfig[trackingID.operator] || []);
+      const invalidParams = this.validateQueryParams(queryParams, validParams);
+
       if (invalidParams.length > 0) {
         return c.sendError("400-07", { param: invalidParams.join(",") });
       }
 
-      const status = await this.getStatus(
-        trackingID as TrackingID,
-        parsedParams as Record<string, string>,
-      );
+      const status = await this.getStatus(trackingID, parsedParams);
 
       return c.body(JSON.stringify(status, null, 2), 200, {
         "Content-Type": "application/json; charset=utf-8",
@@ -190,40 +149,21 @@ export class Server {
      */
     app.get("/v0/whereis/:id", async (c: Context) => {
       const [trackingID, parsedParams] = this.parseURL(c.req);
-
-      let invalidParams: string[] = [];
       const queryParams = c.req.query();
-      if (trackingID.operator === "fdx") {
-        invalidParams = this.validateQueryParams(
-          queryParams,
-          new Set(["fulldata", "refresh"]),
-        );
-      } else if (trackingID.operator === "sfex") {
-        invalidParams = this.validateQueryParams(
-          queryParams,
-          new Set(["fulldata", "refresh", "phonenum"]),
-        );
-      }
+
+      const validParamsSet = new Set(["fulldata", "refresh", ...(trackingID.operator === "sfex" ? ["phonenum"] : [])]);
+      const invalidParams = this.validateQueryParams(queryParams, validParamsSet);
+
       if (invalidParams.length > 0) {
         return c.sendError("400-07", { param: invalidParams.join(",") });
       }
 
-      // get the full url string
-      let result: Entity | undefined;
-      const refresh: boolean = "true" == c.req.query("refresh");
-      const fullData: boolean = "true" == c.req.query("fulldata");
-      if (refresh) {
-        // issue request to data provider
-        result = await this.getEntityFromProviderFirst(
-          trackingID as TrackingID,
-          parsedParams as Record<string, string>,
-        );
-      } else {
-        result = await this.getEntityFromDatabaseFirst(
-          trackingID as TrackingID,
-          parsedParams as Record<string, string>,
-        );
-      }
+      const refresh = queryParams.refresh === "true";
+      const fullData = queryParams.fulldata === "true";
+
+      const result = refresh
+          ? await this.getEntityFromProviderFirst(trackingID, parsedParams)
+          : await this.getEntityFromDatabaseFirst(trackingID, parsedParams);
 
       if (result instanceof Entity) {
         // send response
@@ -248,26 +188,26 @@ export class Server {
     app.onError((err: unknown, c: Context) => {
       if (err instanceof UserError) {
         return c.sendError(err.code);
-      } else {
-        if (err instanceof Error) {
-          logger.error(`${c.req.url}`);
-          logger.error(err.message);
-          logger.error(err.stack);
-          if (err.cause) {
-            logger.error(`Caused by: ${err.cause}`);
-          }
-        } else {
-          logger.error(`Unknown error in http request handling: ${String(err)}`);
-        }
-        return c.json({
-          message: "Internal Server Error",
-          code: "500",
-        }, 500);
       }
+
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      const errorStack = err instanceof Error ? err.stack : undefined;
+      const errorCause = err instanceof Error ? err.cause : undefined;
+
+      logger.error(`Error on URL: ${c.req.url}`);
+      logger.error(`Error message: ${errorMessage}`);
+      if (errorStack) logger.error(`Stack trace: ${errorStack}`);
+      if (errorCause) logger.error(`Caused by: ${errorCause}`);
+
+      return c.json({
+        message: "Internal Server Error",
+        code: "500",
+      }, 500);
     });
 
     Deno.serve({ port: this.port }, app.fetch);
   }
+
 
   private validateQueryParams(
     params: Record<string, string>,
@@ -470,4 +410,45 @@ export class Server {
     }
     return {};
   }
+
+  /**
+   * Verifies if the provided token is valid
+   * @param token - The Bearer token to verify
+   * @returns boolean indicating if token is valid
+   */
+  private async verifyToken(token: string): Promise<boolean> {
+    return await isTokenValid(sql, token);
+  }
+
+  /**
+   * Extracts HTTP status code from error code string
+   * @param errorCode - Error code in format "HTTPSTATUS-CODE"
+   * @returns Numeric HTTP status code
+   * @throws Error if errorCode format is invalid
+   */
+  private getHttpStatusCode(errorCode: string): number {
+    const parts = errorCode.split("-");
+    const httpStatusCode = Number(parts[0]);
+    // validate the first part
+    if (isNaN(httpStatusCode)) {
+      throw new Error("Invalid parameter");
+    }
+
+    return httpStatusCode;
+  }
+
+  private sendError(c: Context, code: string, params?: Record<string, string>): Response {
+    const resp = {
+      error: code,
+      message: ErrorRegistry.getMessage(code, params),
+    };
+    return c.body(
+        JSON.stringify(resp, null, 2),
+        this.getHttpStatusCode(code) as ContentfulStatusCode,
+        {
+          "Content-Type": "application/json",
+        },
+    );
+  }
+
 }
