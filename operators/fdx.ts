@@ -11,7 +11,6 @@ import {
   ExceptionCode,
   StatusCode,
   TrackingID,
-  UserError,
 } from "../main/model.ts";
 import { config } from "../config.ts";
 import { logger } from "../tools/logger.ts";
