@@ -162,7 +162,7 @@ export class Fdx {
   static async whereIs(
     trackingId: TrackingID,
     updateMethod: string,
-  ): Promise<Entity> {
+  ): Promise<Entity | undefined> {
     const trackingNum: string = trackingId.trackingNum;
     const result: Record<string, unknown> = await this.getRoute(trackingNum);
     return this.convert(trackingId, result, updateMethod);
@@ -281,7 +281,7 @@ export class Fdx {
     trackingId: TrackingID,
     result: Record<string, unknown>,
     updateMethod: string,
-  ): Entity {
+  ): Entity | undefined {
     const entity: Entity = new Entity();
     const output = result["output"] as Record<string, unknown>;
     const completeTrackResults = output["completeTrackResults"] as [unknown];
@@ -297,7 +297,7 @@ export class Fdx {
         `Error occurs during process ${trackingId.toString()}:` +
           JSON.stringify(trackResult["error"]),
       );
-      throw new UserError("404-01");
+      return undefined;
     }
 
     entity.uuid = "eg1_" + crypto.randomUUID();

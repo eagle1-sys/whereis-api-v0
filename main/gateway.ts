@@ -2,7 +2,7 @@
  * @file gateway.ts
  * @description utility module for retrieving shipment location information
  * from various carriers using their tracking IDs.
-  */
+ */
 
 import { Sfex } from "../operators/sfex.ts";
 import { Fdx } from "../operators/fdx.ts";
@@ -19,24 +19,22 @@ import { Entity, TrackingID } from "./model.ts";
  * @async
  */
 export async function requestWhereIs(
-    trackingId: TrackingID,
-    extraParams: Record<string, string>,
-    updateMethod: string,
+  trackingId: TrackingID,
+  extraParams: Record<string, string>,
+  updateMethod: string,
 ): Promise<Entity | undefined> {
-    let entity: Entity | undefined;
-    switch (trackingId.operator) {
-        case "sfex":
-            entity = await Sfex.whereIs(
-                trackingId,
-                extraParams,
-                updateMethod,
-            );
-            break;
-        case "fdx":
-            entity = await Fdx.whereIs(trackingId, updateMethod);
-            break
-    }
-    return entity;
+  let entity: Entity | undefined;
+  switch (trackingId.operator) {
+    case "sfex":
+      entity = await Sfex.whereIs(
+        trackingId,
+        extraParams,
+        updateMethod,
+      );
+      break;
+    case "fdx":
+      entity = await Fdx.whereIs(trackingId, updateMethod);
+      break;
+  }
+  return entity;
 }
-
-

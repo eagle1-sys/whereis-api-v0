@@ -10,7 +10,6 @@ import {
   Event,
   StatusCode,
   TrackingID,
-  UserError,
 } from "../main/model.ts";
 import { crypto } from "@std/crypto";
 import { config } from "../config.ts";
@@ -106,7 +105,7 @@ export class Sfex {
     trackingId: TrackingID,
     extraParams: Record<string, string>,
     updateMethod: string,
-  ): Promise<Entity> {
+  ): Promise<Entity | undefined> {
     const result = await this.getRoute(
       trackingId.trackingNum,
       extraParams["phonenum"],
@@ -221,13 +220,15 @@ export class Sfex {
     result: Record<string, unknown>,
     params: Record<string, string>,
     updateMethod: string,
-  ): Entity {
+  ): Entity | undefined {
     const apiResult = JSON.parse(result["apiResultData"] as string);
     const routeResp = apiResult["msgData"]["routeResps"][0];
     const routes: [] = routeResp["routes"];
     if (routes.length == 0) {
-      logger.error(`No routes were obtained while querying the tracking ID ${trackingId.toString()}`);
-      throw new UserError("404-01");
+      logger.error(
+        `No routes were obtained while querying the tracking ID ${trackingId.toString()}`,
+      );
+      return undefined;
     }
 
     const entity: Entity = new Entity();
@@ -271,7 +272,8 @@ export class Sfex {
     const eventTime: string = acceptTime.replace(" ", "T") + "+08:00";
     const date = new Date(eventTime);
     const secondsSinceEpoch = Math.floor(date.getTime() / 1000);
-    event.eventId = `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
+    event.eventId =
+      `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
     event.operatorCode = "sfex";
     event.trackingNum = trackingNum;
     event.status = status;

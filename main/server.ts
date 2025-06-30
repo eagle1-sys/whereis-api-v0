@@ -151,9 +151,15 @@ export class Server {
       const [trackingID, parsedParams] = this.parseURL(c.req);
       const queryParams = c.req.query();
 
-      const validParamsSet = new Set(["fulldata", "refresh", ...(trackingID.operator === "sfex" ? ["phonenum"] : [])]);
-      const invalidParams = this.validateQueryParams(queryParams, validParamsSet);
-
+      const validParamsSet = new Set([
+        "fulldata",
+        "refresh",
+        ...(trackingID.operator === "sfex" ? ["phonenum"] : []),
+      ]);
+      const invalidParams = this.validateQueryParams(
+        queryParams,
+        validParamsSet,
+      );
       if (invalidParams.length > 0) {
         return c.sendError("400-07", { param: invalidParams.join(",") });
       }
@@ -161,20 +167,21 @@ export class Server {
       const refresh = queryParams.refresh === "true";
       const fullData = queryParams.fulldata === "true";
 
-      const result = refresh
-          ? await this.getEntityFromProviderFirst(trackingID, parsedParams)
-          : await this.getEntityFromDatabaseFirst(trackingID, parsedParams);
+      const entity: Entity | undefined = refresh
+        ? await this.refreshEntityFromProvider(trackingID, parsedParams)
+        : await this.getEntityFromDbOrProvider(
+          trackingID,
+          parsedParams,
+          queryParams,
+        );
 
-      if (result instanceof Entity) {
-        // send response
-        return c.json(result.toJSON(fullData), 200, {
-          "Content-Type": "application/json; charset=utf-8",
-        });
-      } else {
-        // send error
-        logger.error(`Entity not found for tracking ID: ${trackingID}`);
-        return c.sendError("404-01");
+      if (!entity) {
+        throw new UserError(refresh ? "404-03" : "404-01");
       }
+
+      return c.json(entity.toJSON(fullData), 200, {
+        "Content-Type": "application/json; charset=utf-8",
+      });
     });
 
     /**
@@ -208,20 +215,47 @@ export class Server {
     Deno.serve({ port: this.port }, app.fetch);
   }
 
+  private async refreshEntityFromProvider(
+    trackingID: TrackingID,
+    parsedParams: Record<string, string>,
+  ): Promise<Entity | undefined> {
+    const entity = await requestWhereIs(
+      trackingID,
+      parsedParams,
+      "manual-pull",
+    );
+    if (entity) {
+      await sql.begin(async (sql: ReturnType<typeof postgres>) => {
+        // Delete and insert the entity to ensure the latest data
+        await deleteEntity(sql, trackingID);
+        await insertEntity(sql, entity);
+      });
+    }
+    return entity;
+  }
 
-  private validateQueryParams(
-    params: Record<string, string>,
-    validParams?: Set<string>,
-  ): string[] {
-    const invalidParams: string[] = [];
+  private async getEntityFromDbOrProvider(
+    trackingID: TrackingID,
+    parsedParams: Record<string, string>,
+    queryParams: Record<string, string>,
+  ): Promise<Entity | undefined> {
+    let entity = await queryEntity(sql, trackingID);
 
-    Object.keys(params).forEach((key) => {
-      if (validParams === undefined || !validParams.has(key)) {
-        invalidParams.push(key);
+    if (!entity) {
+      entity = await requestWhereIs(trackingID, parsedParams, "manual-pull");
+      if (entity) {
+        await sql.begin(async (sql: ReturnType<typeof postgres>) => {
+          await insertEntity(sql, entity as Entity);
+        });
       }
-    });
+    } else if (
+      trackingID.operator === "sfex" &&
+      entity.params?.phonenum !== queryParams.phonenum
+    ) {
+      throw new UserError("400-06");
+    }
 
-    return invalidParams;
+    return entity;
   }
 
   /**
@@ -277,94 +311,6 @@ export class Server {
   }
 
   /**
-   * Attempts to get object from database first, then carrier if not found
-   * @param trackingID - The tracking ID object
-   * @param queryParams - Additional query parameters
-   * @returns An Entity object on success or a string error code if an error occurs
-   */
-  private async getEntityFromDatabaseFirst(
-    trackingID: TrackingID,
-    queryParams: Record<string, string>,
-  ) {
-    let entity: Entity | undefined;
-    try {
-      // try to load from database first
-      const entityInDB: Entity | undefined = await queryEntity(
-        sql,
-        trackingID,
-      );
-      if (entityInDB !== undefined) {
-        if (
-          trackingID.operator === "sfex" &&
-          entityInDB.params &&
-          entityInDB.params["phonenum"] !== queryParams["phonenum"]
-        ) {
-          throw new UserError("400-06");
-        }
-        return entityInDB;
-      }
-
-      entity = await requestWhereIs(
-        trackingID,
-        queryParams,
-        "manual-pull",
-      );
-      if (entity instanceof Entity) {
-        try {
-          await sql.begin(async (sql: ReturnType<typeof postgres>) => {
-            await insertEntity(sql, entity as Entity);
-          });
-        } catch (err) {
-          throw err;
-        }
-      }
-    } finally {
-      //await sql.end();
-    }
-    return entity;
-  }
-
-  /**
-   * Gets object from data provider first and updates database
-   * @param trackingID - The tracking ID object
-   * @param queryParams - Additional query parameters
-   * @returns An Entity object on success or a string error code if an error occurs
-   */
-  private async getEntityFromProviderFirst(
-    trackingID: TrackingID,
-    queryParams: Record<string, string>,
-  ): Promise<Entity> {
-    // load from carrier
-    const entity: Entity | undefined = await requestWhereIs(
-      trackingID,
-      queryParams,
-      "manual-pull",
-    );
-
-    // The refresh has failed to receive data from the data provider.
-    if (entity === undefined) {
-      throw new UserError("404-03");
-    }
-
-    // update to database
-    try {
-      await sql.begin(async (sql: ReturnType<typeof postgres>) => {
-        // step 1: delete the existing record first
-        await deleteEntity(sql, trackingID);
-        // step 2: insert into database
-        await insertEntity(sql, entity);
-        return true;
-      });
-    } catch (error) {
-      throw error;
-    } finally {
-      //await sql.end();
-    }
-
-    return entity;
-  }
-
-  /**
    * Parses the URL from the request to extract tracking information and query parameters.
    *
    * @param req - The Hono request object containing the URL and parameters.
@@ -411,6 +357,21 @@ export class Server {
     return {};
   }
 
+  private validateQueryParams(
+    params: Record<string, string>,
+    validParams?: Set<string>,
+  ): string[] {
+    const invalidParams: string[] = [];
+
+    Object.keys(params).forEach((key) => {
+      if (validParams === undefined || !validParams.has(key)) {
+        invalidParams.push(key);
+      }
+    });
+
+    return invalidParams;
+  }
+
   /**
    * Verifies if the provided token is valid
    * @param token - The Bearer token to verify
@@ -437,17 +398,21 @@ export class Server {
     return httpStatusCode;
   }
 
-  private sendError(c: Context, code: string, params?: Record<string, string>): Response {
+  private sendError(
+    c: Context,
+    code: string,
+    params?: Record<string, string>,
+  ): Response {
     const resp = {
       error: code,
       message: ErrorRegistry.getMessage(code, params),
     };
     return c.body(
-        JSON.stringify(resp, null, 2),
-        this.getHttpStatusCode(code) as ContentfulStatusCode,
-        {
-          "Content-Type": "application/json",
-        },
+      JSON.stringify(resp, null, 2),
+      this.getHttpStatusCode(code) as ContentfulStatusCode,
+      {
+        "Content-Type": "application/json",
+      },
     );
   }
 
