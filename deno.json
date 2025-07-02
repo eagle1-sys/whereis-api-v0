@@ -4,6 +4,7 @@
     "dev": "deno run --watch db_test.ts"
   },
   "imports": {
+    "@std/dotenv": "jsr:@std/dotenv",
     "@std/assert": "jsr:@std/assert",
     "@std/crypto": "jsr:@std/crypto",
     "@std/path": "jsr:@std/path",

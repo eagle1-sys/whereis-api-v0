@@ -3,7 +3,7 @@
  * @description A collection of functions for loading metadata from the file system.
  */
 
-import { load } from "https://deno.land/std/dotenv/mod.ts";
+import { load } from "@std/dotenv";
 
 import { loadJSONFromFs } from "../tools/util.ts";
 import {StatusCode, ErrorRegistry, ExceptionCode} from "./model.ts";
