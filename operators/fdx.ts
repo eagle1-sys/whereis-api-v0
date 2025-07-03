@@ -283,6 +283,13 @@ export class Fdx {
   ): Entity | undefined {
     const entity: Entity = new Entity();
     const output = result["output"] as Record<string, unknown>;
+    if (output === undefined) {
+      logger.error(
+        `No output found in the result for tracking ID: ${trackingId.toString()}`,
+      );
+      logger.error(`The resut from Fdx is: ${JSON.stringify(output)}`);
+      return undefined;
+    }
     const completeTrackResults = output["completeTrackResults"] as [unknown];
     const completeTrackResult = completeTrackResults[0] as Record<
       string,
