@@ -16,6 +16,9 @@ primary_region = 'sin'
   min_machines_running = 1
   processes = ['app']
 
+[services.ports.http_options.response.headers]
+  Strict-Transport-Security = "max-age=15552000; includeSubDomains; preload"
+
 [[vm]]
   size = "shared-cpu-1x"
   memory = '256mb'
