@@ -20,6 +20,11 @@ export async function loadEnv(): Promise<void> {
         // set environment variable to Deno.env
         Deno.env.set(key, value);
     }
+
+    // Set a default environment if not specified
+    if (!Deno.env.get("APP_ENV")) {
+        Deno.env.set("APP_ENV", "dev");
+    }
 }
 
 /**

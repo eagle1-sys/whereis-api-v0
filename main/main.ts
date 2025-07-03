@@ -3,12 +3,12 @@
  * @description This module serves as the entry point for the application, handling environment loading,
  * metadata initialization, database setup, scheduling, and server startup.
  */
-import { config } from "../config.ts";
-import { logger } from "../tools/logger.ts";
 import { Server } from "./server.ts";
 import { syncRoutes } from "./schedule.ts";
 import { loadEnv, loadMetaData } from "./app.ts";
 import { initConnection } from "../db/dbutil.ts";
+import { config } from "../config.ts";
+import { getLogger  } from "../tools/logger.ts";
 
 /**
  * Main entry point of the application.
@@ -20,6 +20,11 @@ import { initConnection } from "../db/dbutil.ts";
  */
 async function main(): Promise<void> {
   await loadEnv(); // load environment variable first
+
+  // Initialize logger after environment is loaded
+  const logger = getLogger();
+  logger.info(`Starting application in ${Deno.env.get("APP_ENV")} mode`);
+
   await loadMetaData(); // load file system data
   await initConnection();
 
