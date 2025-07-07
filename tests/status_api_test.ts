@@ -26,7 +26,7 @@ import { assert } from "@std/assert";
 import {config} from "../config.ts";
 import { assertErrorCode } from "./main_test.ts";
 
-const testDatas = [
+const testData = [
   {
     "input": { "id": "", "extra": {} },
     "output": { "error": "400-01" },
@@ -77,8 +77,8 @@ const testDatas = [
 ];
 
 Deno.test("Test status API", async () => {
-  for (let i = 0; i < testDatas.length; i++) {
-    const data = testDatas[i];
+  for (let i = 0; i < testData.length; i++) {
+    const data = testData[i];
     const input = data["input"];
     const output = data["output"];
     const trackingId: string = input["id"];

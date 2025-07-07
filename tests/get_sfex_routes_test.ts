@@ -19,7 +19,7 @@
 import { assert } from "@std/assert";
 import { Sfex } from "../operators/sfex.ts";
 
-const testDatas = [
+const testData = [
   {
     "input": { "trackingNum": "SF3122082959115", "phone": "5567" },
     "output": { "routeNum": 0 },
@@ -29,8 +29,8 @@ const testDatas = [
 ];
 
 Deno.test("Test get scan events from Sfex", async () => {
-  for (let i = 0; i < testDatas.length; i++) {
-    const data = testDatas[i];
+  for (let i = 0; i < testData.length; i++) {
+    const data = testData[i];
     const input = data["input"];
     const output = data["output"];
     const response = await Sfex.getRoute(input["trackingNum"], input["phone"]);
