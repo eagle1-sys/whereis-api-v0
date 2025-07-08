@@ -33,7 +33,10 @@ export class Fdx {
     },
     IT: {
       DR: 3250, // In-Transit
-      DP: function (sourceData: Record<string, unknown>): number {
+      DP: function (
+        _entity: Entity,
+        sourceData: Record<string, unknown>,
+      ): number {
         const locationType = sourceData.locationType as string;
         const eventDescription = sourceData.eventDescription as string;
 
@@ -47,7 +50,10 @@ export class Fdx {
 
         return 3004; // Departed, In-Transit
       },
-      AR: function (sourceData: Record<string, unknown>): number {
+      AR: function (
+        _entity: Entity,
+        sourceData: Record<string, unknown>,
+      ): number {
         const locationType = sourceData["locationType"] as string;
         const eventDescrition = sourceData["eventDescription"] as string;
         if (
@@ -63,7 +69,10 @@ export class Fdx {
         };
         return locationTypeMap[locationType] ?? 3002; // Arrived, In-Transit (default)
       },
-      IT: function (sourceData: Record<string, unknown>): number {
+      IT: function (
+        _entity: Entity,
+        sourceData: Record<string, unknown>,
+      ): number {
         const exceptionCode = sourceData["exceptionCode"];
         if (exceptionCode == "67") {
           return 3450; // Final Delivery In-Progress
@@ -72,7 +81,10 @@ export class Fdx {
         }
       },
       AF: 3001, // Logistics In-Progress
-      CC: function (sourceData: Record<string, unknown>): number | undefined {
+      CC: function (
+        _entity: Entity,
+        sourceData: Record<string, unknown>,
+      ): number | undefined {
         const desc = sourceData["eventDescription"] as string;
         if (/Export/i.test(desc)) {
           return 3200; // Customs Clearance: Export Released
@@ -84,7 +96,10 @@ export class Fdx {
       RR: 3450, // Delivery option requested
     },
     CD: {
-      CD: function (sourceData: Record<string, unknown>): number | undefined {
+      CD: function (
+        _entity: Entity,
+        sourceData: Record<string, unknown>,
+      ): number | undefined {
         const desc = sourceData["eventDescription"] as string;
         if (/Import/i.test(desc)) {
           return 3350; // Customs Clearance: Import In-Progress
@@ -169,16 +184,16 @@ export class Fdx {
 
   /**
    * Retrieves the internal event code based on FedEx status code, event type, and source data.
-   * @param {string} derivedStatusCode - The derived status code from FedEx.
-   * @param {string} eventType - The type of event from FedEx.
+   * @param {Entity} entity - The entity from FedEx.
    * @param {Record<string, unknown>} sourceData - The raw event data from FedEx.
    * @returns {number} The corresponding internal event code, or 3001 if not found.
    */
   static getStatusCode(
-    derivedStatusCode: string,
-    eventType: string,
+    entity: Entity,
     sourceData: Record<string, unknown>,
   ): number {
+    const derivedStatusCode = sourceData["derivedStatusCode"] as string;
+    const eventType = sourceData["eventType"] as string;
     const statusMap = Fdx.statusCodeMap[derivedStatusCode];
     if (!statusMap) return 3001;
 
@@ -187,7 +202,7 @@ export class Fdx {
     if (typeof value === "number") return value;
 
     if (typeof value === "function") {
-      const result = value(sourceData);
+      const result = value(entity, sourceData);
       return typeof result === "number" ? result : 3001;
     }
 
@@ -287,7 +302,7 @@ export class Fdx {
       logger.error(
         `No output found in the result for tracking ID: ${trackingId.toString()}`,
       );
-      logger.error(`The resut from Fdx is: ${JSON.stringify(output)}`);
+      logger.error(`The result from Fdx is: ${JSON.stringify(output)}`);
       return undefined;
     }
     const completeTrackResults = output["completeTrackResults"] as [unknown];
@@ -325,7 +340,12 @@ export class Fdx {
 
     const scanEvents = trackResult["scanEvents"] as Record<string, unknown>[];
     for (const scanEvent of scanEvents.reverse()) {
-      const event = this.createEvent(scanEvent, trackingId, updateMethod);
+      const event = this.createEvent(
+        trackingId,
+        entity,
+        scanEvent,
+        updateMethod,
+      );
       if (event && !entity.isEventIdExist(event.eventId)) {
         entity.addEvent(event);
       }
@@ -340,23 +360,19 @@ export class Fdx {
    * This function processes a FedEx scan event and converts it into an internal Event object,
    * including status codes, timestamps, location information, and any exception details.
    *
-   * @param {Record<string, unknown>} scanEvent - The raw scan event data from FedEx API.
    * @param {TrackingID} trackingId - The tracking ID object containing the tracking number and operator.
+   * @param {Entity} entity - The Entity object to which the Event will be added.
+   * @param {Record<string, unknown>} scanEvent - The raw scan event data from FedEx API.
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Event} A new Event object populated with data from the FedEx scan event.
    */
   private static createEvent(
-    scanEvent: Record<string, unknown>,
     trackingId: TrackingID,
+    entity: Entity,
+    scanEvent: Record<string, unknown>,
     updateMethod: string,
   ): Event {
-    const fdxStatusCode = scanEvent["derivedStatusCode"] as string;
-    const fdxEventType = scanEvent["eventType"] as string;
-    const status = Fdx.getStatusCode(
-      fdxStatusCode,
-      fdxEventType,
-      scanEvent,
-    );
+    const status = Fdx.getStatusCode(entity, scanEvent);
 
     const trackingNum = trackingId.trackingNum;
     const event = new Event();

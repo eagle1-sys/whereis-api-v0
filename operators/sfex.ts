@@ -5,12 +5,7 @@
  * and convert them into a structured object with associated `Event` details.
  */
 
-import {
-  Entity,
-  Event,
-  StatusCode,
-  TrackingID,
-} from "../main/model.ts";
+import { Entity, Event, StatusCode, TrackingID } from "../main/model.ts";
 import { crypto } from "@std/crypto";
 import { config } from "../config.ts";
 import { logger } from "../tools/logger.ts";
@@ -38,7 +33,10 @@ export class Sfex {
       "106": 3300, // Arrived At Destination
       "310": 3002, // Customs Clearance: Import Released
     },
-    "204": function (sourceData: Record<string, unknown>): number {
+    "204": function (
+      _entity: Entity,
+      sourceData: Record<string, unknown>,
+    ): number {
       const secondaryStatusName = sourceData["secondaryStatusName"] as string;
       if (/清关中/.test(secondaryStatusName)) {
         return 3350; // Customs Clearance: Import In-Progress
@@ -46,7 +44,10 @@ export class Sfex {
         return 3001; // Logistics In-Progress
       }
     },
-    "205": function (sourceData: Record<string, unknown>): number {
+    "205": function (
+      _entity: Entity,
+      sourceData: Record<string, unknown>,
+    ): number {
       const secondaryStatusName = sourceData["secondaryStatusName"] as string;
       if (/已清关/.test(secondaryStatusName)) {
         return 3400; // Customs Clearance: Import Released
@@ -54,7 +55,10 @@ export class Sfex {
         return 3001; // Logistics In-Progress
       }
     },
-    "301": function (sourceData: Record<string, unknown>): number {
+    "301": function (
+      _entity: Entity,
+      sourceData: Record<string, unknown>,
+    ): number {
       const secondaryStatusName = sourceData["secondaryStatusName"] as string;
       if (/派送中/.test(secondaryStatusName)) {
         return 3450; // Final Delivery In-Progress
@@ -128,21 +132,21 @@ export class Sfex {
    * Retrieves the internal event code based on SF Express status and operation codes.
    *
    * @static
-   * @param {string} statusCode - The SF Express status code.
-   * @param {string} opCode - The SF Express operation code.
+   * @param {Entity} entity - The tracking entity.
    * @param {Record<string, unknown>} sourceData - Additional source data for complex mappings.
    * @returns {number} The corresponding internal event code. Returns 3001 if no specific mapping is found.
    */
   static getStatusCode(
-    statusCode: string,
-    opCode: string,
+    entity: Entity,
     sourceData: Record<string, unknown>,
   ): number {
+    const statusCode = sourceData["secondaryStatusCode"] as string;
+    const opCode = sourceData["opCode"] as string;
     const statusMap = Sfex.statusCodeMap[statusCode];
     if (!statusMap) return 3001;
 
     if (typeof statusMap === "function") {
-      const result = statusMap(sourceData);
+      const result = statusMap(entity, sourceData);
       return typeof result === "number" ? result : 3001;
     }
 
@@ -151,7 +155,7 @@ export class Sfex {
       return value;
     }
     if (typeof value === "function") {
-      const result = value(sourceData);
+      const result = value(entity, sourceData);
       return typeof result === "number" ? result : 3001;
     }
 
@@ -238,7 +242,7 @@ export class Sfex {
     entity.params = params;
     entity.extra = {};
     for (const route of routes) {
-      const event = this.createEvent(route, trackingId, updateMethod);
+      const event = this.createEvent(trackingId, entity, route, updateMethod);
       if (event && !entity.isEventIdExist(event.eventId)) {
         entity.addEvent(event);
       }
@@ -250,20 +254,21 @@ export class Sfex {
   /**
    * Creates an Event object from SF Express route data.
    *
-   * @param route - The route information from SF Express API.
    * @param trackingId - The tracking ID object containing the tracking number.
+   * @param entity - The tracking entity containing the shipment information.
+   * @param route - The route information from SF Express API.
    * @param updateMethod - The method used to update the tracking information.
    * @returns An Event object containing detailed information about the shipment status.
    */
   private static createEvent(
-    route: Record<string, unknown>,
     trackingId: TrackingID,
+    entity: Entity,
+    route: Record<string, unknown>,
     updateMethod: string,
   ): Event {
     const trackingNum = trackingId.trackingNum;
-    const sfStatusCode = route["secondaryStatusCode"] as string;
-    const sfOpCode = route["opCode"] as string;
-    const status = Sfex.getStatusCode(sfStatusCode, sfOpCode, route);
+
+    const status = Sfex.getStatusCode(entity, route);
 
     const event: Event = new Event();
     // acceptTime format: 2024-10-26 06:12:43
