@@ -137,17 +137,19 @@ export async function syncRoutes() {
 
       return true;
     });
-  } catch (error) {
+  } catch (err) {
     // ignore the UserError
-    if (!(error instanceof UserError)) {
-      if (error instanceof Error) {
-        logger.error(`Error in syncRoutes: ${error.message}`);
-        logger.error(`Stack trace: ${error.stack}`);
-        if (error.cause) {
-          logger.error(`Caused by: ${error.cause}`);
+    if (!(err instanceof UserError)) {
+      if (err instanceof Error) {
+        logger.error(`Error in syncRoutes: ${err.message}`);
+        if (err.stack) {
+          logger.error(`Stack trace: ${err.stack}`);
+        }
+        if (err.cause) {
+          logger.error(`Caused by: ${err.cause}`);
         }
       } else {
-        logger.error(`Unknown error in syncRoutes: ${String(error)}`);
+        logger.error(`Unknown error in syncRoutes: ${String(err)}`);
       }
     }
   }

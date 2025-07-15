@@ -174,8 +174,8 @@ export class Fdx {
    * @returns {Promise<Entity | undefined>} A promise resolving to the tracking entity or undefined if not found.
    */
   static async whereIs(
-      trackingIds: TrackingID[],
-      updateMethod: string,
+    trackingIds: TrackingID[],
+    updateMethod: string,
   ): Promise<Entity[]> {
     const entities: Entity[] = [];
     const trackingNums: string[] = trackingIds.map((item) => item.trackingNum);
@@ -184,10 +184,10 @@ export class Fdx {
     if (output === undefined) {
       const trackingIdsStr: string = trackingIds.map((item) => item.toString())
         .join(", ");
-      logger.error(
-        `No output found in the result for tracking ID: ${trackingIdsStr}`,
+      logger.warn(
+        `${updateMethod} -> FDX: Unexpected data received for ${trackingIdsStr}: missing output in 
+        ${JSON.stringify(result)}`,
       );
-      logger.error(`The result from Fdx is: ${JSON.stringify(result)}`);
       return entities;
     }
 
@@ -202,10 +202,10 @@ export class Fdx {
         );
         const entity: Entity | undefined = Fdx.convert(
           trackingId,
-            completeTrackResult,
+          completeTrackResult,
           updateMethod,
         );
-        if(entity!==undefined) {
+        if (entity !== undefined) {
           entities.push(entity);
         }
       },

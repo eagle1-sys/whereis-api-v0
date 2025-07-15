@@ -86,7 +86,7 @@ export async function updateEntity(
     }
 
     // step 3: remove events that are not in the updated entity
-    if(eventIdsToBeRemoved.length>0) {
+    if (eventIdsToBeRemoved.length > 0) {
       for (const eventId of eventIdsToBeRemoved) {
         logger.info(`Auto-pull: Delete event with id ${eventId}`);
         await deleteEvent(sql, eventId);
@@ -94,8 +94,8 @@ export async function updateEntity(
     }
 
     return true;
-  } catch (e) {
-    logger.error(`Error updating entity: ${e}`);
+  } catch (err) {
+    logger.error(`Auto-pull: Failed to update entity with id ${entity.id}: ${err}`);
     return false;
   }
 }
@@ -166,9 +166,9 @@ async function insertEvent(
     }
 
     // log the info if no event_id was inserted
-    logger.warn(`Insert event failed: ${event.eventId} `);
+    logger.info(`Event ${event.eventId} could not be inserted. `);
   } catch (err) {
-    logger.error(`Error inserting event ${event.eventId}:`, err);
+    logger.error(`Failed to insert event ${event.eventId}:`, err);
   }
   return undefined;
 }

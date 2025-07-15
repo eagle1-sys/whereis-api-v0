@@ -23,10 +23,10 @@ export function initConnection() {
     });
 
     logger.info(
-      `Database connection pool to ${Deno.env.get("DATABASE_HOST")}:${config.database.port} initialized successfully`,
+      `DB connection pool to ${Deno.env.get("DATABASE_HOST")}:${config.database.port} initialized successfully.`,
     );
-  } catch (error) {
-    logger.error("Error initializing database connection pool:", error);
+  } catch (err) {
+    logger.error("Error initializing database connection pool:", err);
     throw new Error("Failed to initialize database connection pool");
   }
 }
