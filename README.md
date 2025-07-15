@@ -1,7 +1,7 @@
 # Eagle1 whereis API
 
 ## Goal
-Just one: **making it easy** for devlopers to track any shipment from any logistics provider, using a simple API query.
+**Making it easy** for devlopers to track any shipment from any logistics provider, using a simple API query.
 
 ## Problem
 Since different logistics providers have their own APIs and data formats, integrating various logistics data poses a significant challenge for app developers.
