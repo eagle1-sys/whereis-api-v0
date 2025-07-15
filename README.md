@@ -1,7 +1,7 @@
 # Eagle1 whereis API
 
 ## Goal
-We focus on one thing: making it easy to track a shipment’s locations over time with a simple, streamlined API query.
+**Making it easy** for developers to track any shipment (with any logistics provider), using a simple API query.
 
 ## Problem
 Since different logistics providers have their own APIs and data formats, integrating various logistics data poses a significant challenge for app developers.
@@ -124,7 +124,7 @@ Follow these steps to deploy the application to Fly.io using the provided Docker
 
 5. **Deploy the Application**
    
-   Run the following command to deploy the app to Fly.io. This will use the Dockerfile to build and deploy your application:
+   Update `fly.toml` and `Dockerfile` if neccesary, then run the following command to deploy the app to Fly.io:
       bash
       ```bash
       flyctl deploy
