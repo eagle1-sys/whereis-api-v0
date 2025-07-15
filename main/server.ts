@@ -219,19 +219,20 @@ export class Server {
     trackingID: TrackingID,
     parsedParams: Record<string, string>,
   ): Promise<Entity | undefined> {
-    const entity = await requestWhereIs(
-      trackingID,
+    const entities = await requestWhereIs(
+      trackingID.operator,
+      [trackingID],
       parsedParams,
       "manual-pull",
     );
-    if (entity) {
+    if (entities.length === 1) {
       await sql.begin(async (sql: ReturnType<typeof postgres>) => {
         // Delete and insert the entity to ensure the latest data
         await deleteEntity(sql, trackingID);
-        await insertEntity(sql, entity);
+        await insertEntity(sql, entities[0] as Entity);
       });
     }
-    return entity;
+    return entities.length === 0 ? undefined : entities[0];
   }
 
   private async getEntityFromDbOrProvider(
@@ -242,8 +243,14 @@ export class Server {
     let entity = await queryEntity(sql, trackingID);
 
     if (!entity) {
-      entity = await requestWhereIs(trackingID, parsedParams, "manual-pull");
-      if (entity) {
+      const entities = await requestWhereIs(
+        trackingID.operator,
+        [trackingID],
+        parsedParams,
+        "manual-pull",
+      );
+      if (entities.length === 1) {
+        entity = entities[0];
         await sql.begin(async (sql: ReturnType<typeof postgres>) => {
           await insertEntity(sql, entity as Entity);
         });
@@ -288,26 +295,26 @@ export class Server {
     }
 
     // If not in database, request from data provider
-    const result = await requestWhereIs(
-      trackingID,
+    const result: Entity[] = await requestWhereIs(
+      trackingID.operator,
+      [trackingID],
       queryParams,
       "manual-pull",
     );
 
-    if (result === undefined) {
-      logger.error(`Context: getStatus`);
+    if (result.length === 0) {
       throw new UserError("404-01"); // Not found in data provider
     }
 
     try {
       await sql.begin(async (sql: ReturnType<typeof postgres>) => {
-        await insertEntity(sql, result);
+        await insertEntity(sql, result[0] as Entity);
         return true;
       });
     } catch (error) {
       throw error;
     }
-    return result.getLastStatus();
+    return (result[0] as Entity).getLastStatus();
   }
 
   /**
@@ -415,5 +422,4 @@ export class Server {
       },
     );
   }
-
 }

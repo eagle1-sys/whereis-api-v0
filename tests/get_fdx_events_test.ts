@@ -17,11 +17,17 @@ import { assert } from "@std/assert";
 import { Fdx } from "../operators/fdx.ts";
 
 const testDatas = [
+  // {
+  //   "input": { "trackingNum": "779879860040" },
+  //   "output": { "eventNum": 1 },
+  //   "memo":
+  //       "Completed waybills will have most of their events data removed after a period of time.",
+  // },
   {
-    "input": { "trackingNum": "779879860040" },
-    "output": { "eventNum": 1 },
+    "input": { "trackingNum": "724916429240" },
+    "output": { "eventNum": 2 },
     "memo":
-      "Completed waybills will have most of their events data removed after a period of time.",
+      "Waybill cancelled.",
   },
 ];
 
@@ -31,7 +37,7 @@ Deno.test("Test get scan events from FedEx", async () => {
     const input = data["input"];
     const output = data["output"];
     const trackingNum = input["trackingNum"];
-    const result = await Fdx.getRoute(trackingNum) as Record<string, unknown>;
+    const result = await Fdx.getRoute([trackingNum]) as Record<string, unknown>;
     assert(result != undefined);
     const fexOutput = result["output"] as Record<string, unknown>;
     const completeTrackResults = fexOutput["completeTrackResults"] as [unknown];
@@ -39,10 +45,6 @@ Deno.test("Test get scan events from FedEx", async () => {
     const trackResults = completeTrackResult["trackResults"] as [unknown];
     const trackResult = trackResults[0] as Record<string, unknown>;
     const scanEvents = trackResult["scanEvents"] as Record<string, unknown>[];
-    //const events =
-    //  result["output"]["completeTrackResults"][0]["trackResults"][0][
-    //    "scanEvents"
-    //  ];
     assert(scanEvents.length == output["eventNum"]);
   }
 });

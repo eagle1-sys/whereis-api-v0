@@ -169,17 +169,49 @@ export class Fdx {
 
   /**
    * Retrieves the current location and tracking details for a given tracking number.
-   * @param {TrackingID} trackingId - The tracking ID defined by eagle1.
+   * @param {TrackingID} trackingIds - The tracking ID(s) defined by eagle1.
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Promise<Entity | undefined>} A promise resolving to the tracking entity or undefined if not found.
    */
   static async whereIs(
-    trackingId: TrackingID,
-    updateMethod: string,
-  ): Promise<Entity | undefined> {
-    const trackingNum: string = trackingId.trackingNum;
-    const result: Record<string, unknown> = await this.getRoute(trackingNum);
-    return this.convert(trackingId, result, updateMethod);
+      trackingIds: TrackingID[],
+      updateMethod: string,
+  ): Promise<Entity[]> {
+    const entities: Entity[] = [];
+    const trackingNums: string[] = trackingIds.map((item) => item.trackingNum);
+    const result: Record<string, unknown> = await this.getRoute(trackingNums);
+    const output = result["output"] as Record<string, unknown>;
+    if (output === undefined) {
+      const trackingIdsStr: string = trackingIds.map((item) => item.toString())
+        .join(", ");
+      logger.error(
+        `No output found in the result for tracking ID: ${trackingIdsStr}`,
+      );
+      logger.error(`The result from Fdx is: ${JSON.stringify(result)}`);
+      return entities;
+    }
+
+    const completeTrackResults = output["completeTrackResults"] as Record<
+      string,
+      unknown
+    >[];
+    completeTrackResults.forEach(
+      (completeTrackResult: Record<string, unknown>) => {
+        const trackingId: TrackingID = TrackingID.parse(
+          "fdx-" + completeTrackResult["trackingNumber"] as string,
+        );
+        const entity: Entity | undefined = Fdx.convert(
+          trackingId,
+            completeTrackResult,
+          updateMethod,
+        );
+        if(entity!==undefined) {
+          entities.push(entity);
+        }
+      },
+    );
+
+    return entities;
   }
 
   /**
@@ -248,23 +280,27 @@ export class Fdx {
 
   /**
    * Fetches the shipment route details for a given tracking number from the FedEx API.
-   * @param {string} trackingNumber - The FedEx tracking number.
+   * @param {string} trackingNumbers - The FedEx tracking number(s).
    * @returns {Promise<Record<string, unknown>>} A promise resolving to the raw API response data.
    * @throws {Error} If the API request fails.
    */
   static async getRoute(
-    trackingNumber: string,
+    trackingNumbers: string[],
   ): Promise<Record<string, unknown>> {
     // Prepare the request payload
+    const trackingInfo: { trackingNumberInfo: { trackingNumber: string } }[] =
+      [];
+    trackingNumbers.forEach((trackingNum) =>
+      trackingInfo.push({
+        "trackingNumberInfo": {
+          "trackingNumber": trackingNum,
+        },
+      })
+    );
+
     const payload = {
       "includeDetailedScans": true,
-      "trackingInfo": [
-        {
-          "trackingNumberInfo": {
-            "trackingNumber": trackingNumber,
-          },
-        },
-      ],
+      "trackingInfo": trackingInfo,
     };
 
     // Send the API request
@@ -286,30 +322,30 @@ export class Fdx {
   /**
    * Converts raw FedEx API data into an internal object with events.
    * @param {TrackingID} trackingId - The tracking ID defined by eagle1.
-   * @param {Record<string, unknown>} result - The raw API response data.
+   * @param {Record<string, unknown>} completeTrackResult - The raw API response data.
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Entity} An Entity object represents the trackingId's status.
    * @private
    */
   private static convert(
     trackingId: TrackingID,
-    result: Record<string, unknown>,
+    completeTrackResult: Record<string, unknown>,
     updateMethod: string,
   ): Entity | undefined {
     const entity: Entity = new Entity();
-    const output = result["output"] as Record<string, unknown>;
-    if (output === undefined) {
-      logger.error(
-        `No output found in the result for tracking ID: ${trackingId.toString()}`,
-      );
-      logger.error(`The result from Fdx is: ${JSON.stringify(output)}`);
-      return undefined;
-    }
-    const completeTrackResults = output["completeTrackResults"] as [unknown];
-    const completeTrackResult = completeTrackResults[0] as Record<
-      string,
-      unknown
-    >;
+    // const output = result["output"] as Record<string, unknown>;
+    // if (output === undefined) {
+    //   logger.error(
+    //     `No output found in the result for tracking ID: ${trackingId.toString()}`,
+    //   );
+    //   logger.error(`The result from Fdx is: ${JSON.stringify(output)}`);
+    //   return undefined;
+    // }
+    // const completeTrackResults = output["completeTrackResults"] as [unknown];
+    // const completeTrackResult = completeTrackResults[0] as Record<
+    //   string,
+    //   unknown
+    // >;
     const trackResults = completeTrackResult["trackResults"] as [unknown];
     const trackResult = trackResults[0] as Record<string, unknown>;
 

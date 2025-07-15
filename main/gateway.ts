@@ -12,29 +12,31 @@ import { Entity, TrackingID } from "./model.ts";
  * Asynchronously retrieves the location information for a given tracking ID.
  * Supports different carriers (SF Express and FedEx) and handles their specific implementations.
  *
- * @param {TrackingID} trackingId - The tracking identifier containing carrier and tracking number
+ * @param {string} operator - The carrier code (e.g., "sfex" for SF Express or "fdx" for FedEx)
+ * @param {TrackingID} trackingIds - The tracking identifier containing carrier and tracking number
  * @param {Record<string, string>} extraParams - Additional parameters for SF Express tracking requests
  * @param {string} updateMethod - The method to use for updating tracking information
- * @returns {Promise<Entity | undefined>} A promise that resolves to the tracking entity or undefined if carrier is not supported
+ * @returns {Promise<Entity[]>} A promise that resolves to the tracking entities
  * @async
  */
 export async function requestWhereIs(
-  trackingId: TrackingID,
+  operator: string,
+  trackingIds: TrackingID[],
   extraParams: Record<string, string>,
   updateMethod: string,
-): Promise<Entity | undefined> {
-  let entity: Entity | undefined;
-  switch (trackingId.operator) {
+): Promise<Entity[]> {
+  let entities: Entity[] = [];
+  switch (operator) {
     case "sfex":
-      entity = await Sfex.whereIs(
-        trackingId,
+      entities = await Sfex.whereIs(
+        trackingIds[0],
         extraParams,
         updateMethod,
       );
       break;
     case "fdx":
-      entity = await Fdx.whereIs(trackingId, updateMethod);
+      entities = await Fdx.whereIs(trackingIds, updateMethod);
       break;
   }
-  return entity;
+  return entities;
 }

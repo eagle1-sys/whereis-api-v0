@@ -109,7 +109,8 @@ export class Sfex {
     trackingId: TrackingID,
     extraParams: Record<string, string>,
     updateMethod: string,
-  ): Promise<Entity | undefined> {
+  ): Promise<Entity[]> {
+    const entities: Entity[] = [];
     const result = await this.getRoute(
       trackingId.trackingNum,
       extraParams["phonenum"],
@@ -120,12 +121,18 @@ export class Sfex {
       throw new Error(resultCode);
     }
 
-    return this.convert(
+    const entity : Entity | undefined = this.convert(
       trackingId,
       result,
       extraParams,
       updateMethod,
     );
+
+    if(entity!==undefined) {
+      entities.push(entity);
+    }
+
+    return entities;
   }
 
   /**
@@ -181,7 +188,7 @@ export class Sfex {
     const sfexCheckWord = Deno.env.get("SFEX_CHECK_WORD") ?? "";
     const msgData = {
       trackingType: 1,
-      trackingNumber: trackingNumber,
+      trackingNumber: [trackingNumber],
       checkPhoneNo: phoneNo,
     };
     const timestamp = Date.now();

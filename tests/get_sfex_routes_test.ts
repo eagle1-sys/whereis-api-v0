@@ -26,6 +26,12 @@ const testData = [
     "memo":
       "Completed waybills cannot be queried for route data after 3 months.",
   },
+  {
+    "input": { "trackingNum": "SF3182998070266", "phone": "6993" },
+    "output": { "routeNum": 19 },
+    "memo":
+      "Normal waybill.",
+  },
 ];
 
 Deno.test("Test get scan events from Sfex", async () => {
@@ -35,7 +41,8 @@ Deno.test("Test get scan events from Sfex", async () => {
     const output = data["output"];
     const response = await Sfex.getRoute(input["trackingNum"], input["phone"]);
     const apiResultData = JSON.parse(response["apiResultData"] as string);
-    const routes = apiResultData["msgData"]["routeResps"][0]["routes"];
+    const routeResps = apiResultData["msgData"]["routeResps"];
+    const routes = routeResps[0]["routes"];
     assert(routes.length == output["routeNum"]);
   }
 });
