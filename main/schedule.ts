@@ -50,7 +50,7 @@ async function processTrackingIds(
     operator,
     trackingIds,
     params as Record<string, string>,
-    "auto-pull",
+    "Auto-pull",
   );
   if (entities.length === 0) return;
 
