@@ -236,10 +236,7 @@ export class Sfex {
     const routeResp = apiResult["msgData"]["routeResps"][0];
     const routes: [] = routeResp["routes"];
     if (routes.length == 0) {
-      logger.warn(
-          `${updateMethod} -> SFEX: Incomplete data received for ${trackingId.toString()}: empty routes in 
-        ${JSON.stringify(result)}`,
-      );
+      logger.warn(`${updateMethod} -> SFEX: Unexpected data received for ${trackingId.toString()}. The routes array is empty in response ${JSON.stringify(result)}`);
       return undefined;
     }
 
