@@ -11,14 +11,14 @@ COPY . .
 # A fix for fly.io deployment issue
 RUN chown deno:deno /app/.env
 
-# Switch to non-root user for security
-USER deno
-
 # Updates dependencies to their latest semver compatible versions
 RUN deno update
 
 # Pre-cache the main application dependencies
 RUN deno cache main/main.ts
+
+# Switch to non-root user for security
+USER deno
 
 # Run the application with the following permissions:
 #   --allow-net: Allow network access
