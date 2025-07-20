@@ -8,12 +8,13 @@ RUN apt-get update && \
     apt-get upgrade -qy && \
     apt-get install -y --no-install-recommends busybox && \
     busybox --install -s /usr/bin && \
+    apt-get autoremove -qy && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+    apt-get autoclean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/debconf/*
 
+# Copy all files from the current directory into container - WORKDIR
 WORKDIR /app
-
-# Copy all files from the current directory to the container
 COPY . .
 
 # Check and prepare for the app
