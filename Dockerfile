@@ -10,11 +10,14 @@ COPY . .
 
 # Check and prepare for the app
 RUN <<CMD
+set -e  # Exit on any error
+set -u  # Exit on undefined variables
+set -x  # Print commands as they execute
 deno update
 deno cache main/main.ts
+deno check **/*.ts
 deno lint
-deno check
-chown deno:deno /app/.env /app/deno.lock
+chown -f deno:deno /app/.env /app/deno.lock
 CMD
 
 # Switch to non-root user for security
