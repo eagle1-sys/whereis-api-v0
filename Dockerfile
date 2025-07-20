@@ -1,7 +1,9 @@
 #
 # This Dockerfile configures a Deno runtime environment for the application.
 #
-FROM denoland/deno
+FROM denoland/deno AS base
+LABEL Maintainer="Eagle1 Systems"
+LABEL Description="EG1: Whereis API served by deno runtime"
 
 # Install busybox and clean up in single layer
 RUN apt-get update && \
@@ -24,7 +26,7 @@ set -u  # Exit on undefined variables
 set -x  # Print commands as they execute
 deno update
 deno cache main/main.ts
-deno check **/*.ts
+deno check .
 deno lint
 chown -f deno:deno /app/.env /app/deno.lock
 CMD
@@ -32,7 +34,7 @@ CMD
 # Switch to non-root user for security
 USER deno
 
-# Run the app with permissions
+# Run the app with specified permissions
 CMD ["run", "--allow-net", "--allow-env", "--allow-read", "main/main.ts"]
 
 # Set up health check to monitor the service process
