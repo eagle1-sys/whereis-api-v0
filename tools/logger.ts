@@ -2,7 +2,12 @@
  * @file logger.ts
  * @description Provides a logger instance for consistent logging across the application
  */
-import { ConsoleLogger, Log, Severity } from "@cross/log";
+import {
+  Log,
+  LogTransportBase,
+  LogTransportBaseOptions,
+  Severity,
+} from "@cross/log";
 
 function getLogLevel(): Severity {
   const env = Deno.env.get("APP_ENV") || "dev";
@@ -17,14 +22,35 @@ function getLogLevel(): Severity {
   }
 }
 
+/**
+ * Create custom Transport by extending LogTransportBase
+ */
+export class CustomLogger extends LogTransportBase {
+  override options: LogTransportBaseOptions;
+  constructor(options?: LogTransportBaseOptions) {
+    super();
+    this.options = { ...this.defaults, ...options };
+  }
+
+  override log(level: Severity, scope: string, data: unknown[], _timestamp: Date) {
+    if (this.shouldLog(level)) {
+      // Custom implementation below
+      const formattedMessage = `${level} ${scope} ${data.join(" ")}`;
+      if (level === Severity.Error) {
+        console.error(formattedMessage);
+      } else {
+        console.log(formattedMessage);
+      }
+    }
+  }
+}
+
 let loggerInstance: Log | null = null;
 
 export function getLogger(): Log {
   if (!loggerInstance) {
     loggerInstance = new Log([
-      new ConsoleLogger({
-        minimumSeverity: getLogLevel(),
-      }),
+      new CustomLogger({ minimumSeverity: getLogLevel() }),
     ]);
   }
   return loggerInstance;
