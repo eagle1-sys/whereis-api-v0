@@ -18,7 +18,9 @@ export async function loadEnv(): Promise<void> {
     const env = await load({ envPath: "./.env" });
     for (const [key, value] of Object.entries(env)) {
         // set environment variable to Deno.env
-        Deno.env.set(key, value);
+        if (!Deno.env.get(key)) {
+            Deno.env.set(key, value);
+        }
     }
 
     // Set a default environment if not specified
