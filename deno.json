@@ -1,7 +1,7 @@
 {
   "unstable": ["cron"],
   "tasks": {
-    "dev": "deno run --watch db_test.ts"
+    "check": "deno lint && deno check . && deno test --allow-env --allow-read --allow-net tests/main_test.ts"
   },
   "imports": {
     "@std/dotenv": "jsr:@std/dotenv",
