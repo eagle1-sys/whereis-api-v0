@@ -8,7 +8,7 @@ import { logger } from "../tools/logger.ts";
 
 let sql: ReturnType<typeof postgres>;
 
-export function initConnection() {
+export async function initConnection() {
   try {
     sql = postgres({
       host: Deno.env.get("DATABASE_HOST"),
@@ -23,8 +23,15 @@ export function initConnection() {
     });
 
     logger.info(
-      `DB connection pool to ${Deno.env.get("DATABASE_HOST")}:${config.database.port} initialized successfully.`,
+        `Trying to init DB connection pool to ${Deno.env.get("DATABASE_HOST")}:${config.database.port}.`,
     );
+    // Test the connection by executing a simple query
+    const testResult = await sql`SELECT 1 as connection_test`;
+    if (testResult[0].connection_test === 1) {
+      logger.info(
+          `DB connection pool to ${Deno.env.get("DATABASE_HOST")}:${config.database.port} initialized successfully.`,
+      );
+    }
   } catch (err) {
     logger.error("Error initializing database connection pool:", err);
     throw new Error("Failed to initialize database connection pool");

@@ -26,7 +26,7 @@ async function main(): Promise<void> {
   logger.info(`Starting application in ${Deno.env.get("APP_ENV")} mode`);
 
   await loadMetaData(); // load file system data
-  initConnection();
+  await initConnection();
 
   /**
    * Starts a scheduler that periodically synchronizes tracking routes.
