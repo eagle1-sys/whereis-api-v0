@@ -4,7 +4,7 @@
  */
 
 import { load } from "@std/dotenv";
-
+import { config } from "../config.ts";
 import { loadJSONFromFs } from "../tools/util.ts";
 import {StatusCode, ErrorRegistry, ExceptionCode} from "./model.ts";
 
@@ -15,17 +15,25 @@ import {StatusCode, ErrorRegistry, ExceptionCode} from "./model.ts";
  * @throws {Error} If the `.env` file cannot be loaded or parsed.
  */
 export async function loadEnv(): Promise<void> {
+    // Set environment variables from the `.env` file if not already set
     const env = await load({ envPath: "./.env" });
     for (const [key, value] of Object.entries(env)) {
-        // set environment variable to Deno.env
+        // It's possible that the environment variable is already set in `Deno.env`.
         if (!Deno.env.get(key)) {
             Deno.env.set(key, value);
         }
     }
 
-    // Set a default environment if not specified
-    if (!Deno.env.get("APP_ENV")) {
-        Deno.env.set("APP_ENV", "dev");
+    // Set default environment variables if not specified
+    const defaultEnv = {
+        APP_ENV: "dev",
+        DATABASE_PORT: String(config.database.port),
+        DATABASE_NAME: config.database.name,
+    };
+    for (const [key, value] of Object.entries(defaultEnv)) {
+        if (!Deno.env.get(key)) {
+            Deno.env.set(key, value);
+        }
     }
 }
 

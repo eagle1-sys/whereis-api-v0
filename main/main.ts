@@ -7,7 +7,6 @@ import { Server } from "./server.ts";
 import { syncRoutes } from "./schedule.ts";
 import { loadEnv, loadMetaData } from "./app.ts";
 import { initConnection } from "../db/dbutil.ts";
-import { config } from "../config.ts";
 import { getLogger  } from "../tools/logger.ts";
 
 /**
@@ -32,15 +31,16 @@ async function main(): Promise<void> {
    * Starts a scheduler that periodically synchronizes tracking routes.
    * The task runs every 60 seconds using a cron job.
    */
-  const interval = config.service.dataInterval ?? 5;
+  const intervalStr = Deno.env.get("APP_PULL_INTERVAL");
+  const interval = intervalStr ? parseInt(intervalStr, 10) : 5;
   Deno.cron("Sync routes", { minute: { every: interval } }, () => {
     syncRoutes();
   }).then((_r) => {
     logger.info("The scheduler started.");
   });
 
-  const portNo = config.service.port;
-  const server = new Server(portNo);
+  const portNo = Deno.env.get("APP_PORT");
+  const server = new Server(portNo ? parseInt(portNo, 10) : 8080);
   server.start();
   logger.info(`server started on port ${portNo}`);
 }
