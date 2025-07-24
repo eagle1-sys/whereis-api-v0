@@ -40,6 +40,9 @@ jobs:
       - name: Run linter
         run: deno lint
 
+      - name: Run check
+        run: deno check .
+
       - name: Run tests
         env:
           FDX_CLIENT_ID: ${{ secrets.FDX_CLIENT_ID }}
