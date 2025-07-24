@@ -40,10 +40,11 @@ jobs:
       - name: Run linter
         run: deno lint
 
+      - name: Run check
+        run: deno check .
+
       - name: Run tests
         env:
-          DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
-          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
           FDX_CLIENT_ID: ${{ secrets.FDX_CLIENT_ID }}
           FDX_CLIENT_SECRET: ${{ secrets.FDX_CLIENT_SECRET }}
           SFEX_PARTNER_ID: ${{ secrets.SFEX_PARTNER_ID }}
