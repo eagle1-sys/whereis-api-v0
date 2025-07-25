@@ -1,9 +1,9 @@
 export const config = {
   database: {
-    // default values. Can be overritten by ENV variables: APP_PORT, DB_NAME, APP_PULL_INTERVAL
+    // Default values. Can be overridden by ENV variables: DB_PORT, DB_NAME, APP_PULL_INTERVAL
     port: 5432,
     name: "whereis",
-    auto_pull_interval: "5", // in minutes
+    pullInterval: "5",   // in minutes
   },
   fdx: {
     apiUrl: "https://apis.fedex.com/oauth/token",
