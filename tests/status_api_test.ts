@@ -53,6 +53,11 @@ const testData = [
     "memo": "Invalid slug notation.",
   },
   {
+    "input": { "id": "sfex-SF3182998070266", "extra": { "phonenum": "6993" } },
+    "output": { "status": 3500 },
+    "memo": "Pull the data from remote server.",
+  },
+  {
     "input": { "id": "sfex-SF3182998070266", "extra": { "phonenum": "6994" } },
     "output": { "error": "400-06" },
     "memo": "Incorrect phonenum. correct phonenum is 6993",
