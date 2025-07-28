@@ -27,8 +27,9 @@ export async function loadEnv(): Promise<void> {
     // Set default environment variables if not specified
     const defaultEnv = {
         APP_ENV: "dev",
-        DATABASE_PORT: String(config.database.port),
-        DATABASE_NAME: config.database.name,
+        DB_PORT: String(config.database.port),
+        DB_NAME: config.database.name,
+        APP_PULL_INTERVAL: String(config.database.pullInterval)
     };
     for (const [key, value] of Object.entries(defaultEnv)) {
         if (!Deno.env.get(key)) {
