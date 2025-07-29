@@ -141,7 +141,7 @@ export async function syncRoutes() {
     // ignore the UserError
     if (!(err instanceof UserError)) {
       if (err instanceof Error) {
-        logger.error(`Error in syncRoutes: ${err.message}`);
+        logger.error(`SyncRoutes: ${err.message}`);
         if (err.stack) {
           logger.error(`Stack trace: ${err.stack}`);
         }

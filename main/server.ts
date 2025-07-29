@@ -201,8 +201,8 @@ export class Server {
       const errorStack = err instanceof Error ? err.stack : undefined;
       const errorCause = err instanceof Error ? err.cause : undefined;
 
-      logger.error(`Error on URL: ${c.req.url}`);
-      logger.error(`Error message: ${errorMessage}`);
+      logger.error(`Request URL: ${c.req.url}`);
+      logger.error(`Error detail: ${errorMessage}`);
       if (errorStack) logger.error(`Stack trace: ${errorStack}`);
       if (errorCause) logger.error(`Caused by: ${errorCause}`);
 
