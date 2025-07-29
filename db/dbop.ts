@@ -95,7 +95,9 @@ export async function updateEntity(
 
     return true;
   } catch (err) {
-    logger.error(`Auto-pull: Failed to update entity with id ${entity.id}: ${err}`);
+    logger.error(
+      `Auto-pull: Failed to update entity with id ${entity.id}: ${err}`,
+    );
     return false;
   }
 }
@@ -224,7 +226,18 @@ export async function queryEntity(
     `;
 
   let entity: Entity | undefined;
+  let events: Event[];
   if (rows.length == 1) {
+    // query events from database
+    events = await queryEvents(sql, trackingID);
+    if (events.length === 0) {
+      logger.info(
+        `Query-Entity: Event record not found for ID ${trackingID.toString()}`,
+      );
+      return undefined;
+    }
+
+    // create entity object
     entity = new Entity();
     const row = rows[0];
     entity.uuid = row.uuid;
@@ -234,12 +247,9 @@ export async function queryEntity(
     entity.extra = row.extra as Record<string, string>;
     entity.params = row.params as Record<string, string>;
     entity.creationTime = row.creationTime as string;
+    entity.events = events;
   }
 
-  if (entity != undefined) {
-    // query events from database
-    entity.events = await queryEvents(sql, trackingID);
-  }
   return entity;
 }
 
