@@ -184,7 +184,9 @@ export class Fdx {
     if (output === undefined) {
       const trackingIdsStr: string = trackingIds.map((item) => item.toString())
         .join(", ");
-      logger.warn(`${updateMethod} -> FDX: Unexpected data received for ${trackingIdsStr}. Missing output{} in the received response: ${JSON.stringify(result)}`);
+      // convert the first character of a string to uppercase. eg: auto-pull -> Auto-pull
+      const updateMethodName = updateMethod.charAt(0).toUpperCase() + updateMethod.slice(1);
+      logger.warn(`${updateMethodName} -> FDX: Unexpected data received for ${trackingIdsStr}. Missing output{} in the received response: ${JSON.stringify(result)}`);
       return entities;
     }
 

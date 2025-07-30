@@ -223,7 +223,7 @@ export class Server {
       trackingID.operator,
       [trackingID],
       parsedParams,
-      "Manual-pull",
+      "manual-pull",
     );
     if (entities.length === 1) {
       await sql.begin(async (sql: ReturnType<typeof postgres>) => {
@@ -247,7 +247,7 @@ export class Server {
         trackingID.operator,
         [trackingID],
         parsedParams,
-        "Manual-pull",
+        "manual-pull",
       );
       if (entities.length === 1) {
         entity = entities[0];
@@ -299,7 +299,7 @@ export class Server {
       trackingID.operator,
       [trackingID],
       queryParams,
-      "Manual-pull",
+      "manual-pull",
     );
 
     if (result.length === 0) {
