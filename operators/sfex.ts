@@ -236,7 +236,9 @@ export class Sfex {
     const routeResp = apiResult["msgData"]["routeResps"][0];
     const routes: [] = routeResp["routes"];
     if (routes.length == 0) {
-      logger.warn(`${updateMethod} -> SFEX: Unexpected data received for ${trackingId.toString()}. Empty routes[] in the received response: ${JSON.stringify(result)}`);
+      // convert the first character of a string to uppercase. eg: auto-pull -> Auto-pull
+      const updateMethodName = updateMethod.charAt(0).toUpperCase() + updateMethod.slice(1);
+      logger.warn(`${updateMethodName} -> SFEX: Unexpected data received for ${trackingId.toString()}. Empty routes[] in the received response: ${JSON.stringify(result)}`);
       return undefined;
     }
 

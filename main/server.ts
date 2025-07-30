@@ -201,8 +201,8 @@ export class Server {
       const errorStack = err instanceof Error ? err.stack : undefined;
       const errorCause = err instanceof Error ? err.cause : undefined;
 
-      logger.error(`Error on URL: ${c.req.url}`);
-      logger.error(`Error message: ${errorMessage}`);
+      logger.error(`Request URL: ${c.req.url}`);
+      logger.error(`Error detail: ${errorMessage}`);
       if (errorStack) logger.error(`Stack trace: ${errorStack}`);
       if (errorCause) logger.error(`Caused by: ${errorCause}`);
 
@@ -223,7 +223,7 @@ export class Server {
       trackingID.operator,
       [trackingID],
       parsedParams,
-      "Manual-pull",
+      "manual-pull",
     );
     if (entities.length === 1) {
       await sql.begin(async (sql: ReturnType<typeof postgres>) => {
@@ -247,7 +247,7 @@ export class Server {
         trackingID.operator,
         [trackingID],
         parsedParams,
-        "Manual-pull",
+        "manual-pull",
       );
       if (entities.length === 1) {
         entity = entities[0];
@@ -299,7 +299,7 @@ export class Server {
       trackingID.operator,
       [trackingID],
       queryParams,
-      "Manual-pull",
+      "manual-pull",
     );
 
     if (result.length === 0) {

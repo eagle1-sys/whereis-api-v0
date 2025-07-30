@@ -80,7 +80,7 @@ export async function updateEntity(
         eventIdsNew.includes(event.eventId)
       );
       for (const event of events) {
-        logger.info(`Auto-pull: Insert event with id ${event.eventId}`);
+        logger.info(`Auto-pull: Insert new event with ID ${event.eventId}`);
         await insertEvent(sql, event);
       }
     }
@@ -88,14 +88,16 @@ export async function updateEntity(
     // step 3: remove events that are not in the updated entity
     if (eventIdsToBeRemoved.length > 0) {
       for (const eventId of eventIdsToBeRemoved) {
-        logger.info(`Auto-pull: Delete event with id ${eventId}`);
+        logger.info(`Auto-pull: Delete exist event with ID ${eventId}`);
         await deleteEvent(sql, eventId);
       }
     }
 
     return true;
   } catch (err) {
-    logger.error(`Auto-pull: Failed to update entity with id ${entity.id}: ${err}`);
+    logger.error(
+      `Auto-pull: Failed to update entity with ID ${entity.id}: ${err}`,
+    );
     return false;
   }
 }
@@ -166,9 +168,9 @@ async function insertEvent(
     }
 
     // log the info if no event_id was inserted
-    logger.info(`Event ${event.eventId} could not be inserted. `);
+    logger.info(`Event with ID ${event.eventId} could not be inserted. `);
   } catch (err) {
-    logger.error(`Failed to insert event ${event.eventId}:`, err);
+    logger.error(`Failed to insert event with ID ${event.eventId}:`, err);
   }
   return undefined;
 }
@@ -224,7 +226,18 @@ export async function queryEntity(
     `;
 
   let entity: Entity | undefined;
+  let events: Event[];
   if (rows.length == 1) {
+    // query events from database
+    events = await queryEvents(sql, trackingID);
+    if (events.length === 0) {
+      logger.info(
+        `Query-Entity: Event record not found for ID ${trackingID.toString()}`,
+      );
+      return undefined;
+    }
+
+    // create entity object
     entity = new Entity();
     const row = rows[0];
     entity.uuid = row.uuid;
@@ -234,12 +247,9 @@ export async function queryEntity(
     entity.extra = row.extra as Record<string, string>;
     entity.params = row.params as Record<string, string>;
     entity.creationTime = row.creationTime as string;
+    entity.events = events;
   }
 
-  if (entity != undefined) {
-    // query events from database
-    entity.events = await queryEvents(sql, trackingID);
-  }
   return entity;
 }
 

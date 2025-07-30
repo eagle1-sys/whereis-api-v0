@@ -184,7 +184,9 @@ export class Fdx {
     if (output === undefined) {
       const trackingIdsStr: string = trackingIds.map((item) => item.toString())
         .join(", ");
-      logger.warn(`${updateMethod} -> FDX: Unexpected data received for ${trackingIdsStr}. Missing output{} in the received response: ${JSON.stringify(result)}`);
+      // convert the first character of a string to uppercase. eg: auto-pull -> Auto-pull
+      const updateMethodName = updateMethod.charAt(0).toUpperCase() + updateMethod.slice(1);
+      logger.warn(`${updateMethodName} -> FDX: Unexpected data received for ${trackingIdsStr}. Missing output{} in the received response: ${JSON.stringify(result)}`);
       return entities;
     }
 
@@ -330,19 +332,6 @@ export class Fdx {
     updateMethod: string,
   ): Entity | undefined {
     const entity: Entity = new Entity();
-    // const output = result["output"] as Record<string, unknown>;
-    // if (output === undefined) {
-    //   logger.error(
-    //     `No output found in the result for tracking ID: ${trackingId.toString()}`,
-    //   );
-    //   logger.error(`The result from Fdx is: ${JSON.stringify(output)}`);
-    //   return undefined;
-    // }
-    // const completeTrackResults = output["completeTrackResults"] as [unknown];
-    // const completeTrackResult = completeTrackResults[0] as Record<
-    //   string,
-    //   unknown
-    // >;
     const trackResults = completeTrackResult["trackResults"] as [unknown];
     const trackResult = trackResults[0] as Record<string, unknown>;
 
