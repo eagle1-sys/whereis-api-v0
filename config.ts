@@ -23,7 +23,4 @@ export const config = {
   sfex: {
     apiUrl: "https://bspgw.sf-express.com/std/service",
   },
-  testing: {
-    url: "https://whereis-api-v0-test.fly.dev",
-  },
 };

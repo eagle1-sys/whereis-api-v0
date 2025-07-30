@@ -23,7 +23,7 @@
  * This comprehensive test suite ensures the reliability and accuracy of the status API across different carriers and scenarios.
  */
 import { assert } from "@std/assert";
-import {config} from "../config.ts";
+import { TESTING_URL } from "./main_test.ts";
 import { assertErrorCode } from "./main_test.ts";
 
 const testData = [
@@ -89,7 +89,7 @@ Deno.test("Test status API", async () => {
     const trackingId: string = input["id"];
     const extra: { [key: string]: string | undefined } | undefined =
       input["extra"];
-    let url = `${config.testing.url}/v0/status/${trackingId}`;
+    let url = `${TESTING_URL}/v0/status/${trackingId}`;
     if (extra !== undefined) {
       //const params = new URLSearchParams(extra);
       const params = new URLSearchParams(extra as Record<string, string>);

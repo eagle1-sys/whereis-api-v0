@@ -41,6 +41,8 @@ export function assertErrorCode(
 await loadEnv();
 await loadMetaData();
 
+export const TESTING_URL = Deno.env.get("TESTING_URL");
+
 import "./get_fdx_token_test.ts";
 import "./get_fdx_events_test.ts";
 import "./get_sfex_routes_test.ts";

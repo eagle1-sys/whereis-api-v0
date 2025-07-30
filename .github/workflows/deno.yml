@@ -10,9 +10,7 @@ name: Deno
 
 on:
   push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
+    branches: ["main", "develop"]
 
 permissions:
   contents: read
@@ -29,19 +27,22 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-        # uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
-        # with:
-        #  deno-version: v1.x
-
-      # Uncomment this step to verify the use of 'deno fmt' on each commit.
-      # - name: Verify formatting
-      #   run: deno fmt --check
 
       - name: Run linter
         run: deno lint
 
       - name: Run check
         run: deno check .
+
+      - name: Set env vars for main branch
+        if: github.ref_name == 'main'
+        run: |
+          echo "TESTING_URL=https://whereis-api-v0.fly.dev" >> $GITHUB_ENV   
+
+      - name: Set env vars for develop branch
+        if: github.ref_name == 'develop'
+        run: |
+          echo "TESTING_URL=https://whereis-api-v0-test.fly.dev" >> $GITHUB_ENV    
 
       - name: Run tests
         env:
