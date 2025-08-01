@@ -25,13 +25,24 @@ export class Sfex {
       "50": 3100, // Received by Carrier
       "54": 3100, // Received by Carrier
     },
-    "201": {
-      "30": 3001, // Logistics In-Progress
-      "31": 3002, // Arrived
-      "36": 3004, // Departed
-      "105": 3250, // In-Transit
-      "106": 3300, // Arrived At Destination
-      "310": 3002, // In-Transit
+    "201": function (
+      _entity: Entity,
+      sourceData: Record<string, unknown>,
+    ): number {
+      const map: Record<string, number> = {
+        "30": 3001, // Logistics In-Progress
+        "31": 3002, // Arrived, In-Transit
+        "36": 3004, // Departed, In-Transit
+        "105": 3250, // In-Transit
+        "106": 3300, // Arrived At Destination
+        "310": 3002, // Arrived, In-Transit
+      };
+      const remark = sourceData["remark"] as string;
+      if (/完成分拣/.test(remark)) {
+        return 3003; // Scanned, In-Transit
+      } else {
+        return map[sourceData["opCode"] as string] as number;
+      }
     },
     "204": function (
       _entity: Entity,
@@ -121,14 +132,14 @@ export class Sfex {
       throw new Error(resultCode);
     }
 
-    const entity : Entity | undefined = this.convert(
+    const entity: Entity | undefined = this.convert(
       trackingId,
       result,
       extraParams,
       updateMethod,
     );
 
-    if(entity!==undefined) {
+    if (entity !== undefined) {
       entities.push(entity);
     }
 
@@ -237,8 +248,13 @@ export class Sfex {
     const routes: [] = routeResp["routes"];
     if (routes.length == 0) {
       // convert the first character of a string to uppercase. eg: auto-pull -> Auto-pull
-      const updateMethodName = updateMethod.charAt(0).toUpperCase() + updateMethod.slice(1);
-      logger.warn(`${updateMethodName} -> SFEX: Unexpected data received for ${trackingId.toString()}. Empty routes[] in the received response: ${JSON.stringify(result)}`);
+      const updateMethodName = updateMethod.charAt(0).toUpperCase() +
+        updateMethod.slice(1);
+      logger.warn(
+        `${updateMethodName} -> SFEX: Unexpected data received for ${trackingId.toString()}. Empty routes[] in the received response: ${
+          JSON.stringify(result)
+        }`,
+      );
       return undefined;
     }
 
@@ -248,10 +264,48 @@ export class Sfex {
     entity.type = "waybill";
     entity.params = params;
     entity.extra = {};
+
+    let isCustomsEventOccurred: boolean = false;
+    let lastEvent: Event | null = null;
+    let hasPostCustomsEvent = false;
+
     for (const route of routes) {
-      const event = this.createEvent(trackingId, entity, route, updateMethod);
-      if (event && !entity.isEventIdExist(event.eventId)) {
+      const event: Event = this.createEvent(
+        trackingId,
+        entity,
+        route,
+        updateMethod,
+      );
+
+      if (event.status === 3350) {
+        isCustomsEventOccurred = true;
+      } else if (isCustomsEventOccurred) {
+        hasPostCustomsEvent = true;
+      }
+
+      // Insert missing 3400 event if necessary
+      if (
+        lastEvent && hasPostCustomsEvent &&
+        !entity.includeStatus(3400) &&
+        [3003, 3004, 3250, 3450, 3500].includes(event.status)
+      ) {
+        const supplementEvent: Event = this.createSupplementEvent(
+          trackingId,
+          3400,
+          this.getEstimateEventTime(
+            lastEvent.when as string,
+            event.when as string,
+          ),
+          event.where as string,
+          updateMethod,
+        );
+        entity.addEvent(supplementEvent);
+      }
+
+      // Add the event to the entity
+      if (!entity.isEventIdExist(event.eventId)) {
         entity.addEvent(event);
+        lastEvent = event;
       }
     }
 
@@ -273,9 +327,8 @@ export class Sfex {
     route: Record<string, unknown>,
     updateMethod: string,
   ): Event {
-    const trackingNum = trackingId.trackingNum;
-
-    const status = Sfex.getStatusCode(entity, route);
+    const trackingNum: string = trackingId.trackingNum;
+    const status: number = Sfex.getStatusCode(entity, route);
 
     const event: Event = new Event();
     // acceptTime format: 2024-10-26 06:12:43
@@ -309,5 +362,63 @@ export class Sfex {
     event.sourceData = route;
 
     return event;
+  }
+
+  private static createSupplementEvent(
+    trackingId: TrackingID,
+    status: number,
+    eventTime: string,
+    where: string,
+    updateMethod: string,
+  ): Event {
+    const event: Event = new Event();
+    const date = new Date(eventTime);
+    const secondsSinceEpoch = Math.floor(date.getTime() / 1000);
+    event.eventId =
+      `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
+    event.operatorCode = "sfex";
+    event.trackingNum = trackingId.trackingNum;
+    event.status = status;
+    event.what = StatusCode.getDesc(status);
+    event.when = eventTime;
+    event.where = where;
+    event.whom = "SF Express";
+    event.notes = "Supplement event created by eagle1";
+    event.dataProvider = "SF Express";
+    event.extra = {
+      updateMethod: updateMethod,
+      updatedAt: new Date().toISOString(),
+    };
+    event.sourceData = {};
+
+    return event;
+  }
+
+  private static getEstimateEventTime(
+    startTime: string,
+    endTime: string,
+  ): string {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const midpoint = new Date((start.getTime() + end.getTime()) / 2);
+
+    // Format the date to the desired format
+    const year = midpoint.getFullYear();
+    const month = String(midpoint.getMonth() + 1).padStart(2, "0");
+    const day = String(midpoint.getDate()).padStart(2, "0");
+    const hours = String(midpoint.getHours()).padStart(2, "0");
+    const minutes = String(midpoint.getMinutes()).padStart(2, "0");
+    const seconds = String(midpoint.getSeconds()).padStart(2, "0");
+
+    // Get the timezone offset
+    const offset = -midpoint.getTimezoneOffset();
+    const offsetHours = Math.floor(Math.abs(offset) / 60).toString().padStart(
+      2,
+      "0",
+    );
+    const offsetMinutes = (Math.abs(offset) % 60).toString().padStart(2, "0");
+    const offsetSign = offset >= 0 ? "+" : "-";
+
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetSign}${offsetHours}:${offsetMinutes}`;
   }
 }
