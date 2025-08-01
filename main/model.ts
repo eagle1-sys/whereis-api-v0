@@ -364,46 +364,22 @@ export class Entity {
   }
 
   /**
-   * Checks if an event with the specified ID exists in the entity's event list.
+   * Checks if the entity includes an event with the specified status.
    *
-   * @param eventId - The unique identifier of the event to search for.
-   * @returns A boolean value indicating whether an event with the given ID was found.
-   *          Returns true if an event with the specified ID exists, false otherwise.
-   *          Also returns false if the entity has no events (i.e., this.events is undefined).
+   * @param status - The status code to check for in the entity's events.
+   * @returns A boolean indicating whether an event with the specified status exists.
+   *          Returns true if an event with the given status is found, false otherwise.
+   *          Also returns false if the entity has no events.
    */
-  public includes(eventId: string): boolean {
+  public includeStatus(status: number): boolean {
     if (this.events === undefined) return false;
 
     for (const event of this.events) {
-      if (event.eventId === eventId) {
+      if (event.status === status) {
         return true;
       }
     }
     return false;
-  }
-
-  /**
-   * Checks if the current event IDs are a revision of the previous event IDs.
-   * This method compares the current event IDs of the entity with a provided list of previous event IDs
-   * to determine if they represent the same set of events (i.e., no revisions have been made).
-   *
-   * @param previousEventIds - An array of strings representing the previous event IDs to compare against.
-   * @returns A boolean value indicating whether the current event IDs are identical to the previous event IDs.
-   *          Returns true if the sets of event IDs are identical (no revisions), false otherwise.
-   */
-  public isRevised(previousEventIds: string[]): boolean {
-    const currentEventIds = this.eventIds();
-    // Check if the arrays have the same length
-    if (currentEventIds.length !== previousEventIds.length) {
-      return true;
-    }
-
-    // Sort the array
-    const sortedCurrendEventIds = [...currentEventIds].sort();
-    const sortedPreviousEventIds = [...previousEventIds].sort();
-
-    // Join the sorted array elements with the specified separator
-    return sortedCurrendEventIds.join(",") !== sortedPreviousEventIds.join(",");
   }
 
   /**
