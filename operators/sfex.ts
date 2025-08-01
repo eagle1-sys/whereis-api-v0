@@ -31,7 +31,7 @@ export class Sfex {
       "36": 3004, // Departed
       "105": 3250, // In-Transit
       "106": 3300, // Arrived At Destination
-      "310": 3002, // Customs Clearance: Import Released
+      "310": 3002, // In-Transit
     },
     "204": function (
       _entity: Entity,
