@@ -265,10 +265,6 @@ export class Sfex {
     entity.params = params;
     entity.extra = {};
 
-    let isCustomsEventOccurred: boolean = false;
-    let lastEvent: Event | null = null;
-    let hasPostCustomsEvent = false;
-
     for (const route of routes) {
       const event: Event = this.createEvent(
         trackingId,
@@ -277,6 +273,24 @@ export class Sfex {
         updateMethod,
       );
 
+      // Add the event to the entity
+      if (!entity.isEventIdExist(event.eventId)) {
+        entity.addEvent(event);
+      }
+    }
+
+    // sort the events based on their timestamps
+    entity.events.sort((a, b) => {
+      const dateA = a.when ? new Date(a.when).getTime() : 0;
+      const dateB = b.when ? new Date(b.when).getTime() : 0;
+      return dateA - dateB;
+    });
+
+    let isCustomsEventOccurred: boolean = false;
+    let lastEvent: Event | null = null;
+    let hasPostCustomsEvent = false;
+
+    for (const event of entity.events) {
       if (event.status === 3350) {
         isCustomsEventOccurred = true;
       } else if (isCustomsEventOccurred) {
@@ -285,7 +299,9 @@ export class Sfex {
 
       // Insert missing 3400 event if necessary
       if (
-        lastEvent && hasPostCustomsEvent &&
+        lastEvent &&
+        isCustomsEventOccurred &&
+        hasPostCustomsEvent &&
         !entity.includeStatus(3400) &&
         [3003, 3004, 3250, 3450, 3500].includes(event.status)
       ) {
@@ -300,13 +316,11 @@ export class Sfex {
           updateMethod,
         );
         entity.addEvent(supplementEvent);
+        // exit the loop once a 3400 event is inserted
+        break;
       }
 
-      // Add the event to the entity
-      if (!entity.isEventIdExist(event.eventId)) {
-        entity.addEvent(event);
-        lastEvent = event;
-      }
+      lastEvent = event;
     }
 
     return entity;
