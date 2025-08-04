@@ -44,9 +44,15 @@ const testData = [
     "memo": "Invalid slug notation.",
   },
   {
+    "input": { "id": "sfex-SF3182998070266", "extra": { "phonenum": "6993" } },
+    "output": { "eventNum": 20 },
+    "memo": "Pull data from data providers with correct phone num.",
+  },
+  {
     "input": { "id": "sfex-SF3182998070266", "extra": { "phonenum": "6994" } },
     "output": { "error": "400-06" },
-    "memo": "Incorrect phonenum. correct phonenum is 6993",
+    "memo":
+      "Incorrect phonenum. correct phonenum is 6993. This testing depends on the previous test case.",
   },
   {
     "input": { "id": "fdx-881383013147", "extra": { "full_data": "true" } },
