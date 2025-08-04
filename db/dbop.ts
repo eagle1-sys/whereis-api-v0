@@ -8,7 +8,12 @@
  */
 
 import postgres from "postgresjs";
-import { Entity, Event, TrackingID } from "../main/model.ts";
+import {
+  DataRetrievalMethod,
+  Entity,
+  Event,
+  TrackingID,
+} from "../main/model.ts";
 import { logger } from "../tools/logger.ts";
 import { JSONValue } from "../main/model.ts";
 
@@ -65,6 +70,8 @@ export async function updateEntity(
   eventIdsNew: string[],
   eventIdsToBeRemoved: string[],
 ): Promise<boolean> {
+  const updateMethod = DataRetrievalMethod.getDisplayText("auto-pull");
+
   // update the entity record
   try {
     // step 2: update the entity record ONLY when the entity is completed
@@ -80,7 +87,9 @@ export async function updateEntity(
         eventIdsNew.includes(event.eventId)
       );
       for (const event of events) {
-        logger.info(`Auto-pull: Insert new event with ID ${event.eventId}`);
+        logger.info(
+          `${updateMethod}: Insert new event with ID ${event.eventId}`,
+        );
         await insertEvent(sql, event);
       }
     }
@@ -88,7 +97,7 @@ export async function updateEntity(
     // step 3: remove events that are not in the updated entity
     if (eventIdsToBeRemoved.length > 0) {
       for (const eventId of eventIdsToBeRemoved) {
-        logger.info(`Auto-pull: Delete exist event with ID ${eventId}`);
+        logger.info(`${updateMethod}: Delete exist event with ID ${eventId}`);
         await deleteEvent(sql, eventId);
       }
     }
@@ -96,7 +105,7 @@ export async function updateEntity(
     return true;
   } catch (err) {
     logger.error(
-      `Auto-pull: Failed to update entity with ID ${entity.id}: ${err}`,
+      `${updateMethod}: Failed to update entity with ID ${entity.id}: ${err}`,
     );
     return false;
   }

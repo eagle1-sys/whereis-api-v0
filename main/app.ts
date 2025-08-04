@@ -6,7 +6,12 @@
 import { load } from "@std/dotenv";
 import { config } from "../config.ts";
 import { loadJSONFromFs } from "../tools/util.ts";
-import { ErrorRegistry, ExceptionCode, StatusCode } from "./model.ts";
+import {
+  DataRetrievalMethod,
+  ErrorRegistry,
+  ExceptionCode,
+  StatusCode,
+} from "./model.ts";
 
 /**
  * Loads environment variables from a `.env` file and sets them in `Deno.env`.
@@ -51,6 +56,13 @@ export async function loadMetaData(): Promise<void> {
     "./metadata/status_codes.json",
   );
   StatusCode.initialize(status);
+
+  const dataRetrievalMethods: Record<string, unknown> = await loadJSONFromFs(
+    "./metadata/data_retrieval_methods.json",
+  );
+  DataRetrievalMethod.initialize(
+    dataRetrievalMethods as Record<string, Record<string, string>>,
+  );
 
   const exception: Record<string, unknown> = await loadJSONFromFs(
     "./metadata/exception_codes.json",

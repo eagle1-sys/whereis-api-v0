@@ -6,6 +6,7 @@
  */
 
 import {
+  DataRetrievalMethod,
   Entity,
   Event,
   ExceptionCode,
@@ -184,8 +185,8 @@ export class Fdx {
     if (output === undefined) {
       const trackingIdsStr: string = trackingIds.map((item) => item.toString())
         .join(", ");
-      // convert the first character of a string to uppercase. eg: auto-pull -> Auto-pull
-      const updateMethodName = updateMethod.charAt(0).toUpperCase() + updateMethod.slice(1);
+      // get the display text of the data retrieval method. eg: auto-pull -> Auto-pull
+      const updateMethodName = DataRetrievalMethod.getDisplayText(updateMethod);
       logger.warn(`${updateMethodName} -> FDX: Unexpected data received for ${trackingIdsStr}. Missing output{} in the received response: ${JSON.stringify(result)}`);
       return entities;
     }

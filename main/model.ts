@@ -104,8 +104,6 @@ export class ExceptionCode {
 
 /**
  * A singleton class for managing error codes and their descriptions.
- * @author samshdn
- * @version 0.1.1
  */
 export class ErrorRegistry {
   /** @private Singleton instance of ErrorRegistry */
@@ -503,7 +501,7 @@ export class Entity {
 }
 
 /**
- * A class representing an event associated with an object.
+ * A class representing an event associated with an entity.
  */
 export class Event {
   /** Unique identifier for the event */
@@ -606,6 +604,48 @@ export class UserError extends Error {
     super(ErrorRegistry.getMessage(code));
     this.code = code;
   }
+}
+
+/**
+* A singleton class for managing data retrieval methods and their attributes.
+*/
+export class DataRetrievalMethod {
+  /** @private Singleton instance of DataRetrievalMethod */
+  private static instance: DataRetrievalMethod = new DataRetrievalMethod();
+
+  /** @private Map storing method names as keys and their attributes as values */
+  private data: Map<string, Record<string, string>> = new Map();
+
+  private constructor() {}
+
+  /**
+   * Sets a data retrieval method and its attributes in the registry.
+   * @param {string} method - The method name to associate with the attributes.
+   * @param {Record<string, string>} attributes - The attributes of the method.
+   */
+  private set(method: string, attributes: Record<string, string>): void {
+    this.data.set(method, attributes);
+  }
+
+  /**
+   * Initializes the DataRetrievalMethod with a record of methods and their attributes.
+   * @param {Record<string, Record<string, string>>} record - An object with method names as keys and their attributes as values.
+   */
+  public static initialize(record: Record<string, Record<string, string>>): void {
+    for (const [method, attributes] of Object.entries(record)) {
+      this.instance.set(method, attributes);
+    }
+  }
+
+  /**
+   * Gets the display text for a given method.
+   * @param {string} method - The method name to look up.
+   * @returns {string} The display text for the method.
+   */
+  public static getDisplayText(method: string): string {
+    return method.charAt(0).toUpperCase() + method.slice(1)
+  }
+
 }
 
 export type JSONValue =
