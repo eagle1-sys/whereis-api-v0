@@ -185,10 +185,22 @@ export class Server {
     });
 
     /**
-     * GET /apistatus - Health check endpoint
+     * GET /web-health - Web health check endpoint
      */
-    app.get("/apistatus", (c: Context) => {
-      return c.html(""); // For empty slug, we should not return anything
+    app.get("/web-health", (c: Context) => {
+      return c.html("UP"); // For empty slug, we should not return anything
+    });
+
+    /**
+     * GET /app-health - App health check endpoint
+     */
+    app.get("/app-health", async (c: Context) => {
+      // Test the connection by executing a simple query
+      const testResult = await sql`SELECT 1 as connection_test`;
+      if (testResult[0].connection_test === 1) {
+        return c.html("UP");
+      }
+      return c.html("Failed");
     });
 
     // error handling

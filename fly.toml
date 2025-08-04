@@ -23,11 +23,19 @@ primary_region = 'sin'
   cpus = 1
 
 [checks]
-  [checks.http_check]
+  [checks.web_health]
     grace_period = "30s"
-    interval = "15s"
+    interval = "30s"
     method = "get"
-    path = "/apistatus"
+    path = "/web-health"
+    port = 8080
+    timeout = "10s"
+    type = "http"
+  [checks.app_health]
+    grace_period = "30s"
+    interval = "60s"
+    method = "get"
+    path = "/app-health"
     port = 8080
     timeout = "10s"
     type = "http"
