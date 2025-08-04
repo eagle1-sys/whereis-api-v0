@@ -51,7 +51,7 @@ const testData = [
   {
     "input": { "id": "fdx-881383013147", "extra": { "full_data": "true" } },
     "output": { "error": "400-07" },
-    "memo": "Incorrect phonenum. correct phonenum is 6993",
+    "memo": "Bad request: Invalid query parameters [full_data]",
   },
   {
     "input": { "id": "sfex-SF3122082959115", "extra": { "phonenum": "5567" } },
