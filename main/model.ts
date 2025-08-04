@@ -298,7 +298,11 @@ export class Entity {
     this.events.sort((a, b) => {
       const dateA = a.when ? new Date(a.when).getTime() : 0;
       const dateB = b.when ? new Date(b.when).getTime() : 0;
-      return dateA - dateB;
+      if (dateA !== dateB) {
+        return dateA - dateB;
+      }
+      // If dates are equal, compare status in descending order
+      return (b.status || 0) - (a.status || 0);
     });
 
     // Add origin and destination if they exist in extra
