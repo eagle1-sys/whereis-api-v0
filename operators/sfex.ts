@@ -410,31 +410,4 @@ export class Sfex {
     return event;
   }
 
-  private static getEstimateEventTime(
-    startTime: string,
-    endTime: string,
-  ): string {
-    const start = new Date(startTime);
-    const end = new Date(endTime);
-    const midpoint = new Date((start.getTime() + end.getTime()) / 2);
-
-    // Format the date to the desired format
-    const year = midpoint.getFullYear();
-    const month = String(midpoint.getMonth() + 1).padStart(2, "0");
-    const day = String(midpoint.getDate()).padStart(2, "0");
-    const hours = String(midpoint.getHours()).padStart(2, "0");
-    const minutes = String(midpoint.getMinutes()).padStart(2, "0");
-    const seconds = String(midpoint.getSeconds()).padStart(2, "0");
-
-    // Get the timezone offset
-    const offset = -midpoint.getTimezoneOffset();
-    const offsetHours = Math.floor(Math.abs(offset) / 60).toString().padStart(
-      2,
-      "0",
-    );
-    const offsetMinutes = (Math.abs(offset) % 60).toString().padStart(2, "0");
-    const offsetSign = offset >= 0 ? "+" : "-";
-
-    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetSign}${offsetHours}:${offsetMinutes}`;
-  }
 }
