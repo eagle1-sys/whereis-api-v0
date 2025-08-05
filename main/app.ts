@@ -58,7 +58,7 @@ export async function loadMetaData(): Promise<void> {
   StatusCode.initialize(status);
 
   const dataRetrievalMethods: Record<string, unknown> = await loadJSONFromFs(
-    "./metadata/data_retrieval_methods.json",
+    "./metadata/data_update_methods.json",
   );
   DataRetrievalMethod.initialize(
     dataRetrievalMethods as Record<string, Record<string, string>>,
