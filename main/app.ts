@@ -36,7 +36,7 @@ export async function loadEnv(): Promise<void> {
     APP_PORT: String(config.app.port),
     DB_PORT: String(config.database.port),
     DB_NAME: config.database.name,
-    APP_PULL_INTERVAL: String(config.database.pullInterval),
+    APP_PULL_INTERVAL: String(config.app.pullInterval),
   };
   for (const [key, value] of Object.entries(defaultEnv)) {
     if (!Deno.env.get(key)) {
