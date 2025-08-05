@@ -6,7 +6,7 @@
  */
 
 import {
-  DataRetrievalMethod,
+  DataUpdateMethod,
   Entity,
   Event,
   StatusCode,
@@ -256,7 +256,7 @@ export class Sfex {
     const routes: [] = routeResp["routes"];
     if (routes.length == 0) {
       // get the display text of the data retrieval method. eg: auto-pull -> Auto-pull
-      const updateMethodName = DataRetrievalMethod.getDisplayText(updateMethod);
+      const updateMethodName = DataUpdateMethod.getDisplayText(updateMethod);
       logger.warn(
         `${updateMethodName} -> SFEX: Unexpected data received for ${trackingId.toString()}. Empty routes[] in the received response: ${
           JSON.stringify(result)

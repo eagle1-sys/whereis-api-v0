@@ -6,7 +6,7 @@
  */
 
 import {
-  DataRetrievalMethod,
+  DataUpdateMethod,
   Entity,
   Event,
   ExceptionCode,
@@ -186,7 +186,7 @@ export class Fdx {
       const trackingIdsStr: string = trackingIds.map((item) => item.toString())
         .join(", ");
       // get the display text of the data retrieval method. eg: auto-pull -> Auto-pull
-      const updateMethodName = DataRetrievalMethod.getDisplayText(updateMethod);
+      const updateMethodName = DataUpdateMethod.getDisplayText(updateMethod);
       logger.warn(`${updateMethodName} -> FDX: Unexpected data received for ${trackingIdsStr}. Missing output{} in the received response: ${JSON.stringify(result)}`);
       return entities;
     }

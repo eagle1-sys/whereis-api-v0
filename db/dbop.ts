@@ -9,7 +9,7 @@
 
 import postgres from "postgresjs";
 import {
-  DataRetrievalMethod,
+  DataUpdateMethod,
   Entity,
   Event,
   TrackingID,
@@ -70,7 +70,7 @@ export async function updateEntity(
   eventIdsNew: string[],
   eventIdsToBeRemoved: string[],
 ): Promise<boolean> {
-  const updateMethod = DataRetrievalMethod.getDisplayText("auto-pull");
+  const updateMethod = DataUpdateMethod.getDisplayText("auto-pull");
 
   // update the entity record
   try {

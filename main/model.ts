@@ -609,9 +609,9 @@ export class UserError extends Error {
 /**
 * A singleton class for managing data retrieval methods and their attributes.
 */
-export class DataRetrievalMethod {
+export class DataUpdateMethod {
   /** @private Singleton instance of DataRetrievalMethod */
-  private static instance: DataRetrievalMethod = new DataRetrievalMethod();
+  private static instance: DataUpdateMethod = new DataUpdateMethod();
 
   /** @private Map storing method names as keys and their attributes as values */
   private data: Map<string, Record<string, string>> = new Map();

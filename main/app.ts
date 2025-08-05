@@ -7,7 +7,7 @@ import { load } from "@std/dotenv";
 import { config } from "../config.ts";
 import { loadJSONFromFs } from "../tools/util.ts";
 import {
-  DataRetrievalMethod,
+  DataUpdateMethod,
   ErrorRegistry,
   ExceptionCode,
   StatusCode,
@@ -60,7 +60,7 @@ export async function loadMetaData(): Promise<void> {
   const dataRetrievalMethods: Record<string, unknown> = await loadJSONFromFs(
     "./metadata/data_update_methods.json",
   );
-  DataRetrievalMethod.initialize(
+  DataUpdateMethod.initialize(
     dataRetrievalMethods as Record<string, Record<string, string>>,
   );
 
