@@ -411,7 +411,7 @@ export class Sfex {
   }
 
   /**
-   * Subtracts one second from the given date string and returns it in ISO format with timezone.
+   * Subtracts one second from the given date string and returns it in ISO format with timezone(+8).
    * @param dateString - The input date string in format "YYYY-MM-DD HH:mm:ss"
    * @returns The date string in format "YYYY-MM-DDTHH:mm:ss+08:00" after subtracting one second
    */
@@ -420,17 +420,16 @@ export class Sfex {
     const date = new Date(dateString);
 
     // Subtract one second
-    date.setSeconds(date.getSeconds() - 1);
+    date.setSeconds(date.getSeconds() + 60 * 60 * 8 - 1);
 
     // Format the date to the desired output
     const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    const seconds = date.getSeconds().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    const seconds = date.getSeconds().toString().padStart(2, "0");
 
     return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+08:00`;
   }
-
 }
