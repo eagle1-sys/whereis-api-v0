@@ -7,7 +7,7 @@
   },
   "auto-pull": {
     "type": "processed",
-    "description": "Data is automatically retrieved from the external data source at scheduled intervals.",
+    "description": "Data is automatically retrieved from the external data sources per env variable APP_PULL_INTERVAL",
     "trigger": "scheduled",
     "frequency": "periodic"
   },
