@@ -7,6 +7,7 @@ import { load } from "@std/dotenv";
 import { config } from "../config.ts";
 import { loadJSONFromFs } from "../tools/util.ts";
 import {
+  ApiParams,
   DataUpdateMethod,
   ErrorRegistry,
   ExceptionCode,
@@ -62,6 +63,13 @@ export async function loadMetaData(): Promise<void> {
   );
   DataUpdateMethod.initialize(
     dataRetrievalMethods as Record<string, Record<string, string>>,
+  );
+
+  const apiParams: Record<string, unknown> = await loadJSONFromFs(
+      "./metadata/api_params.json",
+  );
+  ApiParams.initialize(
+      apiParams as Record<string, Record<string, string>>,
   );
 
   const exception: Record<string, unknown> = await loadJSONFromFs(

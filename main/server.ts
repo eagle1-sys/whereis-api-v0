@@ -12,7 +12,13 @@ import { sql } from "../db/dbutil.ts";
 import { logger } from "../tools/logger.ts";
 import { deleteEntity, isTokenValid } from "../db/dbop.ts";
 import { requestWhereIs } from "./gateway.ts";
-import { Entity, ErrorRegistry, TrackingID, UserError } from "./model.ts";
+import {
+  ApiParams,
+  Entity,
+  ErrorRegistry,
+  TrackingID,
+  UserError,
+} from "./model.ts";
 import { insertEntity, queryEntity } from "../db/dbop.ts";
 
 declare module "hono" {
@@ -125,12 +131,12 @@ export class Server {
       const [trackingID, parsedParams] = this.parseURL(c.req);
       const queryParams = c.req.query();
 
-      const validParamsConfig: Record<string, string[]> = {
-        fdx: [],
-        sfex: ["phonenum"],
-      };
-      const validParams = new Set(validParamsConfig[trackingID.operator] || []);
-      const invalidParams = this.validateQueryParams(queryParams, validParams);
+      const validParams: string[] = ApiParams.getParamNames(
+          "status",
+          trackingID.operator,
+      );
+      const validParamSet = new Set(validParams);
+      const invalidParams = this.validateQueryParams(queryParams, validParamSet);
 
       if (invalidParams.length > 0) {
         return c.sendError("400-07", { param: invalidParams.join(",") });
@@ -150,15 +156,14 @@ export class Server {
     app.get("/v0/whereis/:id", async (c: Context) => {
       const [trackingID, parsedParams] = this.parseURL(c.req);
       const queryParams = c.req.query();
-
-      const validParamsSet = new Set([
-        "fulldata",
-        "refresh",
-        ...(trackingID.operator === "sfex" ? ["phonenum"] : []),
-      ]);
+      // Validate query parameters
+      const validParamsSet: string[] = ApiParams.getParamNames(
+        "whereis",
+        trackingID.operator,
+      );
       const invalidParams = this.validateQueryParams(
         queryParams,
-        validParamsSet,
+        new Set(validParamsSet),
       );
       if (invalidParams.length > 0) {
         return c.sendError("400-07", { param: invalidParams.join(",") });

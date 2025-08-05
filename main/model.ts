@@ -151,11 +151,18 @@ export class ErrorRegistry {
    * @returns The error message with placeholders replaced if params are provided, or the original message if not.
    *          Returns an empty string if the error code is not found in the registry.
    */
-  public static getMessage(code: string, params?: Record<string, string>): string {
+  public static getMessage(
+    code: string,
+    params?: Record<string, string>,
+  ): string {
     const message = this.instance.get(code) ?? "";
     if (params) {
-      return message.replace(/\$\{(\w+)}/g, (match, key) =>
-          Object.prototype.hasOwnProperty.call(params, key) ? params[key] : match
+      return message.replace(
+        /\$\{(\w+)}/g,
+        (match, key) =>
+          Object.prototype.hasOwnProperty.call(params, key)
+            ? params[key]
+            : match,
       );
     }
     return message;
@@ -274,8 +281,7 @@ export class Entity {
   /**
    * Constructs an Entity instance.
    */
-  constructor(
-  ) {
+  constructor() {
     this.uuid = "";
     this.id = "";
     this.type = "";
@@ -446,8 +452,8 @@ export class Entity {
    */
   public getCreationTime(): string {
     if (
-        this.events === undefined ||
-        this.events.length == 0
+      this.events === undefined ||
+      this.events.length == 0
     ) return "";
 
     const when = this.events[0]?.when;
@@ -607,8 +613,8 @@ export class UserError extends Error {
 }
 
 /**
-* A singleton class for managing data retrieval methods and their attributes.
-*/
+ * A singleton class for managing data retrieval methods and their attributes.
+ */
 export class DataUpdateMethod {
   /** @private Singleton instance of DataRetrievalMethod */
   private static instance: DataUpdateMethod = new DataUpdateMethod();
@@ -631,7 +637,9 @@ export class DataUpdateMethod {
    * Initializes the DataRetrievalMethod with a record of methods and their attributes.
    * @param {Record<string, Record<string, string>>} record - An object with method names as keys and their attributes as values.
    */
-  public static initialize(record: Record<string, Record<string, string>>): void {
+  public static initialize(
+    record: Record<string, Record<string, string>>,
+  ): void {
     for (const [method, attributes] of Object.entries(record)) {
       this.instance.set(method, attributes);
     }
@@ -643,15 +651,85 @@ export class DataUpdateMethod {
    * @returns {string} The display text for the method.
    */
   public static getDisplayText(method: string): string {
-    return method.charAt(0).toUpperCase() + method.slice(1)
+    return method.charAt(0).toUpperCase() + method.slice(1);
+  }
+}
+
+/**
+ * A singleton class for storing and retrieving API parameters metadata.
+ */
+export class ApiParams {
+  /** @private Singleton instance of ApiParams */
+  private static instance: ApiParams = new ApiParams();
+
+  /** @private Object storing the API parameters metadata */
+  private data: Record<string, unknown> = {};
+
+  private constructor() {}
+
+  /**
+   * Sets the API parameters metadata.
+   * @param {Record<string, unknown>} value - The API parameters metadata to store.
+   */
+  private set(value: Record<string, unknown>): void {
+    this.data = value;
   }
 
+  /**
+   * Retrieves the description for a given error code.
+   * @param {string} code - The error code to look up.
+   * @returns {string | undefined} The description, or undefined if not found.
+   */
+  private get(code: string): Record<string, unknown> | undefined {
+    return (this.data as Record<string, Record<string, unknown>>)[code];
+  }
+
+  /**
+   * Initializes the ApiParams instance with the API parameters metadata.
+   * @param {Record<string, unknown>} data - The API parameters metadata to initialize the store.
+   */
+  public static initialize(data: Record<string, unknown>): void {
+    this.instance.set(data);
+  }
+
+
+  /**
+   * Retrieves the parameter names for a specific API endpoint and data provider.
+   *
+   * This function looks up the API parameters metadata for the given endpoint
+   * and data provider, and returns an array of parameter names.
+   *
+   * @param endpoint - The API endpoint for which to retrieve parameter names.
+   * @param dataProvider - The data provider within the endpoint for which to retrieve parameter names.
+   * @returns An array of parameter names for the specified endpoint and data provider.
+   *          Returns an empty array if no parameters are found or if the metadata is invalid.
+   */
+  public static getParamNames(
+    endpoint: string,
+    dataProvider: string,
+  ): string[] {
+    const apiParams = this.instance.get(endpoint) as
+      | Record<string, unknown>
+      | undefined;
+    if (!apiParams || typeof apiParams !== "object") {
+      return [];
+    }
+
+    const providerParams = apiParams[dataProvider] as
+      | Record<string, string>
+      | undefined;
+    if (!providerParams || typeof providerParams !== "object") {
+      return [];
+    }
+
+    return Object.keys(providerParams);
+  }
 }
 
 export type JSONValue =
-    | string
-    | number
-    | boolean
-    | null
-    | { [key: string]: JSONValue }
-    | JSONValue[];
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: JSONValue }
+  | JSONValue[];

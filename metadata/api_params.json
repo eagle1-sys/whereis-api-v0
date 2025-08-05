@@ -1,0 +1,37 @@
+{
+  "whereis": {
+    "sfex": {
+      "phonenum": {
+        "required": true,
+        "description": "Last 4 digits of the phone number of the shipper or receiver"
+      },
+      "fulldata": {
+        "required": false,
+        "description": "Include the raw data from the SF Express API in the response"
+      },
+      "refresh": {
+        "required": false,
+        "description": "Force a request to get the latest data from the SF Express API"
+      }
+    },
+    "fdx": {
+      "fulldata": {
+        "required": false,
+        "description": "Include the raw data from the SF Express API in the response"
+      },
+      "refresh": {
+        "required": false,
+        "description": "Force a request to get the latest data from the FedEx API"
+      }
+    }
+  },
+  "status": {
+    "sfex": {
+      "phonenum": {
+        "required": true,
+        "description": "Last 4 digits of the phone number of the shipper or receiver"
+      }
+    },
+    "fdx": {}
+  }
+}
