@@ -3,7 +3,7 @@
  * @description This module serves as the entry point for the application, handling environment loading,
  * metadata initialization, database setup, scheduling, and server startup.
  */
-import { Server } from "./server.ts";
+import { app } from "./server.ts";
 import { syncRoutes } from "./schedule.ts";
 import { loadEnv, loadMetaData } from "./app.ts";
 import { initConnection } from "../db/dbutil.ts";
@@ -39,11 +39,12 @@ async function main(): Promise<void> {
     logger.info("The scheduler started.");
   });
 
-  const portNo = Deno.env.get("APP_PORT");
-  const server = new Server(portNo ? parseInt(portNo, 10) : 8080);
-  server.start();
-  logger.info(`server started on port ${portNo}`);
 }
 
 // Execute the main function and handle any uncaught errors
 main().catch((err) => console.error("Failed to start application:", err));
+
+// Export the fetch handler for deno serve
+export default {
+  fetch: app.fetch,
+} satisfies Deno.ServeDefaultExport;

@@ -33,7 +33,6 @@ export async function loadEnv(): Promise<void> {
   // Set default environment variables if not specified
   const defaultEnv = {
     APP_ENV: "dev",
-    APP_PORT: String(config.app.port),
     DB_PORT: String(config.database.port),
     DB_NAME: config.database.name,
     APP_PULL_INTERVAL: String(config.app.pullInterval),

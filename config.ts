@@ -9,7 +9,6 @@
  */
 export const config = {
   app: {
-    port: 8080,      // application server port, can be overridden by ENV variable: APP_PORT
     pullInterval: 5, // auto-pull interval from data sources, in minutes. Can be overridden by ENV variable: APP_PULL_INTERVAL
   },
   database: {
