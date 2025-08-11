@@ -18,24 +18,24 @@ primary_region = 'sin'
 
 [[vm]]
   size = "shared-cpu-1x"
-  memory = '256mb'
+  memory = '512mb'
   cpu_kind = 'shared'
   cpus = 1
 
 [checks]
   [checks.web_health]
     grace_period = "30s"
-    interval = "30s"
+    interval = "5s"
     method = "get"
     path = "/web-health"
     port = 8080
-    timeout = "10s"
+    timeout = "2s"
     type = "http"
   [checks.app_health]
     grace_period = "30s"
-    interval = "60s"
+    interval = "10s"
     method = "get"
     path = "/app-health"
     port = 8080
-    timeout = "10s"
+    timeout = "5s"
     type = "http"
