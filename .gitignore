@@ -1,2 +1,8 @@
-.env
 .idea/
+.env
+docker-compose.yaml
+fly.toml
+Dockerfile
+whereis-db-init.sql
+*.bak
+deno.lock

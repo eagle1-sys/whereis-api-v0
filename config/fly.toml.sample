@@ -1,0 +1,46 @@
+# fly.toml app configuration file
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = '_CHANGEME_'
+primary_region = 'sjc'
+
+[build]
+
+[http_service]
+internal_port = 8037
+force_https = true
+auto_stop_machines = 'stop'
+auto_start_machines = true
+min_machines_running = 1
+processes = ['app']
+
+[checks]
+[checks.app_health]
+port = 8037
+type = 'http'
+interval = '10s'
+timeout = '5s'
+grace_period = '30s'
+method = 'get'
+path = '/app-health'
+
+[checks.web_health]
+port = 8037
+type = 'http'
+interval = '5s'
+timeout = '2s'
+grace_period = '30s'
+method = 'get'
+path = '/web-health'
+
+[[vm]]
+cpu_kind = "shared"
+cpus = 2
+memory = "512mb"
+
+[env]
+DB_HOST = "_CHANGEME_.internal"
+
+# - EOF -
