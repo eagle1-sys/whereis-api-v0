@@ -1,0 +1,37 @@
+services:
+  pg-whereis:
+    image: postgres:latest
+    container_name: pg-whereis
+    ports:
+      - 5432:5432
+    restart: always
+    volumes:
+      - pg-whereis-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: _CHANGEME_
+      POSTGRES_DB: ${DB_NAME}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      start_period: 20s
+      start_interval: 2s
+      interval: 5s
+      timeout: 1s
+      retries: 3
+  whereis-api-v0:
+    image: local/whereis-api-v0:dev
+    container_name: whereis-api-v0
+    ports:
+      - 8037:8037
+    depends_on:
+      pg-whereis:
+        condition: service_healthy
+    restart: always
+    environment:
+      DB_HOST: ${DB_HOST}
+networks:
+  default:
+    name: whereis_net
+volumes:
+  pg-whereis-data:
+    name: pg-whereis-data
