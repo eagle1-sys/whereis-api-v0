@@ -14,7 +14,7 @@ help:
 	@echo "  fly    - Deploy service to fly.io"
 
 # Creates initial configuration files from config/*.sample and .env.sample
-start:
+start: config/*.sample
 	@for f in config/*.sample; do \
 		target_file=$$(basename "$$f" .sample); \
 		if [ -e "$$target_file" ]; then \
