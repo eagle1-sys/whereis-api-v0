@@ -39,3 +39,5 @@ local: Dockerfile docker-compose.yaml
 # Build and deploy into fly.io
 fly: fly.toml Dockerfile
 	fly deploy
+
+# - EOF -
