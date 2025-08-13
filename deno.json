@@ -8,6 +8,7 @@
     "@std/dotenv": "jsr:@std/dotenv",
     "@std/assert": "jsr:@std/assert",
     "@std/crypto": "jsr:@std/crypto",
+    "@std/jsonc": "jsr:@std/jsonc",
     "@std/path": "jsr:@std/path",
     "@std/bytes": "jsr:@std/bytes",
     "@std/fmt": "jsr:@std/fmt",

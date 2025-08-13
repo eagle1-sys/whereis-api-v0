@@ -5,8 +5,8 @@
  * from JSON objects using Deno's crypto module.
  */
 
-// import { crypto } from "jsr:@std/crypto@0.224.0";
 import { crypto } from "@std/crypto";
+import { parse } from "@std/jsonc";
 
 
 /**
@@ -21,15 +21,14 @@ import { crypto } from "@std/crypto";
 export async function loadJSONFromFs(
     filePath: string,
 ): Promise<Record<string, unknown>> {
-    try {
-        // read file content
-        const jsonString = await Deno.readTextFile(filePath);
-        // parse
-        return JSON.parse(jsonString);
-    } catch (error) {
-        console.error("Error loading JSON file:", error);
-        throw error;
+    // read file content
+    const jsonString = await Deno.readTextFile(filePath);
+    // parse
+    const v = parse(jsonString);
+    if (v === null || typeof v !== 'object' || Array.isArray(v)) {
+        throw new Error(`Invalid JSON file format: ${filePath}`);
     }
+    return v as Record<string, unknown>;
 }
 
 /**
