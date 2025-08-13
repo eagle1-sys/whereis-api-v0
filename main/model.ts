@@ -708,6 +708,7 @@ export class ApiParams {
     endpoint: string,
     dataProvider: string,
   ): string[] {
+    // Retrieve API parameters metadata for the specified endpoint
     const apiParams = this.instance.get(endpoint) as
       | Record<string, unknown>
       | undefined;
@@ -715,14 +716,24 @@ export class ApiParams {
       return [];
     }
 
+    // Retrieve parameter names for the common parameters first
+    let paraNames : string[] = [] ;
+    const commonParams = apiParams["common"] as
+        | Record<string, string>
+        | undefined;
+    if (commonParams && typeof commonParams === "object") {
+      paraNames = Object.keys(commonParams);
+    }
+
+    // Retrieve parameter names for the specific data provider
     const providerParams = apiParams[dataProvider] as
       | Record<string, string>
       | undefined;
-    if (!providerParams || typeof providerParams !== "object") {
-      return [];
+    if (providerParams && typeof providerParams === "object") {
+      paraNames = paraNames.concat(Object.keys(providerParams));
     }
 
-    return Object.keys(providerParams);
+    return paraNames;
   }
 }
 
