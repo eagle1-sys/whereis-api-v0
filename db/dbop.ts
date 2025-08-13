@@ -196,22 +196,6 @@ export async function deleteEvent(
   return result.count;
 }
 
-export async function markEventAsDeleted(
-  sql: ReturnType<typeof postgres>,
-  eventID: string,
-): Promise<number | undefined> {
-  const fromIdx = eventID.indexOf("-");
-  const uptoIdx = eventID.lastIndexOf("-");
-  const trackingNum = eventID.substring(fromIdx + 1, uptoIdx) + "-delete";
-  // mark the tracking_num as deleted
-  const result = await sql`
-      update events
-      set tracking_num = ${trackingNum}
-      where event_id = ${eventID}
-  `;
-  return result.count;
-}
-
 /**
  * Query entity from DB by trackingID
  @param {ReturnType<typeof postgres>} sql - The PostgreSQL client instance
