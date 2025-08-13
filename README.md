@@ -10,7 +10,7 @@ Since different logistics providers have their own APIs and data formats, integr
 1. This prototype is written in TypeScript and runs on the [Deno runtime](https://deno.com).
 2. We have defined [standard status codes](https://github.com/eagle1-sys/whereis-api-v0/blob/main/metadata/status_codes.json) and consistent format for global logistics data.
 3. Initially it supports two logistics operators: FedEx and SF Express, with a [future roadmap](https://github.com/eagle1-sys/whereis-api-v0/discussions/97) planned.
-   
+
 ## Examples
 
 ### Track locations over time
@@ -90,50 +90,24 @@ const response = await fetch(url, {
   "whom": "FedEx",
   "when": "2024-11-11T14:16:48-06:00",
   "where": "Customer location",
-  "notes": "Shipment information sent to FedEx"   
+  "notes": "Shipment information sent to FedEx"
 }
 ```
 
 ---
 
-# Deploying to Fly.io
+# Deploying locally using docker containers
 
-Follow these steps to deploy the application to Fly.io using the provided Dockerfile:
+Here is the gist to deploy Eagle1 locally using Docker containers. For step-by-step instructions, refer to the [How-to Guide](https://github.com/eagle1-sys/whereis-api-v0/wiki/How-to-deploy-locally-using-Docker).
 
-1. **Install Flyctl**  
-   If you don’t already have it, install the Fly.io command-line tool (`flyctl`) by following the [official installation guide](https://fly.io/docs/hands-on/install-flyctl/).
+```bash
+git clone https://github.com/eagle1-sys/whereis-api-v0
 
-2. **Clone the Repository**  
-   
-   Clone this repository to your local machine:
-   ```bash
-   git clone https://github.com/eagle1-sys/whereis-api-v0
-   cd whereis-api-v0
+make start
 
-3. **Log in to Fly.io**
-   
-   Authenticate with Fly.io using your account:
-   ```bash
-   flyctl auth login
-   ```
+docker compose up pg-whereis -d
 
-4. **Create Database cluster**
-   ```bash
-   fly postgres create
-   ```  
+make local
 
-5. **Deploy the Application**
-   
-   Update `fly.toml` and `Dockerfile` if neccesary, then run the following command to deploy the app to Fly.io:
-      bash
-      ```bash
-      flyctl deploy
-      ```
-   
-6. **Check the Status**
-
-   Once the deployment is complete, you can check the status of your app:
-   ```bash
-   flyctl status
-   ```
-
+curl -I localhost:8037/app-health
+```
