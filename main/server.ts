@@ -139,6 +139,7 @@ app.get("/v0/status/:id?", async (c: Context) => {
  * Requires Bearer token authentication
  */
 app.get("/v0/whereis/:id", async (c: Context) => {
+  const start = performance.now();
   const [trackingID, parsedParams] = parseURL(c.req);
   const queryParams = c.req.query();
   // Validate query parameters
@@ -169,7 +170,16 @@ app.get("/v0/whereis/:id", async (c: Context) => {
     throw new UserError(refresh ? "404-03" : "404-01");
   }
 
-  return c.json(entity.toJSON(fullData), 200, {
+  const elapsed = performance.now() - start;
+  const outputJSON = entity.toJSON(fullData) as { entity: { additional?: Record<string, unknown> } };
+
+  // Set the processing time in the outputJSON
+  if (!outputJSON.entity.additional) {
+    outputJSON.entity.additional = {};
+  }
+  outputJSON.entity.additional.processingTimeMs = elapsed.toFixed(3);
+
+  return c.json(outputJSON, 200, {
     "Content-Type": "application/json; charset=utf-8",
   });
 });
