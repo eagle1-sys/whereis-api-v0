@@ -14,8 +14,8 @@
  * This setup ensures that the tests are run against the correct environment with proper authentication.
  */
 import { assert } from "@std/assert";
-import { TESTING_URL } from "./main_test.ts";
-import { assertErrorCode } from "./main_test.ts";
+import { TESTING_URL } from "./main-test.ts";
+import { assertErrorCode } from "./main-test.ts";
 
 const testData = [
   {

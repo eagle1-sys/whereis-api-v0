@@ -51,4 +51,4 @@ jobs:
           SFEX_PARTNER_ID: ${{ secrets.SFEX_PARTNER_ID }}
           SFEX_CHECK_WORD: ${{ secrets.SFEX_CHECK_WORD }}
           TESTING_TOKEN: ${{ secrets.TESTING_TOKEN }}
-        run: deno test -A tests/main_test.ts
+        run: deno test -A tests/main-test.ts

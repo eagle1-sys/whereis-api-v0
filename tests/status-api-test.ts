@@ -23,8 +23,8 @@
  * This comprehensive test suite ensures the reliability and accuracy of the status API across different carriers and scenarios.
  */
 import { assert } from "@std/assert";
-import { TESTING_URL } from "./main_test.ts";
-import { assertErrorCode } from "./main_test.ts";
+import { TESTING_URL } from "./main-test.ts";
+import { assertErrorCode } from "./main-test.ts";
 
 const testData = [
   {
