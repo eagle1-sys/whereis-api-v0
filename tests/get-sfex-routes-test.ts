@@ -1,5 +1,5 @@
 /**
- * @file get_sfex_routes_test.ts
+ * @file get-sfex-routes-test.ts
  * @description This file contains unit tests for retrieving SF Express (Sfex) shipment tracking routes.
  * It tests the Sfex.getRoute() method to ensure it successfully fetches and processes
  * tracking data from the SF Express API. The test verifies that the correct number of

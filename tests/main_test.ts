@@ -43,8 +43,8 @@ await loadMetaData();
 
 export const TESTING_URL = Deno.env.get("TESTING_URL");
 
-import "./get_fdx_token_test.ts";
-import "./get_fdx_events_test.ts";
-import "./get_sfex_routes_test.ts";
-import "./whereis_api_test.ts";
-import "./status_api_test.ts";
+import "./get-fdx-token-test.ts";
+import "./get-fdx-events-test.ts";
+import "./get-sfex-routes-test.ts";
+import "./whereis-api-test.ts";
+import "./status-api-test.ts";

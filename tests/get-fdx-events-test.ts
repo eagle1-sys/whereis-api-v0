@@ -1,5 +1,5 @@
 /**
- * @file get_fdx_events_test.ts
+ * @file get-fdx-events-test.ts
  * @description This file contains unit tests for retrieving FedEx shipment tracking events.
  * It tests the Fdx.getRoute() method to ensure it successfully fetches and processes
  * tracking data from the FedEx API. The test verifies that the correct number of

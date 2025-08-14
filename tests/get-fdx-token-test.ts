@@ -1,5 +1,5 @@
 /**
- * @file get_fdx_token_test.ts
+ * @file get-fdx-token-test.ts
  * @description This file contains unit tests for the FedEx API token retrieval functionality.
  * It tests the Fdx.getToken() method to ensure it successfully retrieves a valid
  * authentication token from the FedEx API. The test verifies that the returned token

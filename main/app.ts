@@ -53,31 +53,31 @@ export async function loadEnv(): Promise<void> {
  */
 export async function loadMetaData(): Promise<void> {
   const status: Record<string, unknown> = await loadJSONFromFs(
-    "./metadata/status_codes.jsonc",
+    "./metadata/status-codes.jsonc",
   );
   StatusCode.initialize(status);
 
   const dataRetrievalMethods: Record<string, unknown> = await loadJSONFromFs(
-    "./metadata/data_update_methods.jsonc",
+    "./metadata/data-update-methods.jsonc",
   );
   DataUpdateMethod.initialize(
     dataRetrievalMethods as Record<string, Record<string, string>>,
   );
 
   const apiParams: Record<string, unknown> = await loadJSONFromFs(
-      "./metadata/api_params.jsonc",
+      "./metadata/api-params.jsonc",
   );
   ApiParams.initialize(
       apiParams as Record<string, Record<string, string>>,
   );
 
   const exception: Record<string, unknown> = await loadJSONFromFs(
-    "./metadata/exception_codes.jsonc",
+    "./metadata/exception-codes.jsonc",
   );
   ExceptionCode.initialize(exception);
 
   const errors: Record<string, unknown> = await loadJSONFromFs(
-    "./metadata/error_codes.jsonc",
+    "./metadata/error-codes.jsonc",
   );
   ErrorRegistry.initialize(errors);
 }
