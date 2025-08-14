@@ -42,7 +42,11 @@ async function main(): Promise<void> {
 }
 
 // Execute the main function and handle any uncaught errors
-main().catch((err) => console.error("Failed to start application:", err));
+main().catch((err) => {
+  const logger = getLogger();
+  logger.error("Failed to start application:", err);
+  Deno.exit(1);
+});
 
 // Export the fetch handler for deno serve
 export default {
