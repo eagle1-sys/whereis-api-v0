@@ -3,11 +3,11 @@
     "common": {
       "fulldata": {
         "required": false,
-        "description": "Include the raw data from the SF Express API in the response"
+        "description": "Include the raw data from the logistics data source"
       },
       "refresh": {
         "required": false,
-        "description": "Force a request to get the latest data from the SF Express API"
+        "description": "Force a request to get the latest data from logistics data source"
       }
     },
     "sfex": {
