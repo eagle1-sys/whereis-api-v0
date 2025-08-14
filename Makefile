@@ -33,9 +33,14 @@ start: config/*.sample
 
 # Build a local Docker image and run it
 local: Dockerfile docker-compose.yaml
-	docker build -t $(IMAGE) .
-	docker compose up whereis-api-v0 -d
+	@docker build -t $(IMAGE) .
+	@docker compose up -d
+	@echo "\n => Running whereis containers\n"
+	@docker ps -a --format "table {{.Image}}\t{{.Status}}\t{{.Ports}}\t{{.Names}}" --filter "name=whereis"
+
 
 # Build and deploy into fly.io
 fly: fly.toml Dockerfile
 	fly deploy
+
+# - EOF -

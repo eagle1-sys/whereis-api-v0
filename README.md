@@ -8,8 +8,8 @@ Since different logistics providers have their own APIs and data formats, integr
 
 ## Scope
 1. This prototype is written in TypeScript and runs on the [Deno runtime](https://deno.com).
-2. We have defined [standard status codes](https://github.com/eagle1-sys/whereis-api-v0/blob/main/metadata/status_codes.json) and consistent format for global logistics data.
-3. Initially it supports two logistics operators: FedEx and SF Express, with a [future roadmap](https://github.com/eagle1-sys/whereis-api-v0/discussions/97) planned.
+2. We have defined [standard status codes](https://github.com/eagle1-sys/whereis-api-v0/blob/main/metadata/status_codes.jsonc) and consistent format for global logistics data.
+3. Initially it supports two logistics operators: FedEx and SF Express, with a [future roadmap](https://github.com/eagle1-sys/whereis-api-v0/discussions/97) planned. Code review is on [DeepWiki](https://deepwiki.com/eagle1-sys/whereis-api-v0).
 
 ## Examples
 
@@ -98,7 +98,7 @@ const response = await fetch(url, {
 
 # Deploying locally using docker containers
 
-Here is the gist to deploy Eagle1 locally using Docker containers. For step-by-step instructions, refer to the [How-to Guide](https://github.com/eagle1-sys/whereis-api-v0/wiki/How-to-deploy-locally-using-Docker).
+Here’s the gist for deploying Eagle1 locally using Docker containers. For step‑by‑step instructions, see the [How-to Guide](https://github.com/eagle1-sys/whereis-api-v0/wiki/How-to-deploy-locally-using-Docker).
 
 ```bash
 git clone https://github.com/eagle1-sys/whereis-api-v0
@@ -111,3 +111,5 @@ make local
 
 curl -I localhost:8037/app-health
 ```
+
+That's it. Enjoy!
