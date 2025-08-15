@@ -61,23 +61,26 @@ init_db: check_docker config/create-whereis-db.sql # -- Initialize the database 
 	@cat config/create-whereis-db.sql | docker compose exec -T $(COMPOSE_DB_SERVICE) psql -q -U postgres --dbname=whereis
 	@echo "=> Database initialization complete."
 
-build: check_docker Dockerfile docker-compose.yaml ## Build the service's Docker image
+build: check_docker Dockerfile docker-compose.yaml ## Build whereis-api docker image
 	@echo "=> Building Docker image with tag: $(IMAGE)"
 	@docker build -t $(IMAGE) .
 
-up: build ## Start all services in the background using Docker Compose
+up: build ## Build whereis-api docker image and start api and postgres services
 	@echo "=> Starting all services..."
 	@docker compose up -d
 	@echo "=> Showing active whereis containers:"
+	@$(MAKE) status
+
+status: check_docker ## Show the status of whereis containers
 	@docker ps -a --format "table {{.Image}}\t{{.Status}}\t{{.Ports}}\t{{.Names}}" --filter "name=whereis"
 
-stop: check_docker ## Stop and remove service containers
+stop: check_docker ## Stop and remove api and postgres service containers
 	@echo "=> Stopping and removing whereis containers..."
 	@docker compose down
 	@echo "=> Containers stopped and removed."
 	@echo "=> Note: Volumes still exist. Use 'make clean' to remove all data."
 
-clean: check_docker ## Stop services and remove all data (containers, volumes)
+clean: check_docker ## Stop api and postgres services and remove related data (containers, volumes)
 	@echo "=> WARNING: This will permanently remove all containers and volumes."
 	@docker compose down -v --remove-orphans
 	@echo "=> All 'whereis' containers and volumes removed."
