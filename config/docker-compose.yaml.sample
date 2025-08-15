@@ -18,6 +18,8 @@ services:
       interval: 5s
       timeout: 1s
       retries: 3
+    networks:
+      - whereis_net
   whereis-api-v0:
     image: local/whereis-api-v0
     container_name: whereis-api-v0
@@ -36,8 +38,10 @@ services:
       DB_PASSWORD: _CHANGEME_
       TESTING_URL: http://localhost:8037
       TESTING_TOKEN: eagle1
+    networks:
+      - whereis_net
 networks:
-  default:
+  whereis_net:
     name: whereis_net
 volumes:
   pg-whereis-data:

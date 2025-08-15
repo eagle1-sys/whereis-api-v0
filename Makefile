@@ -15,7 +15,7 @@ COMPOSE_DB_SERVICE = pg-whereis
 SHELL := /bin/bash
 
 # Define all targets that are not files as .PHONY
-.PHONY: help start build restart local stop clean logs init_db check_docker fly prune
+.PHONY: help start build update local stop stop-remove logs init_db check_docker fly prune
 
 # Set the default target to 'help' if no target is specified
 .DEFAULT_GOAL := help
@@ -28,21 +28,26 @@ help: ## Show this help message
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-whereis: check_docker config/*.sample ## Initial setup: create configs, initialize the DB, and start the api and postgres services. Use 'restart' for subsequent starts.
+whereis: check_docker config/*.sample ## Initial setup: create configs, initialize the DB, and start services. Use 'update' for subsequent starts.
 	@echo "=> Creating initial configuration files..."
 	@for f in config/*.sample; do \
 		target_file=$$(basename "$$f" .sample); \
-		if [ -e "$$target_file" ]; then \
+		if [ ! -e "$$target_file" ]; then \
+			echo "  -> Creating '$$target_file' from sample"; \
+			cp "$$f" "$$target_file"; \
+		elif cmp -s "$$f" "$$target_file"; then \
+			echo "  -> '$$target_file' is up-to-date. Skipping."; \
+		else \
 			timestamp=$$(date +%Y%m%d%H%M%S); \
 			backup_file="$${target_file}.bak.$${timestamp}"; \
 			echo "  -> Backing up existing '$$target_file' to '$$backup_file'"; \
 			cp "$$target_file" "$$backup_file"; \
+			echo "  -> Updating '$$target_file' from sample"; \
+			cp "$$f" "$$target_file"; \
 		fi; \
-		echo "  -> Creating '$$target_file' from sample"; \
-		cp "$$f" "$$target_file"; \
 	done
 	$(MAKE) init_db
-	$(MAKE) restart
+	$(MAKE) update
 
 check_docker: # -- Check if Docker is installed and the daemon is running
 	@echo "=> Checking for Docker..."
@@ -65,7 +70,7 @@ build: check_docker Dockerfile docker-compose.yaml ## Build whereis-api docker i
 	@echo "=> Building Docker image with tag: $(IMAGE)"
 	@docker build -t $(IMAGE) .
 
-restart: build ## Build whereis-api docker image and restart api and postgres services
+update: build ## Build whereis-api docker image and restart api and postgres services
 	@echo "=> Restarting all services..."
 	@docker compose up -d
 	@echo "=> Checking active whereis containers ..."
@@ -78,23 +83,27 @@ stop: check_docker ## Stop and remove api and postgres service containers
 	@echo "=> Stopping and removing whereis containers..."
 	@docker compose down
 	@echo "=> Containers stopped and removed."
-	@echo "=> Note: Volumes still exist. Use 'make clean' to remove all data."
+	@echo "=> Note: Volumes still exist. Use 'make stop-remove' to remove all data."
 
-clean: check_docker ## Stop api and postgres services and remove related data (containers, volumes)
+stop-remove: check_docker ## Stop api and postgres services and remove related data. Use 'stop' for just stopping services.
 	@echo "=> [WARNING] This will permanently remove whereis containers and volumes."
 	@docker compose down -v --remove-orphans
 	@echo "=> All 'whereis' containers and volumes removed."
+
+prune: ## Remove all unused Docker data (dangling images, build cache)
+	@echo "=> Pruning unused Docker resources..."
+	@docker system prune -f
 
 logs: check_docker ## Follow the logs from the api and postgres services
 	@echo "=> Tailing logs (press Ctrl+C to stop)..."
 	@docker compose logs -f
 
 fly: fly.toml Dockerfile ## Build and deploy the service to fly.io
-	@echo "=> Deploying to fly.io..."
+	@echo "=> Starting deployment to fly.io..."
+	@echo "  -> Importing application secrets from 'source-api-keys.env'..."
+	fly secrets import < source-api-keys.env
+	@echo "  -> Building the image and deploying the application..."
 	fly deploy
-
-prune: ## Remove all unused Docker data (dangling images, build cache)
-	@echo "=> Pruning unused Docker resources..."
-	@docker system prune -f
+	@echo "=> Deployment to fly.io complete."
 
 # - EOF -

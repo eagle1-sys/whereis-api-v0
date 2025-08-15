@@ -4,5 +4,5 @@ whereis.env
 docker-compose.yaml
 fly.toml
 Dockerfile
-*.bak
+*.bak.*
 deno.lock
