@@ -105,7 +105,7 @@ git clone https://github.com/eagle1-sys/whereis-api-v0
 
 cd whereis-api-v0
 
-make start
+make whereis
 ```
 
 That's it. Enjoy!
