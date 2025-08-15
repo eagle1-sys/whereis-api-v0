@@ -103,13 +103,9 @@ Here’s the gist for deploying Eagle1 locally using Docker containers. For step
 ```bash
 git clone https://github.com/eagle1-sys/whereis-api-v0
 
+cd whereis-api-v0
+
 make start
-
-docker compose up pg-whereis -d
-
-make local
-
-curl -I localhost:8037/app-health
 ```
 
 That's it. Enjoy!

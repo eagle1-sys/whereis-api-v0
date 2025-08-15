@@ -1,5 +1,6 @@
 .idea/
-.env
+*.env
+whereis.env
 docker-compose.yaml
 fly.toml
 Dockerfile

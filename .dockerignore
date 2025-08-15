@@ -1,7 +1,7 @@
 # Ignore all hidden files
 **/.??*
-!.env
 
+**/*.env
 **/docker-compose*
 **/Dockerfile*
 **/node_modules
@@ -9,7 +9,7 @@
 **/obj
 
 **/local
-# flyctl launch added from .gitignore
-fly*.toml
+**/fly*.toml*
+**/*.sample
 
 # - EOF -
