@@ -26,7 +26,14 @@ SHELL := /bin/bash
 help: ## Show this help message
 	@echo "Usage: make <target>"
 	@echo ""
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
+	@(\
+		grep -E '^whereis:.*?## .*$$' $(MAKEFILE_LIST); \
+		grep -E '^update:.*?## .*$$' $(MAKEFILE_LIST); \
+		grep -E '^start:.*?## .*$$' $(MAKEFILE_LIST); \
+		grep -E '^stop:.*?## .*$$' $(MAKEFILE_LIST); \
+		echo "---"; \
+		grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | grep -vE '^(whereis|start|update|stop):' | sort; \
+	) | awk 'BEGIN {FS = ":.*?## "}; {if ($$0 == "---") {print ""} else {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}}'
 
 whereis: check_docker config/*.sample ## Initial setup: create configs, initialize the DB, and start services. Use 'update' for subsequent starts.
 	@echo "=> Creating initial configuration files..."
@@ -70,6 +77,12 @@ build: check_docker Dockerfile docker-compose.yaml ## Build whereis-api docker i
 	@echo "=> Building Docker image with tag: $(IMAGE)"
 	@docker build -t $(IMAGE) .
 
+start: check_docker ## Start api and postgres services
+	@echo "=> Starting all services in the background..."
+	@docker compose up -d
+	@echo "=> Checking active whereis containers ..."
+	@$(MAKE) status
+
 update: build ## Build whereis-api docker image and restart api and postgres services
 	@echo "=> Restarting all services..."
 	@docker compose up -d
@@ -85,10 +98,16 @@ stop: check_docker ## Stop and remove api and postgres service containers
 	@echo "=> Containers stopped and removed."
 	@echo "=> Note: Volumes still exist. Use 'make stop-remove' to remove all data."
 
-stop-remove: check_docker ## Stop api and postgres services and remove related data. Use 'stop' for just stopping services.
-	@echo "=> [WARNING] This will permanently remove whereis containers and volumes."
-	@docker compose down -v --remove-orphans
-	@echo "=> All 'whereis' containers and volumes removed."
+stop-remove: check_docker ## Caution: stop services and permanently delete all containers and associated data volumes
+	@echo "=> [WARNING] This will permanently remove whereis containers and data volumes."
+	@read -p "Are you sure you want to proceed? (Y/n) " -n 1 -r; \
+	echo; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		docker compose down -v --remove-orphans; \
+		echo "=> All 'whereis' containers and volumes removed."; \
+	else \
+		echo "=> Aborted."; \
+	fi
 
 prune: ## Remove all unused Docker data (dangling images, build cache)
 	@echo "=> Pruning unused Docker resources..."
