@@ -12,6 +12,7 @@ import {
   ExceptionCode,
   StatusCode,
   TrackingID,
+  UserError,
 } from "../main/model.ts";
 import { config } from "../config.ts";
 import { logger } from "../tools/logger.ts";
@@ -140,6 +141,7 @@ export class Fdx {
       const fdxClientId: string = Deno.env.get("FDX_CLIENT_ID") ?? "";
       const fdxClientSecret: string = Deno.env.get("FDX_CLIENT_SECRET") ??
         "";
+      let data;
       try {
         const response = await fetch(fdxApiUrl, {
           method: "POST",
@@ -152,12 +154,29 @@ export class Fdx {
             client_secret: fdxClientSecret,
           }),
         });
-        const data = await response.json();
-        this.token = data["access_token"];
-        this.expireTime = Date.now() + data["expires_in"] * 1000;
+        data = await response.json();
       } catch (error) {
         console.error("Could not get JSON:", error);
         throw error;
+      }
+
+      if (data["access_token"]) {
+        this.token = data["access_token"];
+        this.expireTime = Date.now() + data["expires_in"] * 1000;
+      } else {
+        if (data["errors"]) {
+          const code = data["errors"][0]?.code;
+          switch (code) {
+            case "BAD.REQUEST.ERROR":
+              throw new UserError("400-08");
+            case "NOT.AUTHORIZED.ERROR":
+              throw new UserError("400-09");
+            default:
+              throw new Error(`Unexpected error code from FedEx API: ${code}`);
+          }
+        } else {
+          throw new Error("Failed to retrieve token from FedEx API: No access_token or errors provided in response");
+        }
       }
     }
 
@@ -187,7 +206,11 @@ export class Fdx {
         .join(", ");
       // get the display text of the data retrieval method. eg: auto-pull -> Auto-pull
       const updateMethodName = DataUpdateMethod.getDisplayText(updateMethod);
-      logger.warn(`${updateMethodName} -> FDX: Unexpected data received for ${trackingIdsStr}. Missing output{} in the received response: ${JSON.stringify(result)}`);
+      logger.warn(
+        `${updateMethodName} -> FDX: Unexpected data received for ${trackingIdsStr}. Missing output{} in the received response: ${
+          JSON.stringify(result)
+        }`,
+      );
       return entities;
     }
 

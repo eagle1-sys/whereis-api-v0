@@ -10,7 +10,7 @@ import {
   Entity,
   Event,
   StatusCode,
-  TrackingID,
+  TrackingID, UserError,
 } from "../main/model.ts";
 import { crypto } from "@std/crypto";
 import { config } from "../config.ts";
@@ -20,6 +20,12 @@ import { logger } from "../tools/logger.ts";
  * SF Express API client class for tracking shipments and managing route data.
  */
 export class Sfex {
+
+  private static resultCodeErrors: Record<string, string> = {
+    "A1001": "400-10",
+    "A1004": "400-11",
+    "A1006": "400-12"
+  };
   /**
    * Mapping of SF Express status codes and operation codes to internal event codes.
    * @private
@@ -136,8 +142,11 @@ export class Sfex {
     );
 
     const resultCode = result["apiResultCode"] as string;
-    if (resultCode != "A1000") {
-      throw new Error(resultCode);
+    if (resultCode !== "A1000") {
+      if (resultCode in Sfex.resultCodeErrors) {
+        throw new UserError(Sfex.resultCodeErrors[resultCode]);
+      }
+      throw new Error(`${resultCode}: ${result["apiErrorMsg"]}`);
     }
 
     const entity: Entity | undefined = this.convert(
