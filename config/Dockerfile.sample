@@ -19,7 +19,6 @@ deno update
 deno cache main/main.ts
 deno check .
 deno lint
-chown -f deno:deno /app/.env /app/deno.lock
 CMD
 
 # Switch to non-root user for security
