@@ -15,7 +15,7 @@ COMPOSE_DB_SERVICE = pg-whereis
 SHELL := /bin/bash
 
 # Define all targets that are not files as .PHONY
-.PHONY: help start build up local stop clean logs init_db check_docker fly prune
+.PHONY: help start build restart local stop clean logs init_db check_docker fly prune
 
 # Set the default target to 'help' if no target is specified
 .DEFAULT_GOAL := help
@@ -28,7 +28,7 @@ help: ## Show this help message
 	@echo ""
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-start: check_docker config/*.sample ## Initial setup: create configs, initialize the DB, and start services. Use 'up' for subsequent starts.
+whereis: check_docker config/*.sample ## Initial setup: create configs, initialize the DB, and start the api and postgres services. Use 'restart' for subsequent starts.
 	@echo "=> Creating initial configuration files..."
 	@for f in config/*.sample; do \
 		target_file=$$(basename "$$f" .sample); \
@@ -42,14 +42,14 @@ start: check_docker config/*.sample ## Initial setup: create configs, initialize
 		cp "$$f" "$$target_file"; \
 	done
 	$(MAKE) init_db
-	$(MAKE) up
+	$(MAKE) restart
 
 check_docker: # -- Check if Docker is installed and the daemon is running
 	@echo "=> Checking for Docker..."
 	@docker info > /dev/null 2>&1 || (echo "[ERROR] Docker is not installed or the Docker daemon is not running. Please fix and retry." && exit 1)
 	@echo "=> Docker is running."
 
-init_db: check_docker config/create-whereis-db.sql # -- Initialize the database container and load initial data
+init_db: check_docker config/create-whereis-db.sql # -- Initialize the postgres container and load initial data
 	@echo "=> Starting up database service '$(COMPOSE_DB_SERVICE)'..."
 	@docker compose up $(COMPOSE_DB_SERVICE) -d
 	@echo "=> Waiting for database to become healthy..."
@@ -65,13 +65,13 @@ build: check_docker Dockerfile docker-compose.yaml ## Build whereis-api docker i
 	@echo "=> Building Docker image with tag: $(IMAGE)"
 	@docker build -t $(IMAGE) .
 
-up: build ## Build whereis-api docker image and start api and postgres services
-	@echo "=> Starting all services..."
+restart: build ## Build whereis-api docker image and restart api and postgres services
+	@echo "=> Restarting all services..."
 	@docker compose up -d
-	@echo "=> Showing active whereis containers:"
+	@echo "=> Checking active whereis containers ..."
 	@$(MAKE) status
 
-status: check_docker ## Show the status of whereis containers
+status: check_docker ## Show the status of the api and postgres containers
 	@docker ps -a --format "table {{.Image}}\t{{.Status}}\t{{.Ports}}\t{{.Names}}" --filter "name=whereis"
 
 stop: check_docker ## Stop and remove api and postgres service containers
@@ -81,11 +81,11 @@ stop: check_docker ## Stop and remove api and postgres service containers
 	@echo "=> Note: Volumes still exist. Use 'make clean' to remove all data."
 
 clean: check_docker ## Stop api and postgres services and remove related data (containers, volumes)
-	@echo "=> WARNING: This will permanently remove all containers and volumes."
+	@echo "=> [WARNING] This will permanently remove whereis containers and volumes."
 	@docker compose down -v --remove-orphans
 	@echo "=> All 'whereis' containers and volumes removed."
 
-logs: check_docker ## Follow the logs from all running services
+logs: check_docker ## Follow the logs from the api and postgres services
 	@echo "=> Tailing logs (press Ctrl+C to stop)..."
 	@docker compose logs -f
 
