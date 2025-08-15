@@ -41,7 +41,11 @@ cpus = 1
 memory = "512mb"
 
 [env]
-DB_HOST = "_CHANGEME_.internal"
 APP_ENV = "qa"
+DB_HOST = "_CHANGEME_.internal"
+DB_USER = "whereis_user"
+DB_PASSWORD = "_CHANGEME_"
+TESTING_URL = "https://_CHANGME_.fly.dev"
+TESTING_TOKEN = "eagle1"
 
 # - EOF -
