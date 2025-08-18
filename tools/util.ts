@@ -3,6 +3,9 @@
  * @description Utilities for loading JSON files and calculating MD5 hashes.
  * Provides functions to read JSON from filesystem and generate MD5 checksums
  * from JSON objects using Deno's crypto module.
+ *
+ * @copyright (c) 2025, the Eagle1 authors
+ * @license BSD 3-Clause License
  */
 
 import { crypto } from "@std/crypto";

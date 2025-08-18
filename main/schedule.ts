@@ -4,6 +4,9 @@
  * This module sets up a cron job to periodically fetch in-process tracking numbers,
  * query their latest status, and update the database accordingly. It handles
  * database transactions and error logging to ensure data consistency.
+ *
+ * @copyright (c) 2025, the Eagle1 authors
+ * @license BSD 3-Clause License
  */
 import postgres from "postgresjs";
 import { sql } from "../db/dbutil.ts";

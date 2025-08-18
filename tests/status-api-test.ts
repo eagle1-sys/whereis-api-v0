@@ -21,6 +21,9 @@
  * - The returned status code matches the expected value for successful cases.
  *
  * This comprehensive test suite ensures the reliability and accuracy of the status API across different carriers and scenarios.
+ *
+ * @copyright (c) 2025, the Eagle1 authors
+ * @license BSD 3-Clause License
  */
 import { assert } from "@std/assert";
 import { TESTING_URL } from "./main-test.ts";

@@ -1,6 +1,9 @@
 /**
  * @file app.ts
  * @description A collection of functions for loading metadata from the file system.
+ *
+ * @copyright (c) 2025, the Eagle1 authors
+ * @license BSD 3-Clause License
  */
 
 import { load } from "@std/dotenv";

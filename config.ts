@@ -6,6 +6,9 @@
  * Some of these configuration values can be overridden by environment variables,
  * typically set in a .env file, such as database settings.
  * This allows for flexible configuration across different deployment environments without changing the code.
+ *
+ * @copyright (c) 2025, the Eagle1 authors
+ * @license BSD 3-Clause License
  */
 export const config = {
   app: {

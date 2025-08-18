@@ -15,6 +15,9 @@
  *
  * The test configuration is initialized using the initTestConfig function,
  * which sets up the necessary environment variables and test data.
+ *
+ * @copyright (c) 2025, the Eagle1 authors
+ * @license BSD 3-Clause License
  */
 import { assert } from "@std/assert";
 import { Sfex } from "../operators/sfex.ts";

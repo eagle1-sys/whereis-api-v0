@@ -12,6 +12,9 @@
  *
  * The test configuration, including server details and authentication token, is initialized using the initTestConfig function.
  * This setup ensures that the tests are run against the correct environment with proper authentication.
+ *
+ * @copyright (c) 2025, the Eagle1 authors
+ * @license BSD 3-Clause License
  */
 import { assert } from "@std/assert";
 import { TESTING_URL } from "./main-test.ts";

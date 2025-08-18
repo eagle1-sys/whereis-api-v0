@@ -1,4 +1,6 @@
 // Eagle1 Standard Event Status Codes
+// @copyright (c) 2025, the Eagle1 authors
+// @license BSD 3-Clause License
 {
   // Transport start
   "3000": "Transport Bill Created",                 // major

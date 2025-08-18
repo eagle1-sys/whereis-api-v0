@@ -3,6 +3,9 @@
  * @description SF Express (Sfex) API client for tracking shipments and converting route data.
  * This module provides functionality to interact with the SF Express API, retrieve shipment routes,
  * and convert them into a structured object with associated `Event` details.
+ *
+ * @copyright (c) 2025, the Eagle1 authors
+ * @license BSD 3-Clause License
  */
 
 import {

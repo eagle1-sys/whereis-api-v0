@@ -1,6 +1,9 @@
 /**
  * @file logger.ts
  * @description Provides a logger instance for consistent logging across the application
+ *
+ * @copyright (c) 2025, the Eagle1 authors
+ * @license BSD 3-Clause License
  */
 import {
   Log,

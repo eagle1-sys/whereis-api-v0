@@ -3,6 +3,9 @@
  * @description This file contains automated tests for various shipping-related operations
  * including MD5 hashing, FedEx and SF Express tracking, and API endpoint verification.
  * The tests use Deno's testing framework and assert module for validation.
+ *
+ * @copyright (c) 2025, the Eagle1 authors
+ * @license BSD 3-Clause License
  */
 
 import { assert } from "@std/assert";

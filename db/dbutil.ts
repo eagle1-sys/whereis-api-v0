@@ -1,6 +1,9 @@
 /**
  * @file dbutil.ts
  * @description Provides functions to initialize and manage PostgreSQL database connection pool
+ *
+ * @copyright (c) 2025, the Eagle1 authors
+ * @license BSD 3-Clause License
  */
 import postgres from "postgresjs";
 import { logger } from "../tools/logger.ts";

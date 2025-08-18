@@ -3,6 +3,9 @@
  * @description A TypeScript class implementation for interacting with the FedEx tracking API.
  *              Provides functionality to authenticate with the API, fetch shipment tracking details,
  *              and convert FedEx tracking data into an internal format with associated events.
+ *
+ * @copyright (c) 2025, the Eagle1 authors
+ * @license BSD 3-Clause License
  */
 
 import {

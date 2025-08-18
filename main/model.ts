@@ -1,6 +1,9 @@
 /**
  * @file model.ts
  * @description A singleton class for storing and retrieving key-value pairs where keys are numbers and values are strings.
+ *
+ * @copyright (c) 2025, the Eagle1 authors
+ * @license BSD 3-Clause License
  */
 export class StatusCode {
   /** @private Singleton instance of StatusCode */

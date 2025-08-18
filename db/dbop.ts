@@ -5,6 +5,9 @@
  * - Event tracking (insert, query)
  * - Status monitoring
  * - Tracking number management
+ *
+ *  @copyright (c) 2025, the Eagle1 authors
+ *  @license BSD 3-Clause License
  */
 
 import postgres from "postgresjs";

@@ -2,6 +2,9 @@
  * @file gateway.ts
  * @description utility module for retrieving shipment location information
  * from various carriers using their tracking IDs.
+ *
+ * @copyright (c) 2025, the Eagle1 authors
+ * @license BSD 3-Clause License
  */
 
 import { Sfex } from "../operators/sfex.ts";

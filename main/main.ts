@@ -2,6 +2,9 @@
  * @file main.ts
  * @description This module serves as the entry point for the application, handling environment loading,
  * metadata initialization, database setup, scheduling, and server startup.
+ *
+ * @copyright (c) 2025, the Eagle1 authors
+ * @license BSD 3-Clause License
  */
 import { app } from "./server.ts";
 import { syncRoutes } from "./schedule.ts";

@@ -2,6 +2,9 @@
  * @file Server.ts
  * @description Implements a Hono-based server for tracking package status and location information.
  * Handles HTTP requests, database operations, and carrier API integrations with Bearer token authentication.
+ *
+ * @copyright (c) 2025, the Eagle1 authors
+ * @license BSD 3-Clause License
  */
 
 import postgres from "postgresjs";
