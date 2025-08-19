@@ -13,6 +13,7 @@ COMPOSE_DB_SERVICE = whereis-postgres
 # --- Setup ---
 # Use bash for more advanced shell features
 SHELL := /bin/bash
+MAKEFLAGS += --no-print-directory
 
 # Define all targets that are not files as .PHONY
 .PHONY: help start build update local stop stop-remove logs init_db check_docker fly prune test
