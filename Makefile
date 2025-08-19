@@ -8,7 +8,7 @@ IMAGE_TAG  ?= latest
 IMAGE      := local/$(IMAGE_NAME):$(IMAGE_TAG)
 
 # Name of the database service in docker-compose.yaml
-COMPOSE_DB_SERVICE = pg-whereis
+COMPOSE_DB_SERVICE = whereis-postgres
 
 # --- Setup ---
 # Use bash for more advanced shell features
