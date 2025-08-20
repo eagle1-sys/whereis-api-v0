@@ -77,8 +77,12 @@ const testData = [
 ];
 
 Deno.test("Test missing auth header", async () => {
-  const url = `${TESTING_URL}/v0/whereis/fdx-779879860040`;
+  if(TESTING_URL === undefined) {
+    console.log("   Skipping test because the TESTING_URL environment variable is not set.");
+    return;
+  }
 
+  const url = `${TESTING_URL}/v0/whereis/fdx-779879860040`;
   // issue http request
   const response = await fetch(url, {
     method: "GET",
@@ -88,8 +92,12 @@ Deno.test("Test missing auth header", async () => {
 });
 
 Deno.test("Test invalid token", async () => {
-  const url = `${TESTING_URL}/v0/whereis/fdx-779879860040`;
+  if(TESTING_URL === undefined) {
+    console.log("   Skipping test because the TESTING_URL environment variable is not set.");
+    return;
+  }
 
+  const url = `${TESTING_URL}/v0/whereis/fdx-779879860040`;
   // issue http request
   const response = await fetch(url, {
     method: "GET",
@@ -102,7 +110,10 @@ Deno.test("Test invalid token", async () => {
 });
 
 Deno.test("Test whereis API", async () => {
-  const bearerToken = Deno.env.get("TESTING_TOKEN");
+  if(TESTING_URL === undefined) {
+    console.log("   Skipping test because the TESTING_URL environment variable is not set.");
+    return;
+  }
 
   for (let i = 0; i < testData.length; i++) {
     const data = testData[i];
@@ -118,6 +129,7 @@ Deno.test("Test whereis API", async () => {
     }
 
     // issue http request
+    const bearerToken = Deno.env.get("TESTING_TOKEN");
     const response = await fetch(url, {
       method: "GET",
       headers: {

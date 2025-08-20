@@ -85,6 +85,11 @@ const testData = [
 ];
 
 Deno.test("Test status API", async () => {
+  if(TESTING_URL === undefined) {
+    console.log("   Skipping test because the TESTING_URL environment variable is not set.");
+    return;
+  }
+
   for (let i = 0; i < testData.length; i++) {
     const data = testData[i];
     const input = data["input"];
