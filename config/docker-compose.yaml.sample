@@ -1,12 +1,12 @@
 services:
-  pg-whereis:
+  whereis-postgres:
     image: postgres
-    container_name: pg-whereis
+    container_name: whereis-postgres
     ports:
       - 5432:5432
     restart: always
     volumes:
-      - pg-whereis-data:/var/lib/postgresql/data
+      - whereis-postgres-data:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: whereis
       POSTGRES_USER: postgres
@@ -26,14 +26,14 @@ services:
     ports:
       - 8037:8037
     depends_on:
-      pg-whereis:
+      whereis-postgres:
         condition: service_healthy
     restart: always
     env_file:
       - ./source-api-keys.env
     environment:
       APP_ENV: dev            # dev | qa | prod
-      DB_HOST: pg-whereis
+      DB_HOST: whereis-postgres
       DB_USER: whereis_user
       DB_PASSWORD: _CHANGEME_
       TESTING_URL: http://localhost:8037
@@ -44,5 +44,5 @@ networks:
   whereis_net:
     name: whereis_net
 volumes:
-  pg-whereis-data:
-    name: pg-whereis-data
+  whereis-postgres-data:
+    name: whereis-postgres-data

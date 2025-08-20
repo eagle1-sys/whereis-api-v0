@@ -8,14 +8,15 @@ IMAGE_TAG  ?= latest
 IMAGE      := local/$(IMAGE_NAME):$(IMAGE_TAG)
 
 # Name of the database service in docker-compose.yaml
-COMPOSE_DB_SERVICE = pg-whereis
+COMPOSE_DB_SERVICE = whereis-postgres
 
 # --- Setup ---
 # Use bash for more advanced shell features
 SHELL := /bin/bash
+MAKEFLAGS += --no-print-directory
 
 # Define all targets that are not files as .PHONY
-.PHONY: help start build update local stop stop-remove logs init_db check_docker fly prune
+.PHONY: help start build update local stop stop-remove logs init_db check_docker fly prune test
 
 # Set the default target to 'help' if no target is specified
 .DEFAULT_GOAL := help
@@ -88,6 +89,10 @@ update: build ## Build whereis-api docker image and restart api and postgres ser
 	@docker compose up -d
 	@echo "=> Checking active whereis containers ..."
 	@$(MAKE) status
+
+test: check_docker ## Run 'deno task test' in the api container
+	@echo "=> Running 'deno task test' within api container ..."
+	@docker exec -it whereis-api-v0 deno task test
 
 status: check_docker ## Show the status of the api and postgres containers
 	@docker ps -a --format "table {{.Image}}\t{{.Status}}\t{{.Ports}}\t{{.Names}}" --filter "name=whereis"
