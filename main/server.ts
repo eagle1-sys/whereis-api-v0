@@ -39,7 +39,7 @@ declare module "hono" {
 /**
  * Server class that manages HTTP endpoints for tracking services
  */
- const app = new Hono();
+const app = new Hono();
 
 // Bearer Auth middleware
 const customBearerAuth = async (c: Context, next: Next) => {
@@ -54,18 +54,26 @@ const customBearerAuth = async (c: Context, next: Next) => {
     throw new UserError("401-02");
   }
 
+  if (token === "eagle1") {
+    // Extract tracking ID from the URL
+    const trackingId = c.req.param("id") ?? "";
+    if (!trackingId.startsWith("eg1-")) {
+      throw new UserError("403-01"); // Forbidden - token doesn't have permission for this resource
+    }
+  }
+
   // if token is valid
   await next();
 };
 
 app.use(
-    "/*",
-    cors({
-      origin: "*",
-      allowMethods: ["GET", "POST", "OPTIONS"],
-      allowHeaders: ["Content-Type", "Authorization"],
-      credentials: true,
-    }),
+  "/*",
+  cors({
+    origin: "*",
+    allowMethods: ["GET", "POST", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  }),
 );
 
 // Extend Context class
@@ -81,10 +89,10 @@ app.use("*", async (c: Context, next: Next) => {
 app.use("*", async (c: Context, next: Next) => {
   const pathName = new URL(c.req.url).pathname;
   if (
-      pathName.endsWith("/whereis/") ||
-      pathName.endsWith("/whereis") ||
-      pathName.endsWith("/status/") ||
-      pathName.endsWith("/status")
+    pathName.endsWith("/whereis/") ||
+    pathName.endsWith("/whereis") ||
+    pathName.endsWith("/status/") ||
+    pathName.endsWith("/status")
   ) {
     throw new UserError("400-01");
   }
@@ -120,8 +128,8 @@ app.get("/v0/status/:id?", async (c: Context) => {
   const queryParams = c.req.query();
 
   const validParams: string[] = ApiParams.getParamNames(
-      "status",
-      trackingID.operator,
+    "status",
+    trackingID.operator,
   );
   const validParamSet = new Set(validParams);
   const invalidParams = validateQueryParams(queryParams, validParamSet);
@@ -147,12 +155,12 @@ app.get("/v0/whereis/:id", async (c: Context) => {
   const queryParams = c.req.query();
   // Validate query parameters
   const validParamsSet: string[] = ApiParams.getParamNames(
-      "whereis",
-      trackingID.operator,
+    "whereis",
+    trackingID.operator,
   );
   const invalidParams = validateQueryParams(
-      queryParams,
-      new Set(validParamsSet),
+    queryParams,
+    new Set(validParamsSet),
   );
   if (invalidParams.length > 0) {
     return c.sendError("400-07", { param: invalidParams.join(",") });
@@ -162,19 +170,21 @@ app.get("/v0/whereis/:id", async (c: Context) => {
   const fullData = queryParams.fulldata === "true";
 
   const entity: Entity | undefined = refresh
-      ? await refreshEntityFromProvider(trackingID, parsedParams)
-      : await getEntityFromDbOrProvider(
-          trackingID,
-          parsedParams,
-          queryParams,
-      );
+    ? await refreshEntityFromProvider(trackingID, parsedParams)
+    : await getEntityFromDbOrProvider(
+      trackingID,
+      parsedParams,
+      queryParams,
+    );
 
   if (!entity) {
     throw new UserError(refresh ? "404-03" : "404-01");
   }
 
   const elapsed = performance.now() - start;
-  const outputJSON = entity.toJSON(fullData) as { entity: { additional?: Record<string, unknown> } };
+  const outputJSON = entity.toJSON(fullData) as {
+    entity: { additional?: Record<string, unknown> };
+  };
 
   // Set the processing time in the outputJSON
   if (!outputJSON.entity.additional) {
@@ -228,53 +238,53 @@ app.onError((err: unknown, c: Context) => {
 });
 
 async function refreshEntityFromProvider(
-    trackingID: TrackingID,
-    parsedParams: Record<string, string>,
+  trackingID: TrackingID,
+  parsedParams: Record<string, string>,
 ): Promise<Entity | undefined> {
   const entities = await requestWhereIs(
-      trackingID.operator,
-      [trackingID],
-      parsedParams,
-      "manual-pull",
+    trackingID.operator,
+    [trackingID],
+    parsedParams,
+    "manual-pull",
   );
   if (entities.length === 1) {
-  await sql.begin(async (sql: ReturnType<typeof postgres>) => {
-    // Delete and insert the entity to ensure the latest data
-    await deleteEntity(sql, trackingID);
-    await insertEntity(sql, entities[0] as Entity);
-  });
-}
-return entities.length === 0 ? undefined : entities[0];
+    await sql.begin(async (sql: ReturnType<typeof postgres>) => {
+      // Delete and insert the entity to ensure the latest data
+      await deleteEntity(sql, trackingID);
+      await insertEntity(sql, entities[0] as Entity);
+    });
+  }
+  return entities.length === 0 ? undefined : entities[0];
 }
 
 async function getEntityFromDbOrProvider(
-    trackingID: TrackingID,
-    parsedParams: Record<string, string>,
-    queryParams: Record<string, string>,
+  trackingID: TrackingID,
+  parsedParams: Record<string, string>,
+  queryParams: Record<string, string>,
 ): Promise<Entity | undefined> {
   let entity = await queryEntity(sql, trackingID);
 
   if (!entity) {
-  const entities = await requestWhereIs(
+    const entities = await requestWhereIs(
       trackingID.operator,
       [trackingID],
       parsedParams,
       "manual-pull",
-  );
-  if (entities.length === 1) {
-    entity = entities[0];
-    await sql.begin(async (sql: ReturnType<typeof postgres>) => {
-      await insertEntity(sql, entity as Entity);
-    });
-  }
-} else if (
+    );
+    if (entities.length === 1) {
+      entity = entities[0];
+      await sql.begin(async (sql: ReturnType<typeof postgres>) => {
+        await insertEntity(sql, entity as Entity);
+      });
+    }
+  } else if (
     trackingID.operator === "sfex" &&
     entity.params?.phonenum !== queryParams.phonenum
-) {
-  throw new UserError("400-06");
-}
+  ) {
+    throw new UserError("400-06");
+  }
 
-return entity;
+  return entity;
 }
 
 /**
@@ -291,15 +301,15 @@ return entity;
  * @throws Will throw an error if there's an issue with database operations.
  */
 async function getStatus(
-    trackingID: TrackingID,
-    queryParams: Record<string, string>,
+  trackingID: TrackingID,
+  queryParams: Record<string, string>,
 ): Promise<Record<string, unknown> | undefined> {
   // Try to get entity from database first
   const entity = await queryEntity(sql, trackingID);
   if (entity) {
     if (
-        trackingID.operator === "sfex" &&
-        entity.params?.phonenum !== queryParams.phonenum
+      trackingID.operator === "sfex" &&
+      entity.params?.phonenum !== queryParams.phonenum
     ) {
       throw new UserError("400-06");
     }
@@ -312,21 +322,21 @@ async function getStatus(
     [trackingID],
     queryParams,
     "manual-pull",
-);
+  );
 
-if (result.length === 0) {
-  throw new UserError("404-01"); // Not found in data provider
-}
+  if (result.length === 0) {
+    throw new UserError("404-01"); // Not found in data provider
+  }
 
-try {
-  await sql.begin(async (sql: ReturnType<typeof postgres>) => {
-    await insertEntity(sql, result[0] as Entity);
-    return true;
-  });
-} catch (error) {
-  throw error;
-}
-return (result[0] as Entity).getLastStatus();
+  try {
+    await sql.begin(async (sql: ReturnType<typeof postgres>) => {
+      await insertEntity(sql, result[0] as Entity);
+      return true;
+    });
+  } catch (error) {
+    throw error;
+  }
+  return (result[0] as Entity).getLastStatus();
 }
 
 /**
@@ -339,15 +349,15 @@ return (result[0] as Entity).getLastStatus();
  *   - A Record of additional query parameters (undefined if parsing fails).
  */
 function parseURL(
-    req: HonoRequest,
+  req: HonoRequest,
 ): [TrackingID, Record<string, string>] {
   // Carrier-TrackingNumber
   const id = req.param("id") ?? "";
   const trackingID = TrackingID.parse(id);
 
   const queryParams = getExtraParams(
-      req,
-      trackingID.operator,
+    req,
+    trackingID.operator,
   );
 
   if (trackingID.operator == "sfex") {
@@ -367,18 +377,18 @@ function parseURL(
  * @returns Record of extra parameters
  */
 function getExtraParams(
-    req: HonoRequest,
-    operator: string,
+  req: HonoRequest,
+  operator: string,
 ): Record<string, string> {
   if ("sfex" == operator) {
-  return { phonenum: req.query("phonenum") ?? "" };
-}
-return {};
+    return { phonenum: req.query("phonenum") ?? "" };
+  }
+  return {};
 }
 
 function validateQueryParams(
-    params: Record<string, string>,
-    validParams?: Set<string>,
+  params: Record<string, string>,
+  validParams?: Set<string>,
 ): string[] {
   const invalidParams: string[] = [];
 
@@ -418,20 +428,20 @@ function getHttpStatusCode(errorCode: string): number {
 }
 
 function sendError(
-    c: Context,
-    code: string,
-    params?: Record<string, string>,
+  c: Context,
+  code: string,
+  params?: Record<string, string>,
 ): Response {
   const resp = {
     error: code,
     message: ErrorRegistry.getMessage(code, params),
   };
   return c.body(
-      JSON.stringify(resp, null, 2),
-      getHttpStatusCode(code) as ContentfulStatusCode,
-      {
-        "Content-Type": "application/json",
-      },
+    JSON.stringify(resp, null, 2),
+    getHttpStatusCode(code) as ContentfulStatusCode,
+    {
+      "Content-Type": "application/json",
+    },
   );
 }
 

@@ -182,7 +182,7 @@ export class TrackingID {
   trackingNum: string;
 
   /** @private List of supported carriers */
-  static operators: string[] = ["fdx", "sfex"];
+  static operators: string[] = ["fdx", "sfex", "eg1"];
 
   /**
    * @private Constructor for creating a TrackingID instance.
