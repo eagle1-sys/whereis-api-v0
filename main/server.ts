@@ -228,7 +228,7 @@ app.get("/app-health", async (c: Context) => {
 // error handling
 app.onError((err: unknown, c: Context) => {
   if (err instanceof UserError) {
-    return c.sendError(err.code);
+    return c.sendError(err.code, err.params);
   }
 
   const errorMessage = err instanceof Error ? err.message : String(err);

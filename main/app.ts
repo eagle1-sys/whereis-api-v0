@@ -13,9 +13,11 @@ import {
   ApiParams,
   DataUpdateMethod,
   ErrorRegistry,
-  ExceptionCode, OperatorRegistry,
+  ExceptionCode,
+  OperatorRegistry,
   StatusCode,
 } from "./model.ts";
+import { setOperatorStatus } from "./gateway.ts";
 
 /**
  * Loads environment variables from a `.env` file and sets them in `Deno.env`.
@@ -68,14 +70,14 @@ export async function loadMetaData(): Promise<void> {
   );
 
   const apiParams: Record<string, unknown> = await loadJSONFromFs(
-      "./metadata/api-params.jsonc",
+    "./metadata/api-params.jsonc",
   );
   ApiParams.initialize(
-      apiParams as Record<string, Record<string, string>>,
+    apiParams as Record<string, Record<string, string>>,
   );
 
   const operators: Record<string, unknown> = await loadJSONFromFs(
-      "./metadata/operators.jsonc"
+    "./metadata/operators.jsonc",
   );
   OperatorRegistry.initialize(operators);
 
@@ -88,4 +90,27 @@ export async function loadMetaData(): Promise<void> {
     "./metadata/error-codes.jsonc",
   );
   ErrorRegistry.initialize(errors);
+}
+
+/**
+ * Initializes the status of various operators based on environment variables.
+ *
+ * This function checks for the presence of specific environment variables
+ * and sets the status of corresponding operators to active (true) if the
+ * required credentials are available.
+ *
+ * Currently, it initializes the status for two operators:
+ * - 'fdx': Activated if FDX_CLIENT_ID and FDX_CLIENT_SECRET are set.
+ * - 'sfex': Activated if SFEX_PARTNER_ID and SFEX_CHECK_WORD are set.
+ *
+ * @returns {void} This function doesn't return a value.
+ */
+export function initializeOperatorStatus(): void {
+  if (Deno.env.get("FDX_CLIENT_ID") && Deno.env.get("FDX_CLIENT_SECRET")) {
+    setOperatorStatus("fdx", true);
+  }
+
+  if (Deno.env.get("SFEX_PARTNER_ID") && Deno.env.get("SFEX_CHECK_WORD")) {
+    setOperatorStatus("sfex", true);
+  }
 }

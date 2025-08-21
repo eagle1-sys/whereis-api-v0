@@ -8,7 +8,7 @@
  */
 import { app } from "./server.ts";
 import { syncRoutes } from "./schedule.ts";
-import { loadEnv, loadMetaData } from "./app.ts";
+import {initializeOperatorStatus, loadEnv, loadMetaData} from "./app.ts";
 import { initConnection } from "../db/dbutil.ts";
 import { getLogger  } from "../tools/logger.ts";
 
@@ -29,6 +29,8 @@ async function main(): Promise<void> {
 
   await loadMetaData(); // load file system data
   await initConnection();
+
+  initializeOperatorStatus(); // initialize operator status
 
   /**
    * Starts a scheduler that periodically synchronizes tracking routes.

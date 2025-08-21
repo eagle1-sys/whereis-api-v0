@@ -607,9 +607,12 @@ export class Event {
 
 export class UserError extends Error {
   code: string;
-  constructor(code: string) {
+  params?: Record<string, string>;
+
+  constructor(code: string, params?: Record<string, string>) {
     super(ErrorRegistry.getMessage(code));
     this.code = code;
+    this.params = params;
   }
 }
 
@@ -776,11 +779,13 @@ export class OperatorRegistry {
   }
 
   /**
-   * Gets all operator codes.
+   * Gets all active operator codes.
    * @returns {string[]} An array of all operator codes.
    */
-  public static getAllOperatorCodes(): string[] {
-    return Array.from(this.instance.data.keys());
+  public static getActiveOperatorCodes(): string[] {
+    return Array.from(this.instance.data.entries())
+        .filter(([_, details]) => details.active === true)
+        .map(([code, _]) => code);
   }
 
   /**

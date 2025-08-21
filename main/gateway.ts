@@ -9,7 +9,28 @@
 
 import { Sfex } from "../operators/sfex.ts";
 import { Fdx } from "../operators/fdx.ts";
-import { Entity, TrackingID } from "./model.ts";
+import { Entity, OperatorRegistry, TrackingID, UserError } from "./model.ts";
+
+// Define a type for the operator status
+type OperatorStatus = {
+  [key: string]: boolean;
+};
+
+// Define the operator status variable
+const operatorStatus: OperatorStatus = {};
+
+/**
+ * Sets the status of an operator
+ * @param operator - The operator code
+ * @param status - The status to set (true for on, false for off)
+ */
+export function setOperatorStatus(operator: string, status: boolean): void {
+  if (OperatorRegistry.getActiveOperatorCodes().includes(operator)) {
+    operatorStatus[operator] = status;
+  } else {
+    throw new Error(`Invalid operator: ${operator}`);
+  }
+}
 
 /**
  * Asynchronously retrieves the location information for a given tracking ID.
@@ -28,6 +49,11 @@ export async function requestWhereIs(
   extraParams: Record<string, string>,
   updateMethod: string,
 ): Promise<Entity[]> {
+  // Check if the operator is active
+  if (!(operator in operatorStatus)) {
+    throw new UserError("400-13", { "operator": operator }); // Bad request: Service is unavailable for operator
+  }
+
   let entities: Entity[] = [];
   switch (operator) {
     case "sfex":
