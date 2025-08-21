@@ -18,7 +18,7 @@ import { requestWhereIs } from "./gateway.ts";
 import {
   ApiParams,
   Entity,
-  ErrorRegistry,
+  ErrorRegistry, OperatorRegistry,
   TrackingID,
   UserError,
 } from "./model.ts";
@@ -193,6 +193,15 @@ app.get("/v0/whereis/:id", async (c: Context) => {
   outputJSON.entity.additional.processingTimeMs = elapsed.toFixed(3);
 
   return c.json(outputJSON, 200, {
+    "Content-Type": "application/json; charset=utf-8",
+  });
+});
+
+app.get("/operators", (c: Context) => {
+  const output = {
+    operators: OperatorRegistry.getActiveOperators()
+  };
+  return c.json(output, 200, {
     "Content-Type": "application/json; charset=utf-8",
   });
 });

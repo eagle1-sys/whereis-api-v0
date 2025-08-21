@@ -13,7 +13,7 @@ import {
   ApiParams,
   DataUpdateMethod,
   ErrorRegistry,
-  ExceptionCode,
+  ExceptionCode, OperatorRegistry,
   StatusCode,
 } from "./model.ts";
 
@@ -73,6 +73,11 @@ export async function loadMetaData(): Promise<void> {
   ApiParams.initialize(
       apiParams as Record<string, Record<string, string>>,
   );
+
+  const operators: Record<string, unknown> = await loadJSONFromFs(
+      "./metadata/operators.jsonc"
+  );
+  OperatorRegistry.initialize(operators);
 
   const exception: Record<string, unknown> = await loadJSONFromFs(
     "./metadata/exception-codes.jsonc",

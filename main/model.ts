@@ -181,8 +181,6 @@ export class TrackingID {
   operator: string;
   trackingNum: string;
 
-  /** @private List of supported carriers */
-  static operators: string[] = ["fdx", "sfex", "eg1"];
 
   /**
    * @private Constructor for creating a TrackingID instance.
@@ -218,7 +216,7 @@ export class TrackingID {
       throw new UserError("400-05");
     }
 
-    if (!this.operators.includes(operator)) {
+    if (!OperatorRegistry.include(operator)) {
       throw new UserError("400-04");
     }
 
@@ -738,6 +736,66 @@ export class ApiParams {
 
     return paraNames;
   }
+}
+
+export class OperatorRegistry {
+
+  private static operators: string[] ;
+  /** @private Singleton instance of OperatorRegistry */
+  private static instance: OperatorRegistry = new OperatorRegistry();
+
+  /** @private Map storing operator codes as keys and their details as values */
+  private data: Map<string, Record<string, unknown>> = new Map();
+
+  private constructor() {}
+
+  /**
+   * Sets an operator's details in the registry.
+   * @param {string} code - The operator code to associate with the details.
+   * @param {Record<string, unknown>} details - The details of the operator.
+   */
+  private set(code: string, details: Record<string, unknown>): void {
+    this.data.set(code, details);
+  }
+
+  /**
+   * Initializes the OperatorRegistry with a record of operator codes and their details.
+   * @param {Record<string, unknown>} record - An object with operator codes as keys and their details as values.
+   */
+  public static initialize(record: Record<string, unknown>): void {
+    for (const [code, details] of Object.entries(record)) {
+      if (typeof details === 'object' && details !== null) {
+        this.instance.set(code, details as Record<string, unknown>);
+      }
+    }
+    this.operators = Array.from(this.instance.data.keys());
+  }
+
+  public static include( operator: string): boolean {
+    return this.operators.includes(operator);
+  }
+
+  /**
+   * Gets all operator codes.
+   * @returns {string[]} An array of all operator codes.
+   */
+  public static getAllOperatorCodes(): string[] {
+    return Array.from(this.instance.data.keys());
+  }
+
+  /**
+   * Gets all active operator codes and names.
+   * @returns {Array<{code: string, name: string}>} An array of objects containing the code and name of all active operators.
+   */
+  public static getActiveOperators(): Array<{code: string, name: string}> {
+    return Array.from(this.instance.data.entries())
+        .filter(([_, details]) => details.active === true)
+        .map(([code, details]) => ({
+          code: code,
+          name: details.name as string
+        }));
+  }
+
 }
 
 export type JSONValue =
