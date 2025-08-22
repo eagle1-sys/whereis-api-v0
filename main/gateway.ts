@@ -19,6 +19,10 @@ type OperatorStatus = {
 // Define the operator status variable
 const operatorStatus: OperatorStatus = {};
 
+export function isOperatorActive(operator: string): boolean {
+    return operatorStatus[operator] === true;
+}
+
 /**
  * Sets the status of an operator
  * @param operator - The operator code

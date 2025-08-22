@@ -13,8 +13,14 @@
  */
 import { assertEquals } from "@std/assert";
 import { Fdx } from "../operators/fdx.ts";
+import {isOperatorActive} from "../main/gateway.ts";
 
 Deno.test("Test get token from FedEx", async () => {
+  if(!isOperatorActive('fdx') ) {
+    console.log("   The test was skipped because the FedEx API keys are not configured.");
+    return;
+  }
+
   const token = await Fdx.getToken();
   assertEquals(token.length, 1269, "FedEx token should have a length of 1269 characters");
 });

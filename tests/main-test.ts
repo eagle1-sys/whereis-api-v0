@@ -9,7 +9,7 @@
  */
 
 import { assert } from "@std/assert";
-import { loadEnv, loadMetaData } from "../main/app.ts";
+import {initializeOperatorStatus, loadEnv, loadMetaData} from "../main/app.ts";
 
 export function getHttpStatusFromErrorCode(errorCode: string): number {
   const match = errorCode.match(/^(\d{3})/);
@@ -43,6 +43,8 @@ export function assertErrorCode(
 // Load environment variables and metadata
 await loadEnv();
 await loadMetaData();
+
+initializeOperatorStatus(); // initialize operator status
 
 export const TESTING_URL = Deno.env.get("TESTING_URL");
 

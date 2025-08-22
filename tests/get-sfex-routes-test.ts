@@ -21,6 +21,7 @@
  */
 import { assert } from "@std/assert";
 import { Sfex } from "../operators/sfex.ts";
+import {isOperatorActive} from "../main/gateway.ts";
 
 const testData = [
   {
@@ -38,6 +39,11 @@ const testData = [
 ];
 
 Deno.test("Test get scan events from Sfex", async () => {
+  if(!isOperatorActive('sfex') ) {
+    console.log("   The test was skipped because the SF Express API keys are not configured.");
+    return;
+  }
+
   for (let i = 0; i < testData.length; i++) {
     const data = testData[i];
     const input = data["input"];

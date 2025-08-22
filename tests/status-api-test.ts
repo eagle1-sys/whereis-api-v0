@@ -1,5 +1,5 @@
 /**
- * @file status_test.ts
+ * @file status-api-test.ts
  * @description This file contains integration tests for the "status" API endpoint of the shipment tracking system.
  * It tests the API's ability to retrieve the current status of shipments for various carriers, including SF Express and FedEx.
  *
@@ -28,6 +28,7 @@
 import { assert } from "@std/assert";
 import { TESTING_URL } from "./main-test.ts";
 import { assertErrorCode } from "./main-test.ts";
+import {isOperatorActive} from "../main/gateway.ts";
 
 const testData = [
   {
@@ -95,6 +96,12 @@ Deno.test("Test status API", async () => {
     const input = data["input"];
     const output = data["output"];
     const trackingId: string = input["id"];
+    if((trackingId.startsWith("fdx-") && !isOperatorActive("fdx") ||
+        (trackingId.startsWith("sfex-") && !isOperatorActive("sfex")))) {
+      console.log(`   Skipping test for ${trackingId} because the operator API keys are not configured.`);
+      continue;
+    }
+
     const extra: { [key: string]: string | undefined } | undefined =
       input["extra"];
     let url = `${TESTING_URL}/v0/status/${trackingId}`;

@@ -18,6 +18,7 @@
  */
 import { assert } from "@std/assert";
 import { Fdx } from "../operators/fdx.ts";
+import {isOperatorActive} from "../main/gateway.ts";
 
 const testDatas = [
   // {
@@ -35,6 +36,11 @@ const testDatas = [
 ];
 
 Deno.test("Test get scan events from FedEx", async () => {
+  if(!isOperatorActive('fdx') ) {
+    console.log("   The test was skipped because the FedEx API keys are not configured.");
+    return;
+  }
+
   for (let i = 0; i < testDatas.length; i++) {
     const data = testDatas[i];
     const input = data["input"];
