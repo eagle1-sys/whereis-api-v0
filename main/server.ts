@@ -14,11 +14,12 @@ import { cors } from "hono/cors";
 import { sql } from "../db/dbutil.ts";
 import { logger } from "../tools/logger.ts";
 import { deleteEntity, isTokenValid } from "../db/dbop.ts";
-import { requestWhereIs } from "./gateway.ts";
+import { isOperatorActive, requestWhereIs } from "./gateway.ts";
 import {
   ApiParams,
   Entity,
-  ErrorRegistry, OperatorRegistry,
+  ErrorRegistry,
+  OperatorRegistry,
   TrackingID,
   UserError,
 } from "./model.ts";
@@ -57,8 +58,12 @@ const customBearerAuth = async (c: Context, next: Next) => {
   if (token === "eagle1") {
     // Extract tracking ID from the URL
     const trackingId = c.req.param("id") ?? "";
-    if (!trackingId.startsWith("eg1-")) {
-      throw new UserError("403-01"); // Forbidden - token doesn't have permission for this resource
+    const idx = trackingId.trim().indexOf("-");
+    if (idx > 0) {
+      const operatorCode = trackingId.substring(0, idx);
+      if (isOperatorActive(operatorCode)) {
+        throw new UserError("403-01"); // Forbidden - token doesn't have permission for this resource
+      }
     }
   }
 
@@ -199,7 +204,7 @@ app.get("/v0/whereis/:id", async (c: Context) => {
 
 app.get("/operators", (c: Context) => {
   const output = {
-    operators: OperatorRegistry.getActiveOperators()
+    operators: OperatorRegistry.getActiveOperators(),
   };
   return c.json(output, 200, {
     "Content-Type": "application/json; charset=utf-8",
