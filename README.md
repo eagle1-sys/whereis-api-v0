@@ -1,4 +1,5 @@
 # Eagle1 whereis API
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/eagle1-sys/whereis-api-v0)
 
 ## Goal
 **Making it easy** for developers to track any shipment (with any logistics provider), using a simple API query.
