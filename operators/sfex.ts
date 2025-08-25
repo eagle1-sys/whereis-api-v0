@@ -360,10 +360,11 @@ export class Sfex {
     const status: number = Sfex.getStatusCode(entity, route);
 
     const event: Event = new Event();
+    const timeZone = config.sfex.dataSourceTimezone;
     // acceptTime format: 2024-10-26 06:12:43
     const acceptTime: string = route["acceptTime"] as string;
-    // convert to isoStringWithTimezone : "2024-10-26T06:12:43+08:00"
-    const eventTime: string = acceptTime.replace(" ", "T") + "+08:00";
+    // eg: convert to isoStringWithTimezone : "2024-10-26T06:12:43+08:00"
+    const eventTime: string = acceptTime.replace(" ", "T") + this.formatTimezoneOffset(timeZone);
     const date = new Date(eventTime);
     const secondsSinceEpoch = Math.floor(date.getTime() / 1000);
     event.eventId =
@@ -393,6 +394,17 @@ export class Sfex {
     return event;
   }
 
+  /**
+   * Creates a supplementary event for tracking purposes.
+   * This function is used to generate additional events that may be missing in the original data,
+   * particularly for customs clearance scenarios.
+   *
+   * @param trackingId - The tracking ID object containing the tracking number and other identifiers.
+   * @param status - The status code for the supplementary event.
+   * @param baseEventTime - The date of the reference event in ISO 8601 format(2024-10-26T06:12:43+08:00).
+   * @param where - The location information for the supplementary event.
+   * @returns An Event object representing the supplementary tracking event.
+   */
   private static createSupplementEvent(
     trackingId: TrackingID,
     status: number,
@@ -401,13 +413,14 @@ export class Sfex {
   ): Event {
     const event: Event = new Event();
     const date = new Date(baseEventTime);
+    const timeZone = config.sfex.dataSourceTimezone;
     // Set supplement event time 1 second before the base event
     date.setMilliseconds(date.getMilliseconds() - 1000);
     const secondsSinceEpoch = Math.floor(date.getTime() / 1000);
-    // Adjust for +08:00 timezone
-    const utcDate = new Date(date.getTime() + (8 * 60 * 60 * 1000));
+    // Adjust for timezone defined in the configuration
+    const utcDate = new Date(date.getTime() + (timeZone * 60 * 60 * 1000));
     // Format the date to "2024-10-26T06:12:43+08:00"
-    const formattedDate = utcDate.toISOString().replace(/\.\d{3}Z$/, '+08:00');
+    const formattedDate = utcDate.toISOString().replace(/\.\d{3}Z$/, this.formatTimezoneOffset(timeZone));
 
     event.eventId =
       `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
@@ -427,6 +440,22 @@ export class Sfex {
     event.sourceData = {};
 
     return event;
+  }
+
+  /**
+   * Formats a timezone offset into a string representation.
+   *
+   * @param offset - The timezone offset in hours. Positive values represent offsets ahead of UTC,
+   *                 while negative values represent offsets behind UTC.
+   * @returns A string representation of the timezone offset in the format "+HH:MM" or "-HH:MM".
+   *          The hours are always two digits, and the minutes are always "00".
+   */
+  private static formatTimezoneOffset(offset: number): string {
+    const sign = offset >= 0 ? '+' : '-';
+    const absOffset = Math.abs(offset);
+    const hours = String(Math.floor(absOffset)).padStart(2, '0');
+    const minutes = '00';
+    return `${sign}${hours}:${minutes}`;
   }
 
 }

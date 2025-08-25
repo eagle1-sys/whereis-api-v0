@@ -24,5 +24,6 @@ export const config = {
   },
   sfex: {
     apiUrl: "https://bspgw.sf-express.com/std/service",
+    dataSourceTimezone: +8
   },
 };
