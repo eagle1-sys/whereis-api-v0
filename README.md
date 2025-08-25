@@ -97,7 +97,7 @@ const response = await fetch(url, {
 
 ---
 
-# Deploying locally using docker containers
+# Getting started
 
 Here’s the gist for deploying Eagle1 locally using Docker containers. For step‑by‑step instructions, see the [How-to Guide](https://github.com/eagle1-sys/whereis-api-v0/wiki/How-to-deploy-locally-using-Docker).
 
