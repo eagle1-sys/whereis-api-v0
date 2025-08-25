@@ -8,7 +8,7 @@ Since different logistics providers have their own APIs and data formats, integr
 
 ## Scope
 1. This prototype is written in TypeScript and runs on the [Deno runtime](https://deno.com).
-2. We have defined [standard status codes](https://github.com/eagle1-sys/whereis-api-v0/blob/main/metadata/status_codes.jsonc) and consistent format for global logistics data.
+2. We have defined [standard status codes](https://github.com/eagle1-sys/whereis-api-v0/blob/main/metadata/status-codes.jsonc) and consistent format for global logistics data.
 3. Initially it supports two logistics operators: FedEx and SF Express, with a [future roadmap](https://github.com/eagle1-sys/whereis-api-v0/discussions/97) planned. Code review is on [DeepWiki](https://deepwiki.com/eagle1-sys/whereis-api-v0).
 
 ## Examples
