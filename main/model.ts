@@ -216,11 +216,12 @@ export class TrackingID {
       throw new UserError("400-05");
     }
 
-    if (!OperatorRegistry.include(operator)) {
+    const lowerCaseOperator = operator.toLowerCase();
+    if (!OperatorRegistry.include(lowerCaseOperator)) {
       throw new UserError("400-04");
     }
 
-    switch (operator) {
+    switch (lowerCaseOperator) {
       case "fdx":
         this.checkFedExTrackingNum(trackingNum);
         break;
@@ -229,7 +230,7 @@ export class TrackingID {
         break;
     }
 
-    return new TrackingID(operator, trackingNum);
+    return new TrackingID(lowerCaseOperator, trackingNum);
   }
 
   /**
