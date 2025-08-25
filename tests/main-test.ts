@@ -20,13 +20,13 @@ export function getHttpStatusFromErrorCode(errorCode: string): number {
 export function assertErrorCode(
   responseStatus: number,
   responseJSON: Record<string, unknown>,
-  output: Record<string, unknown>,
+  expectedOutput: Record<string, unknown>,
 ) {
   const hasOwnProperty = Object.prototype.hasOwnProperty;
-  const expectedStatus = getHttpStatusFromErrorCode(output.error as string);
+  const expectedStatus = getHttpStatusFromErrorCode(expectedOutput.error as string);
   assert(
     responseStatus === expectedStatus,
-    `Expected HTTP status ${expectedStatus}, but got ${responseStatus}`,
+    `Expected HTTP status ${expectedStatus}, but received ${responseStatus} in the response ${JSON.stringify(responseJSON)}`,
   );
 
   assert(
@@ -35,8 +35,8 @@ export function assertErrorCode(
   );
 
   assert(
-    responseJSON.error === output.error,
-    `Expected error "${output.error}", but got "${responseJSON.error}"`,
+    responseJSON.error === expectedOutput.error,
+    `Expected error "${expectedOutput.error}", but got "${responseJSON.error}"`,
   );
 }
 
