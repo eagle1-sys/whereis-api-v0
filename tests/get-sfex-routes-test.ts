@@ -21,7 +21,6 @@
  */
 import { assert } from "@std/assert";
 import { Sfex } from "../operators/sfex.ts";
-import {isOperatorActive} from "../main/gateway.ts";
 
 const testData = [
   {
@@ -38,20 +37,18 @@ const testData = [
   },
 ];
 
-Deno.test("Test get scan events from Sfex", async () => {
-  if(!isOperatorActive('sfex') ) {
-    console.log("   The test was skipped because the SF Express API keys are not configured.");
-    return;
-  }
+export function getRoutesFromSfexTest() {
+  Deno.test("Test get scan events from Sfex", async () => {
+    for (let i = 0; i < testData.length; i++) {
+      const data = testData[i];
+      const input = data["input"];
+      const output = data["output"];
+      const response = await Sfex.getRoute(input["trackingNum"], input["phone"]);
+      const apiResultData = JSON.parse(response["apiResultData"] as string);
+      const routeResps = apiResultData["msgData"]["routeResps"];
+      const routes = routeResps[0]["routes"];
+      assert(routes.length == output["routeNum"]);
+    }
+  });
+}
 
-  for (let i = 0; i < testData.length; i++) {
-    const data = testData[i];
-    const input = data["input"];
-    const output = data["output"];
-    const response = await Sfex.getRoute(input["trackingNum"], input["phone"]);
-    const apiResultData = JSON.parse(response["apiResultData"] as string);
-    const routeResps = apiResultData["msgData"]["routeResps"];
-    const routes = routeResps[0]["routes"];
-    assert(routes.length == output["routeNum"]);
-  }
-});

@@ -19,7 +19,7 @@
 import { assert } from "@std/assert";
 import { WHEREIS_API_URL } from "./main-test.ts";
 import { assertErrorCode } from "./main-test.ts";
-import {isOperatorActive} from "../main/gateway.ts";
+import { isOperatorActive } from "../main/gateway.ts";
 
 const testData = [
   {
@@ -77,76 +77,62 @@ const testData = [
   },
 ];
 
-Deno.test("Test missing auth header", async () => {
-  if(WHEREIS_API_URL === undefined) {
-    console.log("   Skipping test because the WHEREIS_API_URL environment variable is not set.");
-    return;
-  }
-
-  const url = `${WHEREIS_API_URL}/v0/whereis/fdx-779879860040`;
-  // issue http request
-  const response = await fetch(url, {
-    method: "GET",
-  });
-
-  await assertResponse(response, { "error": "401-01" });
-});
-
-Deno.test("Test invalid token", async () => {
-  if(WHEREIS_API_URL === undefined) {
-    console.log("   Skipping test because the TESTING_URL environment variable is not set.");
-    return;
-  }
-
-  const url = `${WHEREIS_API_URL}/v0/whereis/fdx-779879860040`;
-  // issue http request
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "Authorization": `Bearer JUNK`,
-    },
-  });
-
-  await assertResponse(response, { "error": "401-02" });
-});
-
-Deno.test("Test whereis API", async () => {
-  if(WHEREIS_API_URL === undefined) {
-    console.log("   Skipping test because the TESTING_URL environment variable is not set.");
-    return;
-  }
-
-  for (let i = 0; i < testData.length; i++) {
-    const data = testData[i];
-    const input = data["input"];
-    const output = data["output"];
-    const trackingId: string = input["id"];
-    if((trackingId.startsWith("fdx-") && !isOperatorActive("fdx") ||
-        (trackingId.startsWith("sfex-") && !isOperatorActive("sfex")))) {
-      console.log(`   Skipping test for ${trackingId} because the operator API keys are not configured.`);
-      continue;
-    }
-
-    const extra: { [key: string]: string | undefined } | undefined =
-      input["extra"];
-    let url = `${WHEREIS_API_URL}/v0/whereis/${trackingId}`;
-    if (extra !== undefined) {
-      const params = new URLSearchParams(extra as Record<string, string>);
-      url = url + "?" + params.toString();
-    }
-
+export function whereisApiTest() {
+  Deno.test("Test missing WHEREIS_API_KEY", async () => {
+    const url = `${WHEREIS_API_URL}/v0/whereis/fdx-779879860040`;
     // issue http request
-    const apiKey = Deno.env.get("WHEREIS_API_KEY");
+    const response = await fetch(url, {
+      method: "GET",
+    });
+
+    await assertResponse(response, { "error": "401-01" });
+  });
+
+  Deno.test("Test invalid WHEREIS_API_KEY", async () => {
+    const url = `${WHEREIS_API_URL}/v0/whereis/fdx-779879860040`;
+    // issue http request
     const response = await fetch(url, {
       method: "GET",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        "Authorization": `Bearer JUNK`,
       },
     });
 
-    await assertResponse(response, output);
-  }
-});
+    await assertResponse(response, { "error": "401-02" });
+  });
+
+  Deno.test("Test whereis API", async () => {
+    for (let i = 0; i < testData.length; i++) {
+      const data = testData[i];
+      const input = data["input"];
+      const output = data["output"];
+      const trackingId: string = input["id"];
+
+      // Ignore tests for non-active operators
+      if(trackingId.startsWith("fdx-") && !isOperatorActive("fdx")) continue;
+      if(trackingId.startsWith("sfex-") && !isOperatorActive("sfex")) continue;
+
+      const extra: { [key: string]: string | undefined } | undefined =
+          input["extra"];
+      let url = `${WHEREIS_API_URL}/v0/whereis/${trackingId}`;
+      if (extra !== undefined) {
+        const params = new URLSearchParams(extra as Record<string, string>);
+        url = url + "?" + params.toString();
+      }
+
+      // issue http request
+      const apiKey = Deno.env.get("WHEREIS_API_KEY");
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+        },
+      });
+
+      await assertResponse(response, output);
+    }
+  });
+}
 
 async function assertResponse(
   response: Response,

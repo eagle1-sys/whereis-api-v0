@@ -9,13 +9,16 @@
  */
 
 import { assert } from "@std/assert";
-import {initializeOperatorStatus, loadEnv, loadMetaData} from "../main/app.ts";
+import {
+  initializeOperatorStatus,
+  loadEnv,
+  loadMetaData,
+} from "../main/app.ts";
 
 export function getHttpStatusFromErrorCode(errorCode: string): number {
   const match = errorCode.match(/^(\d{3})/);
   return match ? parseInt(match[1], 10) : 500; // Default to 500 if parsing fails
 }
-
 
 export function assertErrorCode(
   responseStatus: number,
@@ -23,10 +26,14 @@ export function assertErrorCode(
   expectedOutput: Record<string, unknown>,
 ) {
   const hasOwnProperty = Object.prototype.hasOwnProperty;
-  const expectedStatus = getHttpStatusFromErrorCode(expectedOutput.error as string);
+  const expectedStatus = getHttpStatusFromErrorCode(
+    expectedOutput.error as string,
+  );
   assert(
     responseStatus === expectedStatus,
-    `Expected HTTP status ${expectedStatus}, but received ${responseStatus} in the response ${JSON.stringify(responseJSON)}`,
+    `Expected HTTP status ${expectedStatus}, but received ${responseStatus} in the response ${
+      JSON.stringify(responseJSON)
+    }`,
   );
 
   assert(
@@ -48,8 +55,25 @@ initializeOperatorStatus(); // initialize operator status
 
 export const WHEREIS_API_URL = Deno.env.get("WHEREIS_API_URL");
 
-import "./get-fdx-token-test.ts";
-import "./get-fdx-events-test.ts";
-import "./get-sfex-routes-test.ts";
-import "./whereis-api-test.ts";
-import "./status-api-test.ts";
+import { isOperatorActive } from "../main/gateway.ts";
+
+import { getTokenFromFdXTest } from "./get-fdx-token-test.ts";
+import { getEventsFromFdxTest } from "./get-fdx-events-test.ts";
+import { getRoutesFromSfexTest } from "./get-sfex-routes-test.ts";
+import { whereisApiTest } from "./whereis-api-test.ts";
+import { statusApiTest } from "./status-api-test.ts";
+
+if (isOperatorActive("fdx")) {
+  getTokenFromFdXTest();
+  getEventsFromFdxTest();
+}
+
+if (isOperatorActive("sfex")) {
+  getRoutesFromSfexTest();
+}
+
+if (WHEREIS_API_URL !== undefined) {
+  whereisApiTest();
+
+  statusApiTest();
+}

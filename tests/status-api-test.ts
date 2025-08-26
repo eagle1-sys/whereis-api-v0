@@ -85,40 +85,36 @@ const testData = [
   },
 ];
 
-Deno.test("Test status API", async () => {
-  if(WHEREIS_API_URL === undefined) {
-    console.log("   Skipping test because the WHEREIS_API_URL environment variable is not set.");
-    return;
-  }
+export function statusApiTest() {
+  Deno.test("Test status API", async () => {
+    for (let i = 0; i < testData.length; i++) {
+      const data = testData[i];
+      const input = data["input"];
+      const output = data["output"];
+      const trackingId: string = input["id"];
 
-  for (let i = 0; i < testData.length; i++) {
-    const data = testData[i];
-    const input = data["input"];
-    const output = data["output"];
-    const trackingId: string = input["id"];
-    if((trackingId.startsWith("fdx-") && !isOperatorActive("fdx") ||
-        (trackingId.startsWith("sfex-") && !isOperatorActive("sfex")))) {
-      console.log(`   Skipping test for ${trackingId} because the operator API keys are not configured.`);
-      continue;
+      // Ignore tests for non-active operators
+      if(trackingId.startsWith("fdx-") && !isOperatorActive("fdx")) continue;
+      if(trackingId.startsWith("sfex-") && !isOperatorActive("sfex")) continue;
+
+      const extra: { [key: string]: string | undefined } | undefined =
+          input["extra"];
+      let url = `${WHEREIS_API_URL}/v0/status/${trackingId}`;
+      if (extra !== undefined) {
+        //const params = new URLSearchParams(extra);
+        const params = new URLSearchParams(extra as Record<string, string>);
+        url = url + "?" + params.toString();
+      }
+
+      // issue http request
+      const response = await fetch(url, {
+        method: "GET",
+      });
+
+      await assertResponse(response, output);
     }
-
-    const extra: { [key: string]: string | undefined } | undefined =
-      input["extra"];
-    let url = `${WHEREIS_API_URL}/v0/status/${trackingId}`;
-    if (extra !== undefined) {
-      //const params = new URLSearchParams(extra);
-      const params = new URLSearchParams(extra as Record<string, string>);
-      url = url + "?" + params.toString();
-    }
-
-    // issue http request
-    const response = await fetch(url, {
-      method: "GET",
-    });
-
-    await assertResponse(response, output);
-  }
-});
+  });
+}
 
 async function assertResponse(
   response: Response,
