@@ -62,7 +62,7 @@ const customBearerAuth = async (c: Context, next: Next) => {
     if (idx > 0) {
       const operatorCode = trackingId.substring(0, idx);
       if (isOperatorActive(operatorCode)) {
-        throw new UserError("403-01"); // Forbidden - token doesn't have permission for this resource
+        throw new UserError("403-01"); // The client API key is not authorized for this request.
       }
     }
   }
