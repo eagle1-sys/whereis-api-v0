@@ -18,6 +18,7 @@ import {
 import { crypto } from "@std/crypto";
 import { config } from "../config.ts";
 import { logger } from "../tools/logger.ts";
+import {isOperatorActive} from "../main/gateway.ts";
 
 /**
  * SF Express API client class for tracking shipments and managing route data.
@@ -133,6 +134,10 @@ export class Sfex {
     extraParams: Record<string, string>,
     updateMethod: string,
   ): Promise<Entity[]> {
+    if(!isOperatorActive("sfex")) {
+      throw new UserError("400-13", { "operator": "sfex" }); // Service is unavailable for operator
+    }
+
     const entities: Entity[] = [];
     const result = await this.getRoute(
       trackingId.trackingNum,

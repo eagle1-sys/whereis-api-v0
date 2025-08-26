@@ -19,6 +19,7 @@ import {
 } from "../main/model.ts";
 import { config } from "../config.ts";
 import { logger } from "../tools/logger.ts";
+import {isOperatorActive} from "../main/gateway.ts";
 
 /**
  * A class to interact with the FedEx tracking API and manage shipment tracking information.
@@ -141,9 +142,8 @@ export class Fdx {
     // Refresh the token 5 seconds before expiration.
     if (Date.now() > this.expireTime - 5000) {
       const fdxApiUrl: string = config.fdx.apiUrl ?? "";
-      const fdxClientId: string = Deno.env.get("FDX_CLIENT_ID") ?? "";
-      const fdxClientSecret: string = Deno.env.get("FDX_CLIENT_SECRET") ??
-        "";
+      const fdxClientId: string = Deno.env.get("FDX_CLIENT_ID") as string;
+      const fdxClientSecret: string = Deno.env.get("FDX_CLIENT_SECRET") as string;
       let data;
       try {
         const response = await fetch(fdxApiUrl, {
@@ -198,6 +198,10 @@ export class Fdx {
     trackingIds: TrackingID[],
     updateMethod: string,
   ): Promise<Entity[]> {
+    if(!isOperatorActive("fdx")) {
+      throw new UserError("400-13", { "operator": "fdx" }); // Service is unavailable for operator
+    }
+
     const entities: Entity[] = [];
     const trackingNums: string[] = trackingIds.map((item) => item.trackingNum);
     const result: Record<string, unknown> = await this.getRoute(trackingNums);

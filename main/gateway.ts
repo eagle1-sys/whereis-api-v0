@@ -9,7 +9,7 @@
 
 import { Sfex } from "../operators/sfex.ts";
 import { Fdx } from "../operators/fdx.ts";
-import { Entity, OperatorRegistry, TrackingID, UserError } from "./model.ts";
+import { Entity, OperatorRegistry, TrackingID } from "./model.ts";
 
 // Define a type for the operator status
 type OperatorStatus = {
@@ -53,11 +53,6 @@ export async function requestWhereIs(
   extraParams: Record<string, string>,
   updateMethod: string,
 ): Promise<Entity[]> {
-  // Check if the operator is active
-  if (!(operator in operatorStatus)) {
-    throw new UserError("400-13", { "operator": operator }); // Bad request: Service is unavailable for operator
-  }
-
   let entities: Entity[] = [];
   switch (operator) {
     case "sfex":
