@@ -26,7 +26,7 @@
  * @license BSD 3-Clause License
  */
 import { assert } from "@std/assert";
-import { TESTING_URL } from "./main-test.ts";
+import { WHEREIS_API_URL } from "./main-test.ts";
 import { assertErrorCode } from "./main-test.ts";
 import {isOperatorActive} from "../main/gateway.ts";
 
@@ -86,8 +86,8 @@ const testData = [
 ];
 
 Deno.test("Test status API", async () => {
-  if(TESTING_URL === undefined) {
-    console.log("   Skipping test because the TESTING_URL environment variable is not set.");
+  if(WHEREIS_API_URL === undefined) {
+    console.log("   Skipping test because the WHEREIS_API_URL environment variable is not set.");
     return;
   }
 
@@ -104,7 +104,7 @@ Deno.test("Test status API", async () => {
 
     const extra: { [key: string]: string | undefined } | undefined =
       input["extra"];
-    let url = `${TESTING_URL}/v0/status/${trackingId}`;
+    let url = `${WHEREIS_API_URL}/v0/status/${trackingId}`;
     if (extra !== undefined) {
       //const params = new URLSearchParams(extra);
       const params = new URLSearchParams(extra as Record<string, string>);

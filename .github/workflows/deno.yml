@@ -37,12 +37,12 @@ jobs:
       - name: Set env vars for main branch
         if: github.ref_name == 'main'
         run: |
-          echo "TESTING_URL=https://whereis-api-v0.fly.dev" >> $GITHUB_ENV   
+          echo "WHEREIS_API_URL=https://whereis-api-v0.fly.dev" >> $GITHUB_ENV   
 
       - name: Set env vars for develop branch
         if: github.ref_name == 'develop'
         run: |
-          echo "TESTING_URL=https://whereis-api-v0-test.fly.dev" >> $GITHUB_ENV    
+          echo "WHEREIS_API_URL=https://whereis-api-v0-test.fly.dev" >> $GITHUB_ENV    
 
       - name: Run tests
         env:
@@ -50,5 +50,5 @@ jobs:
           FDX_CLIENT_SECRET: ${{ secrets.FDX_CLIENT_SECRET }}
           SFEX_PARTNER_ID: ${{ secrets.SFEX_PARTNER_ID }}
           SFEX_CHECK_WORD: ${{ secrets.SFEX_CHECK_WORD }}
-          TESTING_TOKEN: ${{ secrets.TESTING_TOKEN }}
+          WHEREIS_API_KEY: ${{ secrets.WHEREIS_API_KEY }}
         run: deno test -A tests/main-test.ts

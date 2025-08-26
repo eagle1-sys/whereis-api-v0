@@ -17,7 +17,7 @@
  * @license BSD 3-Clause License
  */
 import { assert } from "@std/assert";
-import { TESTING_URL } from "./main-test.ts";
+import { WHEREIS_API_URL } from "./main-test.ts";
 import { assertErrorCode } from "./main-test.ts";
 import {isOperatorActive} from "../main/gateway.ts";
 
@@ -78,12 +78,12 @@ const testData = [
 ];
 
 Deno.test("Test missing auth header", async () => {
-  if(TESTING_URL === undefined) {
-    console.log("   Skipping test because the TESTING_URL environment variable is not set.");
+  if(WHEREIS_API_URL === undefined) {
+    console.log("   Skipping test because the WHEREIS_API_URL environment variable is not set.");
     return;
   }
 
-  const url = `${TESTING_URL}/v0/whereis/fdx-779879860040`;
+  const url = `${WHEREIS_API_URL}/v0/whereis/fdx-779879860040`;
   // issue http request
   const response = await fetch(url, {
     method: "GET",
@@ -93,12 +93,12 @@ Deno.test("Test missing auth header", async () => {
 });
 
 Deno.test("Test invalid token", async () => {
-  if(TESTING_URL === undefined) {
+  if(WHEREIS_API_URL === undefined) {
     console.log("   Skipping test because the TESTING_URL environment variable is not set.");
     return;
   }
 
-  const url = `${TESTING_URL}/v0/whereis/fdx-779879860040`;
+  const url = `${WHEREIS_API_URL}/v0/whereis/fdx-779879860040`;
   // issue http request
   const response = await fetch(url, {
     method: "GET",
@@ -111,7 +111,7 @@ Deno.test("Test invalid token", async () => {
 });
 
 Deno.test("Test whereis API", async () => {
-  if(TESTING_URL === undefined) {
+  if(WHEREIS_API_URL === undefined) {
     console.log("   Skipping test because the TESTING_URL environment variable is not set.");
     return;
   }
@@ -129,18 +129,18 @@ Deno.test("Test whereis API", async () => {
 
     const extra: { [key: string]: string | undefined } | undefined =
       input["extra"];
-    let url = `${TESTING_URL}/v0/whereis/${trackingId}`;
+    let url = `${WHEREIS_API_URL}/v0/whereis/${trackingId}`;
     if (extra !== undefined) {
       const params = new URLSearchParams(extra as Record<string, string>);
       url = url + "?" + params.toString();
     }
 
     // issue http request
-    const bearerToken = Deno.env.get("TESTING_TOKEN");
+    const apiKey = Deno.env.get("WHEREIS_API_KEY");
     const response = await fetch(url, {
       method: "GET",
       headers: {
-        "Authorization": `Bearer ${bearerToken}`,
+        "Authorization": `Bearer ${apiKey}`,
       },
     });
 

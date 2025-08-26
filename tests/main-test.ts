@@ -46,7 +46,7 @@ await loadMetaData();
 
 initializeOperatorStatus(); // initialize operator status
 
-export const TESTING_URL = Deno.env.get("TESTING_URL");
+export const WHEREIS_API_URL = Deno.env.get("WHEREIS_API_URL");
 
 import "./get-fdx-token-test.ts";
 import "./get-fdx-events-test.ts";
