@@ -171,7 +171,7 @@ export class Fdx {
           const code = data["errors"][0]?.code;
           if(code==="BAD.REQUEST.ERROR" || code==="NOT.AUTHORIZED.ERROR") {
             // Missing or invalid FedEx credentials(client_id or client_secret)
-            throw new UserError("400-08");
+            throw new UserError("500-01");
           } else {
             throw new Error(`Unexpected error code from FedEx API: ${code}`);
           }

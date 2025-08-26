@@ -148,7 +148,7 @@ export class Sfex {
     if (resultCode !== "A1000") {
       if(resultCode === "A1001" || resultCode === "A1004" || resultCode === "A1006"){
         // Missing or invalid SF Express credentials(partnerID or check_word)
-        throw new UserError("400-09");
+        throw new UserError("500-02");
       }
       throw new Error(`${resultCode}: ${result["apiErrorMsg"]}`);
     }

@@ -7,8 +7,6 @@
   "400-04": "Invalid operator code: ${operator}.",
   "400-05": "Invalid URL format.",
   "400-07": "Invalid query parameters: ${param}.",
-  "400-08": "Missing or invalid FedEx credentials(client_id or client_secret).",
-  "400-09": "Missing or invalid SF Express credentials(partnerID or check_word).",
   "400-13": "Service is unavailable for operator: ${operator}.",
 
   "401-01": "Missing authorization header or invalid format.",
@@ -20,5 +18,8 @@
   "404-02": "The tracking number has expired by the data source provider.",
   "404-03": "Failed to retrieve tracking information from the data source provider.",
 
-  "429-01": "Too many requests."
+  "429-01": "Too many requests.",
+
+  "500-01": "Missing or invalid FedEx credentials(client_id or client_secret).",
+  "500-02": "Missing or invalid SF Express credentials(partnerID or check_word)."
 }
