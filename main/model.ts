@@ -218,7 +218,7 @@ export class TrackingID {
 
     const lowerCaseOperator = operator.toLowerCase();
     if (!OperatorRegistry.include(lowerCaseOperator)) {
-      throw new UserError("400-04");
+      throw new UserError("400-04", {operator: lowerCaseOperator});
     }
 
     switch (lowerCaseOperator) {

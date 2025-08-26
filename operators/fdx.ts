@@ -169,13 +169,11 @@ export class Fdx {
       } else {
         if (data["errors"]) {
           const code = data["errors"][0]?.code;
-          switch (code) {
-            case "BAD.REQUEST.ERROR":
-              throw new UserError("400-08");
-            case "NOT.AUTHORIZED.ERROR":
-              throw new UserError("400-09");
-            default:
-              throw new Error(`Unexpected error code from FedEx API: ${code}`);
+          if(code==="BAD.REQUEST.ERROR" || code==="NOT.AUTHORIZED.ERROR") {
+            // Missing or invalid FedEx credentials(client_id or client_secret)
+            throw new UserError("400-08");
+          } else {
+            throw new Error(`Unexpected error code from FedEx API: ${code}`);
           }
         } else {
           throw new Error("Failed to retrieve token from FedEx API: No access_token or errors provided in response");

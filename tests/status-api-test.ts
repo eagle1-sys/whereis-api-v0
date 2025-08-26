@@ -63,7 +63,7 @@ const testData = [
   },
   {
     "input": { "id": "sfex-SF3182998070266", "extra": { "phonenum": "6994" } },
-    "output": { "error": "400-06" },
+    "output": { "error": "400-03" },
     "memo": "Incorrect phonenum. correct phonenum is 6993",
   },
   {

@@ -1,24 +1,24 @@
 // @copyright (c) 2025, the Eagle1 authors
 // @license BSD 3-Clause License
 {
-  "400-01": "Bad request: Missing tracking number as the slug.",
-  "400-02": "Bad request: Invalid tracking number.",
-  "400-03": "Bad request: Missing parameter (phonenum), the last 4-digit phone number associated with the sfex trackingNum.",
-  "400-04": "Bad request: Invalid operator code.",
-  "400-05": "Bad request: Invalid slug notation.",
-  "400-06": "Bad request: Incorrect phonenum, the last 4-digit phone number associated with the sfex trackingNum.",
-  "400-07": "Bad request: Invalid query parameters: ${param}.",
-  "400-08": "Bad request: Missing or duplicated parameters when retrieving token from FedEx.",
-  "400-09": "Bad request: The given client credentials used to access FedEx were not valid.",
-  "400-10": "Bad request: Required parameters cannot be empty; ensure the partner ID is set.",
-  "400-11": "Bad request: No corresponding service permissions, please verify the partner ID.",
-  "400-12": "Bad request: Invalid digital signature, please verify the check word.",
-  "400-13": "Bad request: Service is unavailable for operator: ${operator}.",
-  "401-01": "Unauthorized: Missing authorization header or invalid format.",
-  "401-02": "Unauthorized: Invalid access token.",
-  "403-01": "Forbidden: token doesn't have permission for this resource.",
+  "400-01": "Missing tracking number in the URL path.",
+  "400-02": "Invalid tracking number.",
+  "400-03": "Missing or invalid required parameter: sfex - phonenum",
+  "400-04": "Invalid operator code: ${operator}.",
+  "400-05": "Invalid URL format.",
+  "400-07": "Invalid query parameters: ${param}.",
+  "400-08": "Missing or invalid FedEx credentials(client_id or client_secret).",
+  "400-09": "Missing or invalid SF Express credentials(partnerID or check_word).",
+  "400-13": "Service is unavailable for operator: ${operator}.",
+
+  "401-01": "Missing authorization header or invalid format.",
+  "401-02": "The provided API key is invalid.",
+
+  "403-01": "The client API key is not authorized for this request.",
+
   "404-01": "Tracking number not found.",
-  "404-02": "The tracking number has expired.",
-  "404-03": "The refresh has failed to receive data from the data provider.",
+  "404-02": "The tracking number has expired by the data source provider.",
+  "404-03": "Failed to retrieve tracking information from the data source provider.",
+
   "429-01": "Too many requests."
 }

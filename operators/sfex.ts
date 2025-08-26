@@ -24,11 +24,6 @@ import { logger } from "../tools/logger.ts";
  */
 export class Sfex {
 
-  private static resultCodeErrors: Record<string, string> = {
-    "A1001": "400-10",
-    "A1004": "400-11",
-    "A1006": "400-12"
-  };
   /**
    * Mapping of SF Express status codes and operation codes to internal event codes.
    * @private
@@ -146,8 +141,9 @@ export class Sfex {
 
     const resultCode = result["apiResultCode"] as string;
     if (resultCode !== "A1000") {
-      if (resultCode in Sfex.resultCodeErrors) {
-        throw new UserError(Sfex.resultCodeErrors[resultCode]);
+      if(resultCode === "A1001" || resultCode === "A1004" || resultCode === "A1006"){
+        // Missing or invalid SF Express credentials(partnerID or check_word)
+        throw new UserError("400-09");
       }
       throw new Error(`${resultCode}: ${result["apiErrorMsg"]}`);
     }

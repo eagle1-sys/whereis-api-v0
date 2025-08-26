@@ -295,7 +295,7 @@ async function getEntityFromDbOrProvider(
     trackingID.operator === "sfex" &&
     entity.params?.phonenum !== queryParams.phonenum
   ) {
-    throw new UserError("400-06");
+    throw new UserError("400-03");
   }
 
   return entity;
@@ -325,7 +325,7 @@ async function getStatus(
       trackingID.operator === "sfex" &&
       entity.params?.phonenum !== queryParams.phonenum
     ) {
-      throw new UserError("400-06");
+      throw new UserError("400-03");
     }
     return entity.getLastStatus();
   }
