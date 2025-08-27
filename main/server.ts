@@ -140,7 +140,7 @@ app.get("/v0/status/:id?", async (c: Context) => {
   const invalidParams = validateQueryParams(queryParams, validParamSet);
 
   if (invalidParams.length > 0) {
-    return c.sendError("400-07", { param: invalidParams.join(",") });
+    return c.sendError("400-03", { param: invalidParams.join(",") });
   }
 
   const status = await getStatus(trackingID, parsedParams);
@@ -168,7 +168,7 @@ app.get("/v0/whereis/:id", async (c: Context) => {
     new Set(validParamsSet),
   );
   if (invalidParams.length > 0) {
-    return c.sendError("400-07", { param: invalidParams.join(",") });
+    return c.sendError("400-03", { param: invalidParams.join(",") });
   }
 
   const refresh = queryParams.refresh === "true";
@@ -295,7 +295,7 @@ async function getEntityFromDbOrProvider(
     trackingID.operator === "sfex" &&
     entity.params?.phonenum !== queryParams.phonenum
   ) {
-    throw new UserError("400-03");
+    throw new UserError("400-03", {});
   }
 
   return entity;

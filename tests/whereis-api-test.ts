@@ -60,8 +60,8 @@ const testData = [
   },
   {
     "input": { "id": "fdx-881383013147", "extra": { "full_data": "true" } },
-    "output": { "error": "400-07" },
-    "memo": "Bad request: Invalid query parameters [full_data]",
+    "output": { "error": "400-03" },
+    "memo": "Invalid query parameters [full_data]",
   },
   {
     "input": { "id": "sfex-SF3122082959115", "extra": { "phonenum": "5567" } },

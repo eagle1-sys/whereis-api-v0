@@ -3,10 +3,9 @@
 {
   "400-01": "Missing tracking number in the URL path.",
   "400-02": "Invalid tracking number.",
-  "400-03": "Missing or invalid required parameter: sfex - phonenum",
+  "400-03": "Missing or invalid parameter: ${param}",
   "400-04": "Invalid operator code: ${operator}.",
   "400-05": "Invalid URL format.",
-  "400-07": "Invalid query parameters: ${param}.",
   "400-13": "Service is unavailable for operator: ${operator}.",
 
   "401-01": "Missing authorization header or invalid format.",
