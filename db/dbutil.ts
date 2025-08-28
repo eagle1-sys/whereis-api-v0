@@ -11,6 +11,11 @@ import { logger } from "../tools/logger.ts";
 let sql: ReturnType<typeof postgres>;
 
 export async function initConnection() {
+  const dbHost = Deno.env.get("DB_HOST");
+  if (!dbHost) {
+    throw new Error("DB_HOST environment variable is not set.");
+  }
+
   try {
     sql = postgres({
       host: Deno.env.get("DB_HOST"),
