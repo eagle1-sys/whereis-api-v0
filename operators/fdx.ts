@@ -15,7 +15,7 @@ import {
   ExceptionCode,
   StatusCode,
   TrackingID,
-  UserError,
+  AppError,
 } from "../main/model.ts";
 import { config } from "../config.ts";
 import { logger } from "../tools/logger.ts";
@@ -170,8 +170,8 @@ export class Fdx {
         if (data["errors"]) {
           const code = data["errors"][0]?.code;
           if(code==="BAD.REQUEST.ERROR" || code==="NOT.AUTHORIZED.ERROR") {
-            // Missing or invalid FedEx credentials(client_id or client_secret)
-            throw new UserError("500-01");
+            // Invalid or missing data source API credentials
+            throw new AppError("500-01", "501AB: fdx - CLIENT_ID");
           } else {
             throw new Error(`Unexpected error code from FedEx API: ${code}`);
           }
@@ -199,7 +199,7 @@ export class Fdx {
     updateMethod: string,
   ): Promise<Entity[]> {
     if(!isOperatorActive("fdx")) {
-      throw new UserError("400-13", { "operator": "fdx" }); // Service is unavailable for operator
+      throw new AppError("400-13", "fdx"); // Service is unavailable for operator
     }
 
     const entities: Entity[] = [];

@@ -17,7 +17,7 @@ import {
 } from "../db/dbop.ts";
 import { logger } from "../tools/logger.ts";
 import { requestWhereIs } from "./gateway.ts";
-import { Entity, TrackingID, UserError } from "./model.ts";
+import { Entity, TrackingID, AppError } from "./model.ts";
 
 /**
  * Groups tracking numbers by operator.
@@ -142,7 +142,11 @@ export async function syncRoutes() {
     });
   } catch (err) {
     // ignore the UserError
-    if (!(err instanceof UserError)) {
+    if (err instanceof AppError) {
+      if(err.getHttpStatusCode()>500) {
+        logger.error(`SyncRoutes: ${err.message}`);
+      }
+    } else {
       if (err instanceof Error) {
         logger.error(`SyncRoutes: ${err.message}`);
         if (err.stack) {

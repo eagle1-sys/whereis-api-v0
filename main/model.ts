@@ -149,26 +149,11 @@ export class ErrorRegistry {
    * Retrieves a message for a given error code and optionally replaces placeholders with provided parameters.
    *
    * @param code - The error code to look up in the error registry.
-   * @param params - An optional record of key-value pairs to replace placeholders in the message.
-   *                 Placeholders in the message should be in the format ${key}.
    * @returns The error message with placeholders replaced if params are provided, or the original message if not.
    *          Returns an empty string if the error code is not found in the registry.
    */
-  public static getMessage(
-    code: string,
-    params?: Record<string, string>,
-  ): string {
-    const message = this.instance.get(code) ?? "";
-    if (params) {
-      return message.replace(
-        /\$\{(\w+)}/g,
-        (match, key) =>
-          Object.prototype.hasOwnProperty.call(params, key)
-            ? params[key]
-            : match,
-      );
-    }
-    return message;
+  public static getMessage(code: string): string {
+    return this.instance.get(code) ?? "";
   }
 }
 
@@ -208,17 +193,17 @@ export class TrackingID {
   static parse(strTrackingID: string): TrackingID {
     const trimmedID = strTrackingID.trim();
     if (trimmedID === "") {
-      throw new UserError("400-01");
+      throw new AppError("400-01");
     }
 
     const [operator, trackingNum] = trimmedID.split("-");
     if (!operator || !trackingNum) {
-      throw new UserError("400-05");
+      throw new AppError("400-05");
     }
 
     const lowerCaseOperator = operator.toLowerCase();
     if (!OperatorRegistry.include(lowerCaseOperator)) {
-      throw new UserError("400-04", {operator: lowerCaseOperator});
+      throw new AppError("400-04", lowerCaseOperator);
     }
 
     switch (lowerCaseOperator) {
@@ -240,7 +225,7 @@ export class TrackingID {
    */
   static checkFedExTrackingNum(trackingNum: string): void {
     if (trackingNum.length != 12) {
-      throw new UserError("400-02");
+      throw new AppError("400-02");
     }
   }
 
@@ -251,7 +236,7 @@ export class TrackingID {
    */
   static checkSFTrackingNum(trackingNum: string): void {
     if (trackingNum.length != 15 || !trackingNum.startsWith("SF")) {
-      throw new UserError("400-02");
+      throw new AppError("400-02");
     }
   }
 }
@@ -606,14 +591,46 @@ export class Event {
   }
 }
 
-export class UserError extends Error {
+export class AppError extends Error {
   code: string;
-  params?: Record<string, string>;
+  uniqueString?: string;
 
-  constructor(code: string, params?: Record<string, string>) {
+  constructor(code: string, uniqueString?: string) {
     super(ErrorRegistry.getMessage(code));
     this.code = code;
-    this.params = params;
+    if(uniqueString) {
+      this.uniqueString = uniqueString;
+    }
+  }
+
+  /**
+   * Extracts HTTP status code from error code string
+   * @returns Numeric HTTP status code
+   * @throws Error if errorCode format is invalid
+   */
+  public getHttpStatusCode(): number {
+    const parts = this.code.split("-");
+    const httpStatusCode = Number(parts[0]);
+    // validate the first part
+    if (isNaN(httpStatusCode)) {
+      throw new Error("Invalid parameter");
+    }
+
+    return httpStatusCode;
+  }
+
+  /**
+   * Retrieves a message for a given error code and optionally replaces placeholders with provided parameters.
+   *
+   * @returns The error message with placeholders replaced if params are provided, or the original message if not.
+   *          Returns an empty string if the error code is not found in the registry.
+   */
+  public getMessage(): string {
+    const message = this.message;
+    if (this.uniqueString) {
+      return message + " [" + this.uniqueString + "]";
+    }
+    return message;
   }
 }
 

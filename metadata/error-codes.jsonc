@@ -3,10 +3,10 @@
 {
   "400-01": "Missing tracking number in the URL path.",
   "400-02": "Invalid tracking number.",
-  "400-03": "Missing or invalid parameter: ${param}",
-  "400-04": "Invalid operator code: ${operator}.",
+  "400-03": "Missing or invalid parameter.",
+  "400-04": "Invalid operator code.",
   "400-05": "Invalid URL format.",
-  "400-13": "Service is unavailable for operator: ${operator}.",
+  "400-13": "Service is unavailable for operator.",
 
   "401-01": "Missing authorization header or invalid format.",
   "401-02": "The provided API key is invalid.",
@@ -19,6 +19,5 @@
 
   "429-01": "Too many requests.",
 
-  "500-01": "Missing or invalid FedEx credentials(client_id or client_secret).",
-  "500-02": "Missing or invalid SF Express credentials(partnerID or check_word)."
+  "500-01": "Invalid or missing data source API credentials."
 }

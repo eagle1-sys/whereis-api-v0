@@ -18,10 +18,9 @@ import { isOperatorActive, requestWhereIs } from "./gateway.ts";
 import {
   ApiParams,
   Entity,
-  ErrorRegistry,
   OperatorRegistry,
   TrackingID,
-  UserError,
+  AppError,
 } from "./model.ts";
 import { insertEntity, queryEntity } from "../db/dbop.ts";
 
@@ -33,7 +32,7 @@ declare module "hono" {
      * @param errorCode - The error code in format "HTTPSTATUS-CODE"
      * @returns Response object with JSON error payload
      */
-    sendError: (errorCode: string, params?: Record<string, string>) => Response;
+    sendError: (appError: AppError) => Response;
   }
 }
 
@@ -46,13 +45,13 @@ const app = new Hono();
 const customBearerAuth = async (c: Context, next: Next) => {
   const authHeader = c.req.header("Authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    throw new UserError("401-01");
+    throw new AppError("401-01");
   }
 
   const token = authHeader.split(" ")[1];
   const isValidToken = await verifyToken(token); // verify the token
   if (!isValidToken) {
-    throw new UserError("401-02");
+    throw new AppError("401-02");
   }
 
   if (token === "eagle1") {
@@ -62,7 +61,7 @@ const customBearerAuth = async (c: Context, next: Next) => {
     if (idx > 0) {
       const operatorCode = trackingId.substring(0, idx);
       if (isOperatorActive(operatorCode)) {
-        throw new UserError("403-01"); // The client API key is not authorized for this request.
+        throw new AppError("403-01"); // The client API key is not authorized for this request.
       }
     }
   }
@@ -84,8 +83,18 @@ app.use(
 // Extend Context class
 app.use("*", async (c: Context, next: Next) => {
   // add sendError method
-  c.sendError = (code: string, params?: Record<string, string>) => {
-    return sendError(c, code, params);
+  c.sendError = (appError: AppError) => {
+    const resp = {
+      error: appError.code,
+      message: appError.getMessage(),
+    };
+    return c.body(
+        JSON.stringify(resp, null, 2),
+        appError.getHttpStatusCode() as ContentfulStatusCode,
+        {
+          "Content-Type": "application/json",
+        },
+    );
   };
   await next();
 });
@@ -99,7 +108,7 @@ app.use("*", async (c: Context, next: Next) => {
     pathName.endsWith("/status/") ||
     pathName.endsWith("/status")
   ) {
-    throw new UserError("400-01");
+    throw new AppError("400-01");
   }
   await next();
 });
@@ -140,7 +149,7 @@ app.get("/v0/status/:id?", async (c: Context) => {
   const invalidParams = validateQueryParams(queryParams, validParamSet);
 
   if (invalidParams.length > 0) {
-    return c.sendError("400-03", { param: invalidParams.join(",") });
+    return c.sendError(new AppError("400-03", invalidParams.join(",")));
   }
 
   const status = await getStatus(trackingID, parsedParams);
@@ -168,7 +177,7 @@ app.get("/v0/whereis/:id", async (c: Context) => {
     new Set(validParamsSet),
   );
   if (invalidParams.length > 0) {
-    return c.sendError("400-03", { param: invalidParams.join(",") });
+    return c.sendError(new AppError("400-03", invalidParams.join(",")));
   }
 
   const refresh = queryParams.refresh === "true";
@@ -183,7 +192,7 @@ app.get("/v0/whereis/:id", async (c: Context) => {
     );
 
   if (!entity) {
-    throw new UserError(refresh ? "404-03" : "404-01");
+    throw new AppError(refresh ? "404-03" : "404-01");
   }
 
   const elapsed = performance.now() - start;
@@ -232,8 +241,16 @@ app.get("/app-health", async (c: Context) => {
 
 // error handling
 app.onError((err: unknown, c: Context) => {
-  if (err instanceof UserError) {
-    return c.sendError(err.code, err.params);
+  if (err instanceof AppError) {
+    const statusCode = err.getHttpStatusCode();
+    if(statusCode < 500){
+      logger.info(`Request URL: ${c.req.url}`);
+      logger.info(`Error detail: ${err.message}`);
+    } else {
+      logger.error(`Request URL: ${c.req.url}`);
+      logger.error(`Error detail: ${err.message}`);
+    }
+    return c.sendError(err);
   }
 
   const errorMessage = err instanceof Error ? err.message : String(err);
@@ -295,7 +312,7 @@ async function getEntityFromDbOrProvider(
     trackingID.operator === "sfex" &&
     entity.params?.phonenum !== queryParams.phonenum
   ) {
-    throw new UserError("400-03", {});
+    throw new AppError("400-03", "sfex - phonenum");
   }
 
   return entity;
@@ -325,7 +342,7 @@ async function getStatus(
       trackingID.operator === "sfex" &&
       entity.params?.phonenum !== queryParams.phonenum
     ) {
-      throw new UserError("400-03");
+      throw new AppError("400-03", "sfex - phonenum");
     }
     return entity.getLastStatus();
   }
@@ -339,7 +356,7 @@ async function getStatus(
   );
 
   if (result.length === 0) {
-    throw new UserError("404-01"); // Not found in data provider
+    throw new AppError("404-01"); // Not found in data provider
   }
 
   try {
@@ -377,7 +394,7 @@ function parseURL(
   if (trackingID.operator == "sfex") {
     const phoneNum = queryParams["phonenum"];
     if (phoneNum == undefined || phoneNum == "") {
-      throw new UserError("400-03");
+      throw new AppError("400-03", "sfex - phonenum");
     }
   }
 
@@ -424,40 +441,7 @@ async function verifyToken(token: string): Promise<boolean> {
   return await isTokenValid(sql, token);
 }
 
-/**
- * Extracts HTTP status code from error code string
- * @param errorCode - Error code in format "HTTPSTATUS-CODE"
- * @returns Numeric HTTP status code
- * @throws Error if errorCode format is invalid
- */
-function getHttpStatusCode(errorCode: string): number {
-  const parts = errorCode.split("-");
-  const httpStatusCode = Number(parts[0]);
-  // validate the first part
-  if (isNaN(httpStatusCode)) {
-    throw new Error("Invalid parameter");
-  }
 
-  return httpStatusCode;
-}
-
-function sendError(
-  c: Context,
-  code: string,
-  params?: Record<string, string>,
-): Response {
-  const resp = {
-    error: code,
-    message: ErrorRegistry.getMessage(code, params),
-  };
-  return c.body(
-    JSON.stringify(resp, null, 2),
-    getHttpStatusCode(code) as ContentfulStatusCode,
-    {
-      "Content-Type": "application/json",
-    },
-  );
-}
 
 // Export the Hono app instance
 export { app };

@@ -13,7 +13,7 @@ import {
   Entity,
   Event,
   StatusCode,
-  TrackingID, UserError,
+  TrackingID, AppError,
 } from "../main/model.ts";
 import { crypto } from "@std/crypto";
 import { config } from "../config.ts";
@@ -135,7 +135,7 @@ export class Sfex {
     updateMethod: string,
   ): Promise<Entity[]> {
     if(!isOperatorActive("sfex")) {
-      throw new UserError("400-13", { "operator": "sfex" }); // Service is unavailable for operator
+      throw new AppError("400-13", "sfex"); // Service is unavailable for operator
     }
 
     const entities: Entity[] = [];
@@ -147,8 +147,8 @@ export class Sfex {
     const resultCode = result["apiResultCode"] as string;
     if (resultCode !== "A1000") {
       if(resultCode === "A1001" || resultCode === "A1004" || resultCode === "A1006"){
-        // Missing or invalid SF Express credentials(partnerID or check_word)
-        throw new UserError("500-02");
+        // Invalid or missing data source API credentials
+        throw new AppError("500-01", "501AB: sfex - PARTNERID");
       }
       throw new Error(`${resultCode}: ${result["apiErrorMsg"]}`);
     }
