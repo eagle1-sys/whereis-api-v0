@@ -65,3 +65,37 @@ export async function jsonToMd5(
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
+
+/**
+ * Formats a timezone offset into a string representation.
+ *
+ * @param offset - The timezone offset in hours. Positive values represent offsets ahead of UTC,
+ *                 while negative values represent offsets behind UTC.
+ * @returns A string representation of the timezone offset in the format "+HH:MM" or "-HH:MM".
+ *          The hours are always two digits, and the minutes are always "00".
+ */
+export  function formatTimezoneOffset(offset: number): string {
+    const sign = offset >= 0 ? '+' : '-';
+    const absOffset = Math.abs(offset);
+    const hours = String(Math.floor(absOffset)).padStart(2, '0');
+    const minutes = '00';
+    return `${sign}${hours}:${minutes}`;
+}
+
+/**
+ * Extracts the timezone offset in hours from an ISO 8601 formatted date string.
+ * @param dateString - The ISO 8601 formatted date string.
+ * @returns The timezone offset as a number (e.g., 8 for "+08:00", -6 for "-06:00") or 0 if not found.
+ */
+export function extractTimezone(dateString: string): number {
+    const timezoneRegex = /([+-])(\d{2}):(\d{2})$/;
+    const match = dateString.match(timezoneRegex);
+
+    if (match) {
+        const sign = match[1] === '+' ? 1 : -1;
+        const hours = parseInt(match[2], 10);
+        return sign * hours;
+    }
+
+    return 0; // Return 0 if no timezone information is found
+}

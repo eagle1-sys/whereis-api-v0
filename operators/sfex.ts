@@ -19,6 +19,7 @@ import { crypto } from "@std/crypto";
 import { config } from "../config.ts";
 import { logger } from "../tools/logger.ts";
 import {isOperatorActive} from "../main/gateway.ts";
+import {formatTimezoneOffset} from "../tools/util.ts";
 
 /**
  * SF Express API client class for tracking shipments and managing route data.
@@ -365,7 +366,7 @@ export class Sfex {
     // acceptTime format: 2024-10-26 06:12:43
     const acceptTime: string = route["acceptTime"] as string;
     // eg: convert to isoStringWithTimezone : "2024-10-26T06:12:43+08:00"
-    const eventTime: string = acceptTime.replace(" ", "T") + this.formatTimezoneOffset(timeZone);
+    const eventTime: string = acceptTime.replace(" ", "T") + formatTimezoneOffset(timeZone);
     const date = new Date(eventTime);
     const secondsSinceEpoch = Math.floor(date.getTime() / 1000);
     event.eventId =
@@ -421,7 +422,7 @@ export class Sfex {
     // Adjust for timezone defined in the configuration
     const utcDate = new Date(date.getTime() + (timeZone * 60 * 60 * 1000));
     // Format the date to "2024-10-26T06:12:43+08:00"
-    const formattedDate = utcDate.toISOString().replace(/\.\d{3}Z$/, this.formatTimezoneOffset(timeZone));
+    const formattedDate = utcDate.toISOString().replace(/\.\d{3}Z$/, formatTimezoneOffset(timeZone));
 
     event.eventId =
       `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
@@ -443,20 +444,5 @@ export class Sfex {
     return event;
   }
 
-  /**
-   * Formats a timezone offset into a string representation.
-   *
-   * @param offset - The timezone offset in hours. Positive values represent offsets ahead of UTC,
-   *                 while negative values represent offsets behind UTC.
-   * @returns A string representation of the timezone offset in the format "+HH:MM" or "-HH:MM".
-   *          The hours are always two digits, and the minutes are always "00".
-   */
-  private static formatTimezoneOffset(offset: number): string {
-    const sign = offset >= 0 ? '+' : '-';
-    const absOffset = Math.abs(offset);
-    const hours = String(Math.floor(absOffset)).padStart(2, '0');
-    const minutes = '00';
-    return `${sign}${hours}:${minutes}`;
-  }
 
 }
