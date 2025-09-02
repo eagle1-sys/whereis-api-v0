@@ -435,6 +435,9 @@ export class Fdx {
       }
     }
 
+    // sort the events based on when
+    entity.sortEventsByWhen();
+
     if(this.isMissing3100(entity)) {
       const theFirst3001Event = this.getTheFirst3001Event(entity);
       if(theFirst3001Event) {

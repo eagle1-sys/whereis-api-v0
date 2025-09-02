@@ -491,6 +491,26 @@ export class Entity {
 
     return false;
   }
+
+  /**
+   * Sorts the events associated with this entity based on their timestamps.
+   *
+   * This method arranges the events in chronological order, using the 'when' property
+   * of each event. Events without a 'when' property are treated as occurring at the
+   * Unix epoch (January 1, 1970).
+   *
+   * @remarks
+   * This method modifies the original events array in place.
+   *
+   * @returns {void} This method does not return a value.
+   */
+  public sortEventsByWhen(): void {
+    this.events.sort((a, b) => {
+      const dateA = a.when ? new Date(a.when).getTime() : 0;
+      const dateB = b.when ? new Date(b.when).getTime() : 0;
+      return dateA - dateB;
+    });
+  }
 }
 
 /**

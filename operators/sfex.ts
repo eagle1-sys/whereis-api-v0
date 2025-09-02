@@ -300,12 +300,8 @@ export class Sfex {
       }
     }
 
-    // sort the events based on their timestamps
-    entity.events.sort((a, b) => {
-      const dateA = a.when ? new Date(a.when).getTime() : 0;
-      const dateB = b.when ? new Date(b.when).getTime() : 0;
-      return dateA - dateB;
-    });
+    // sort the events based on when
+    entity.sortEventsByWhen();
 
     let isCustomsEventOccurred: boolean = false;
     let lastEvent: Event | null = null;
