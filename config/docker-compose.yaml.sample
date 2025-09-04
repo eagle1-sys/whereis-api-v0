@@ -36,7 +36,7 @@ services:
       DB_HOST: whereis-postgres
       DB_USER: whereis_user
       DB_PASSWORD: _CHANGEME_
-      WHEREIS_API_URL: http://localhost:8037
+      WHEREIS_API_URL: http://whereis-api-v0:8037
       WHEREIS_API_KEY: eagle1
     networks:
       - whereis_net
