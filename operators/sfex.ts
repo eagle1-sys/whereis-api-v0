@@ -303,40 +303,106 @@ export class Sfex {
     // sort the events based on when
     entity.sortEventsByWhen();
 
+    if(this.isMissing3400(entity)) {
+      const baseEvent = this.get3400BaseEvent(entity);
+      if(baseEvent) {
+        const supplementEvent: Event = this.createSupplementEvent(
+            trackingId,
+            3400,
+            baseEvent.when as string,
+            baseEvent.where as string,
+        );
+        entity.addEvent(supplementEvent);
+      }
+    }
+
+    // let isCustomsEventOccurred: boolean = false;
+    // let lastEvent: Event | null = null;
+    // let hasPostCustomsEvent = false;
+    //
+    // for (const event of entity.events) {
+    //   if (event.status === 3350) {
+    //     isCustomsEventOccurred = true;
+    //   } else if (isCustomsEventOccurred) {
+    //     hasPostCustomsEvent = true;
+    //   }
+    //
+    //   // Insert missing 3400 event if necessary
+    //   if (
+    //     lastEvent &&
+    //     isCustomsEventOccurred &&
+    //     hasPostCustomsEvent &&
+    //     !entity.includeStatus(3400) &&
+    //     [3004, 3250, 3450, 3500].includes(event.status)
+    //   ) {
+    //     const supplementEvent: Event = this.createSupplementEvent(
+    //       trackingId,
+    //       3400,
+    //       event.when as string,
+    //       event.where as string,
+    //     );
+    //     entity.addEvent(supplementEvent);
+    //     // exit the loop once a 3400 event is inserted
+    //     break;
+    //   }
+    //
+    //   lastEvent = event;
+    // }
+
+    return entity;
+  }
+
+  /**
+   * Checks if a 3400 status event (Customs Clearance: Import Released) is missing from the entity's events.
+   * This function is used to determine if a supplementary 3400 event needs to be added to the tracking history.
+   *
+   * @param entity - The Entity object containing the events to be checked.
+   * @returns A boolean indicating whether a 3400 status event is missing (true) or not (false).
+   */
+  static isMissing3400(entity: Entity): boolean {
     let isCustomsEventOccurred: boolean = false;
-    let lastEvent: Event | null = null;
-    let hasPostCustomsEvent = false;
 
     for (const event of entity.events) {
       if (event.status === 3350) {
         isCustomsEventOccurred = true;
-      } else if (isCustomsEventOccurred) {
-        hasPostCustomsEvent = true;
       }
 
-      // Insert missing 3400 event if necessary
       if (
-        lastEvent &&
-        isCustomsEventOccurred &&
-        hasPostCustomsEvent &&
-        !entity.includeStatus(3400) &&
-        [3004, 3250, 3450, 3500].includes(event.status)
+          isCustomsEventOccurred &&
+          !entity.includeStatus(3400) &&
+          [3004, 3250, 3450, 3500].includes(event.status)
       ) {
-        const supplementEvent: Event = this.createSupplementEvent(
-          trackingId,
-          3400,
-          event.when as string,
-          event.where as string,
-        );
-        entity.addEvent(supplementEvent);
-        // exit the loop once a 3400 event is inserted
-        break;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Finds the base event for generating a supplementary 3400 status event (Customs Clearance: Import Released).
+   * This function searches for the first event that occurs after a customs event (3350) and has a status
+   * indicating further progression in the shipment process.
+   *
+   * @param entity - The Entity object containing the events to be searched.
+   * @returns The Event object that can serve as the base for a 3400 status event, or undefined if no suitable event is found.
+   */
+  static get3400BaseEvent(entity: Entity): Event | undefined {
+    let isCustomsEventOccurred: boolean = false;
+
+    for (const event of entity.events) {
+      if (event.status === 3350) {
+        isCustomsEventOccurred = true;
       }
 
-      lastEvent = event;
+      if (
+          isCustomsEventOccurred &&
+          [3004, 3250, 3450, 3500].includes(event.status)
+      ) {
+        return event;
+      }
     }
 
-    return entity;
+    return undefined;
   }
 
   /**
@@ -439,6 +505,5 @@ export class Sfex {
 
     return event;
   }
-
 
 }
