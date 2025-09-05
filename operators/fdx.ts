@@ -307,6 +307,17 @@ export class Fdx {
         (address["countryName"] as string ?? "");
   }
 
+  /**
+   * Checks if a 3100 status event is missing from the entity's event sequence.
+   *
+   * This function iterates through the entity's events to determine if a 3100 status
+   * event (typically representing "Received by Carrier") is missing where it should
+   * be present in the logical sequence of events.
+   *
+   * @param {Entity} entity - The entity object containing an array of events to check.
+   * @returns {boolean} Returns true if a 3100 status event is missing in the expected
+   *                    sequence, false otherwise.
+   */
   static isMissing3100(entity: Entity): boolean {
     let hasPreEventOccurred : boolean = false;
     for (const event of entity.events) {
@@ -322,7 +333,15 @@ export class Fdx {
     return true;
   }
 
-  static getTheFirst3001Event(entity: Entity): Event | undefined {
+  /**
+   * Retrieves the base event for status code 3100 from the entity's events.
+   * This function searches for an event with status 3001, which serves as the base for creating a 3100 event.
+   *
+   * @param {Entity} entity - The entity containing the events to search through.
+   * @returns {Event | undefined} The event with status 3001 if found, otherwise undefined.
+   *                              This event can be used as a base for creating a 3100 status event.
+   */
+  static get3100BaseEvent(entity: Entity): Event | undefined {
     for (const event of entity.events) {
       // if the event status is less than or equal to 3050, skip it
       if (event.status <= 3050 && event.status%50 === 0) {
@@ -439,7 +458,7 @@ export class Fdx {
     entity.sortEventsByWhen();
 
     if(this.isMissing3100(entity)) {
-      const theFirst3001Event = this.getTheFirst3001Event(entity);
+      const theFirst3001Event = this.get3100BaseEvent(entity);
       if(theFirst3001Event) {
         const supplementEvent: Event = this.createSupplementEvent(trackingId, 3100,theFirst3001Event.when as string, theFirst3001Event.where as string);
         entity.addEvent(supplementEvent);
