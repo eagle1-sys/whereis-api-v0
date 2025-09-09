@@ -302,9 +302,9 @@ export class Fdx {
    * @returns {string} A formatted string representing the address (e.g., "City State Country").
    */
   static getAddress(address: Record<string, unknown>): string {
-    return (address["city"] as string ?? "") +
-      (address["stateOrProvinceCode"] as string ?? "") +
-        (address["countryName"] as string ?? "");
+    return ((address["city"] as string ?? "") + " " +
+      (address["stateOrProvinceCode"] as string ?? "") + " " +
+        (address["countryName"] as string ?? "")).trim();
   }
 
   /**
