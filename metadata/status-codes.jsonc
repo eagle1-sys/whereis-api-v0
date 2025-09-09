@@ -14,7 +14,7 @@
   "3006": "Information Processed",                  // generic
 
   // Exceptions
-  "3007": "Process Stopped",                        // exception
+  "3009": "Process Stopped",                        // termination
 
   // Milestone events
   "3050": "Picked Up",                              // minor

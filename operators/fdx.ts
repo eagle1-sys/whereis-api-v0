@@ -125,7 +125,7 @@ export class Fdx {
       DE: 3450, // Final Delivery In-Progress
     },
     CA: {
-      CA: 3007, // Process Stopped
+      CA: 3009, // Process Stopped
     },
   };
 

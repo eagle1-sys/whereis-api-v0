@@ -426,7 +426,7 @@ export class Entity {
     if (this.events === undefined) return false;
 
     for (let i = this.events.length - 1; i >= 0; i--) {
-      if (this.events[i].status === 3500 || this.events[i].status === 3007) {
+      if (this.events[i].status === 3500 || this.events[i].status === 3009) {
         return true;
       }
     }
