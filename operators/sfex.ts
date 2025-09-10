@@ -125,13 +125,13 @@ export class Sfex {
    * Queries the location and status of a shipment using its tracking number.
    * @static
    * @async
-   * @param {TrackingID} trackingId - The tracking ID defined by eagle1.
+   * @param {TrackingID} trackingIds - The tracking ID(s) defined by eagle1.
    * @param {Record<string, string>} extraParams - Additional parameters, including phone number.
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Promise<Entity | undefined>} A promise that resolves to an object or undefined if no data is found.
    */
   static async whereIs(
-    trackingId: TrackingID,
+    trackingIds: TrackingID[],
     extraParams: Record<string, string>,
     updateMethod: string,
   ): Promise<Entity[]> {
@@ -140,6 +140,7 @@ export class Sfex {
     }
 
     const entities: Entity[] = [];
+    const trackingId = trackingIds[0];
     const result = await this.getRoute(
       trackingId.trackingNum,
       extraParams["phonenum"],

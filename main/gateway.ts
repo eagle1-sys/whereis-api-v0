@@ -19,8 +19,14 @@ type OperatorStatus = {
 // Define the operator status variable
 const operatorStatus: OperatorStatus = {};
 
+/**
+ * Checks if a given operator is active.
+ *
+ * @param {string} operator - The operator code to check.
+ * @returns {boolean} True if the operator is active, false otherwise.
+ */
 export function isOperatorActive(operator: string): boolean {
-    return operatorStatus[operator] === true;
+    return operatorStatus[operator] ?? false;
 }
 
 /**
@@ -57,7 +63,7 @@ export async function requestWhereIs(
   switch (operator) {
     case "sfex":
       entities = await Sfex.whereIs(
-        trackingIds[0],
+        trackingIds,
         extraParams,
         updateMethod,
       );
