@@ -3,10 +3,6 @@ name: Auto Review by aica
 on:
   pull_request:
     types: [opened, reopened, synchronize]
-  issue_comment:
-    types: [created, edited]
-  pull_request_review_comment:
-    types: [created]
 
 permissions:
   contents: write
