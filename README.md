@@ -13,9 +13,9 @@ Since different logistics providers have their own APIs and data formats, integr
 3. Initially it supports two logistics operators: FedEx and SF Express, with a [future roadmap](https://github.com/eagle1-sys/whereis-api-v0/discussions/97) planned. Code review is on [DeepWiki](https://deepwiki.com/eagle1-sys/whereis-api-v0).
 
 ### Design intentions
-- **Beyond Simple Mapping**: Transform raw carrier data into meaningful, [standardized information](https://github.com/eagle1-sys/whereis-api-v0/issues/47#issuecomment-3277018246)
-- **Developer-Centric**: Provide consistent, easy-to-understand API responses
-- **Continuous Improvement**: Mapping rules evolve based on real-world data patterns
+- **Beyond Simple Mapping**: Transform raw carrier data into meaningful, standardized information ([status codes](metadata/status-codes.jsonc), [mapping optimizations](https://github.com/eagle1-sys/whereis-api-v0/issues/47#issuecomment-3277018246)).
+- **Developer-Centric**: Provide consistent, easy-to-understand API responses.
+- **Continuous Improvement**: Mapping rules evolve based on real-world data patterns via a two-stage process: (Stage 1: rule-based mapping; Stage 2: AI-assisted enhancement).
 
 
 ## Examples
