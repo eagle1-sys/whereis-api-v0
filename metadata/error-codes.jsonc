@@ -6,16 +6,14 @@
   "400-03": "Missing or invalid parameter.",
   "400-04": "Invalid operator code.",
   "400-05": "Invalid URL format.",
-  "400-13": "Whereis API: Service is not enabled for this operator.",
 
   "401-01": "Unauthorized: Missing or invalid Whereis API HTTP Authorization header.",
   "401-02": "Unauthorized: Invalid Whereis API key.",
 
   "403-01": "Forbidden: The provided Whereis API key is not authorized for this request.",
 
-  "404-01": "Tracking number not found.",
+  "404-01": "Whereis API could not retrieve tracking information from the data source provider.",
   "404-02": "The tracking number has expired with the data source provider.",
-  "404-03": "Whereis API could not retrieve tracking information from the data source provider.",
 
   "429-01": "Too many requests.",
 

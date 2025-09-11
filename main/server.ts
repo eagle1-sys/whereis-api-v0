@@ -45,13 +45,13 @@ const app = new Hono();
 const customBearerAuth = async (c: Context, next: Next) => {
   const authHeader = c.req.header("Authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    throw new AppError("401-01");
+    throw new AppError("401-01", "401AA: server - AUTH_HEADER");
   }
 
   const token = authHeader.split(" ")[1];
   const isValidToken = await verifyToken(token); // verify the token
   if (!isValidToken) {
-    throw new AppError("401-02");
+    throw new AppError("401-02", "401AB: server - TOKEN_VALIDATION");
   }
 
   if (token === "eagle1") {
@@ -61,7 +61,8 @@ const customBearerAuth = async (c: Context, next: Next) => {
     if (idx > 0) {
       const operatorCode = trackingId.substring(0, idx);
       if (isOperatorActive(operatorCode)) {
-        throw new AppError("403-01"); // The client API key is not authorized for this request.
+        // The client API key is not authorized for this request.
+        throw new AppError("403-01","403AA: server - CLIENT_AUTHORIZATION");
       }
     }
   }
@@ -108,7 +109,7 @@ app.use("*", async (c: Context, next: Next) => {
     pathName.endsWith("/status/") ||
     pathName.endsWith("/status")
   ) {
-    throw new AppError("400-01");
+    throw new AppError("400-01", "400AC: server - TRACKING_ID");
   }
   await next();
 });
@@ -149,7 +150,7 @@ app.get("/v0/status/:id?", async (c: Context) => {
   const invalidParams = validateQueryParams(queryParams, validParamSet);
 
   if (invalidParams.length > 0) {
-    return c.sendError(new AppError("400-03", invalidParams.join(",")));
+    return c.sendError(new AppError("400-03", "400AB: server - " + invalidParams.join(",")));
   }
 
   const status = await getStatus(trackingID, parsedParams);
@@ -177,7 +178,7 @@ app.get("/v0/whereis/:id", async (c: Context) => {
     new Set(validParamsSet),
   );
   if (invalidParams.length > 0) {
-    return c.sendError(new AppError("400-03", invalidParams.join(",")));
+    return c.sendError(new AppError("400-03", "400AA: server - " + invalidParams.join(",")));
   }
 
   const refresh = queryParams.refresh === "true";
@@ -192,7 +193,7 @@ app.get("/v0/whereis/:id", async (c: Context) => {
     );
 
   if (!entity) {
-    throw new AppError(refresh ? "404-03" : "404-01");
+    throw new AppError("404-01", "404AA: server - DATA_PROVIDER");
   }
 
   const elapsed = performance.now() - start;
@@ -245,10 +246,10 @@ app.onError((err: unknown, c: Context) => {
     const statusCode = err.getHttpStatusCode();
     if(statusCode < 500){
       logger.info(`Request URL: ${c.req.url}`);
-      logger.info(`Error detail: ${err.message}`);
+      logger.info(`Error detail: ${err.getMessage()}`);
     } else {
       logger.error(`Request URL: ${c.req.url}`);
-      logger.error(`Error detail: ${err.message}`);
+      logger.error(`Error detail: ${err.getMessage()}`);
     }
     return c.sendError(err);
   }
@@ -312,7 +313,7 @@ async function getEntityFromDbOrProvider(
     trackingID.operator === "sfex" &&
     entity.params?.phonenum !== queryParams.phonenum
   ) {
-    throw new AppError("400-03", "sfex - phonenum");
+    throw new AppError("400-03", "400AD: sfex - PHONENUM");
   }
 
   return entity;
@@ -342,7 +343,7 @@ async function getStatus(
       trackingID.operator === "sfex" &&
       entity.params?.phonenum !== queryParams.phonenum
     ) {
-      throw new AppError("400-03", "sfex - phonenum");
+      throw new AppError("400-03", "400AE: sfex - PHONENUM");
     }
     return entity.getLastStatus();
   }
@@ -356,7 +357,7 @@ async function getStatus(
   );
 
   if (result.length === 0) {
-    throw new AppError("404-01"); // Not found in data provider
+    throw new AppError("404-01", "404AB: server - DATA_PROVIDER"); // Not found in data provider
   }
 
   try {
@@ -394,7 +395,7 @@ function parseURL(
   if (trackingID.operator == "sfex") {
     const phoneNum = queryParams["phonenum"];
     if (phoneNum == undefined || phoneNum == "") {
-      throw new AppError("400-03", "sfex - phonenum");
+      throw new AppError("400-03", "400AF: sfex - PHONENUM");
     }
   }
 

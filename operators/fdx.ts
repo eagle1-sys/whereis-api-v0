@@ -172,7 +172,7 @@ export class Fdx {
           const code = data["errors"][0]?.code;
           if(code==="BAD.REQUEST.ERROR" || code==="NOT.AUTHORIZED.ERROR") {
             // Invalid or missing data source API credentials
-            throw new AppError("500-01", "501AB: fdx - CLIENT_ID");
+            throw new AppError("500-01", "500AA: fdx - CLIENT_ID");
           } else {
             throw new Error(`Unexpected error code from FedEx API: ${code}`);
           }
@@ -200,7 +200,7 @@ export class Fdx {
     updateMethod: string,
   ): Promise<Entity[]> {
     if(!isOperatorActive("fdx")) {
-      throw new AppError("400-13", "fdx"); // Service is unavailable for operator
+      throw new AppError("500-01", "500AB: fdx - CLIENT_ID");
     }
 
     const entities: Entity[] = [];
