@@ -193,17 +193,17 @@ export class TrackingID {
   static parse(strTrackingID: string): TrackingID {
     const trimmedID = strTrackingID.trim();
     if (trimmedID === "") {
-      throw new AppError("400-01");
+      throw new AppError("400-01","400BA: model - TRACKING_ID");
     }
 
     const [operator, trackingNum] = trimmedID.split("-");
     if (!operator || !trackingNum) {
-      throw new AppError("400-05");
+      throw new AppError("400-05","400BB: model - URL_FORMAT");
     }
 
     const lowerCaseOperator = operator.toLowerCase();
     if (!OperatorRegistry.include(lowerCaseOperator)) {
-      throw new AppError("400-04", lowerCaseOperator);
+      throw new AppError("400-04", `400BC: model - OPERATOR_CODE[${lowerCaseOperator}]`);
     }
 
     switch (lowerCaseOperator) {
@@ -225,7 +225,7 @@ export class TrackingID {
    */
   static checkFedExTrackingNum(trackingNum: string): void {
     if (trackingNum.length != 12) {
-      throw new AppError("400-02");
+      throw new AppError("400-02","400BD: model - FDX_LENGTH");
     }
   }
 
@@ -236,7 +236,7 @@ export class TrackingID {
    */
   static checkSFTrackingNum(trackingNum: string): void {
     if (trackingNum.length != 15 || !trackingNum.startsWith("SF")) {
-      throw new AppError("400-02");
+      throw new AppError("400-02", "400BE: model - SFEX_FORMAT");
     }
   }
 }
