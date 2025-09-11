@@ -235,8 +235,8 @@ export class TrackingID {
    * @returns {string | undefined} An error code if invalid (e.g., "400-02"), or undefined if valid.
    */
   static checkSFTrackingNum(trackingNum: string): void {
-    if (trackingNum.length != 15 || !trackingNum.startsWith("SF")) {
-      throw new AppError("400-02", "400BE: model - SFEX_FORMAT");
+    if (!/^SF\d{13}$/.test(trackingNum)) {
+          throw new AppError("400-02", "400BE: model - SFEX_FORMAT");
     }
   }
 }
