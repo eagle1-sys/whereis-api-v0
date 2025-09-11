@@ -144,7 +144,7 @@ export async function syncRoutes() {
     // ignore the UserError
     if (err instanceof AppError) {
       if(err.getHttpStatusCode()>500) {
-        logger.error(`SyncRoutes: ${err.message}`);
+        logger.error(`SyncRoutes: ${err.getMessage()}`);
       }
     } else {
       if (err instanceof Error) {

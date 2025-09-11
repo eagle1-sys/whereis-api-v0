@@ -136,7 +136,7 @@ export class Sfex {
     updateMethod: string,
   ): Promise<Entity[]> {
     if(!isOperatorActive("sfex")) {
-      throw new AppError("400-13", "sfex"); // Service is unavailable for operator
+      throw new AppError("500-01", "500BA: sfex - PARTNERID");
     }
 
     const entities: Entity[] = [];
@@ -150,7 +150,7 @@ export class Sfex {
     if (resultCode !== "A1000") {
       if(resultCode === "A1001" || resultCode === "A1004" || resultCode === "A1006"){
         // Invalid or missing data source API credentials
-        throw new AppError("500-01", "501AB: sfex - PARTNERID");
+        throw new AppError("500-01", "500BB: sfex - PARTNERID");
       }
       throw new Error(`${resultCode}: ${result["apiErrorMsg"]}`);
     }
