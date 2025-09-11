@@ -25,7 +25,6 @@
         "required": true,
         "description": "Last 4 digits of the phone number of the shipper or receiver"
       }
-    },
-    "fdx": {}
+    }
   }
 }
