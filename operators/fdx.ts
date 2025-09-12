@@ -468,9 +468,11 @@ export class Fdx {
 
     if(this.isMissing3100(entity)) {
       const baseEvent = this.get3100BaseEvent(entity);
-      if(baseEvent) {
+      if(baseEvent?.when && baseEvent.where) {
         const supplementEvent: Event = this.createSupplementEvent(trackingId, 3100,baseEvent.when as string, baseEvent.where as string);
         entity.addEvent(supplementEvent);
+        // keep chronological order for downstream methods that don’t sort
+        entity.sortEventsByWhen();
       }
     }
 
