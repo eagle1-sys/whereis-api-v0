@@ -351,7 +351,7 @@ export class Fdx {
       if (event.status > 3100 && event.status%50 === 0) {
         break;
       }
-      if (event.status === 3001 ) {
+      if (event.status >= 3001 && event.status <= 3004) {
         return event;
       }
     }
@@ -396,7 +396,16 @@ export class Fdx {
       body: JSON.stringify(payload),
     });
 
-    return await response.json();
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+       return await response.json();
+    } else {
+       throw new Error(`Unexpected content type: ${contentType}`);
+    }
   }
 
   /**
