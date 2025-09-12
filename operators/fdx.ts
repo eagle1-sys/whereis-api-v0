@@ -334,13 +334,13 @@ export class Fdx {
   }
 
   /**
-   * Retrieves the base event for status code 3100 from the entity's events.
-   * This function searches for an event with status 3001, which serves as the base for creating a 3100 event.
-   *
-   * @param {Entity} entity - The entity containing the events to search through.
-   * @returns {Event | undefined} The event with status 3001 if found, otherwise undefined.
-   *                              This event can be used as a base for creating a 3100 status event.
-   */
+  * Retrieves the base event for status code 3100 from the entity's events.
+  * Looks for the earliest event with status in [3001..3004] (inclusive), which serves as the base for creating a 3100 event.
+  *
+  * @param {Entity} entity - The entity containing the events to search through.
+  * @returns {Event | undefined} The earliest event with status 3001–3004 if found, otherwise undefined.
+  *                              This event is used as a base for creating a 3100 status event.
+  */
   static get3100BaseEvent(entity: Entity): Event | undefined {
     for (const event of entity.events) {
       // if the event status is less than or equal to 3050, skip it
@@ -467,10 +467,12 @@ export class Fdx {
     entity.sortEventsByWhen();
 
     if(this.isMissing3100(entity)) {
-      const theFirst3001Event = this.get3100BaseEvent(entity);
-      if(theFirst3001Event) {
-        const supplementEvent: Event = this.createSupplementEvent(trackingId, 3100,theFirst3001Event.when as string, theFirst3001Event.where as string);
+      const baseEvent = this.get3100BaseEvent(entity);
+      if(baseEvent?.when && baseEvent.where) {
+        const supplementEvent: Event = this.createSupplementEvent(trackingId, 3100,baseEvent.when as string, baseEvent.where as string);
         entity.addEvent(supplementEvent);
+        // keep chronological order for downstream methods that don’t sort
+        entity.sortEventsByWhen();
       }
     }
 
