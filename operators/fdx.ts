@@ -351,7 +351,7 @@ export class Fdx {
       if (event.status > 3100 && event.status%50 === 0) {
         break;
       }
-      if (event.status === 3001 ) {
+      if (event.status >= 3001 && event.status <= 3004) {
         return event;
       }
     }
