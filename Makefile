@@ -16,7 +16,7 @@ SHELL := /bin/bash
 MAKEFLAGS += --no-print-directory
 
 # Define all targets that are not files as .PHONY
-.PHONY: help start build update local stop stop-remove logs init_db check_docker fly prune test
+.PHONY: help start build update local stop stop-remove logs init_db check_docker prune test
 
 # Set the default target to 'help' if no target is specified
 .DEFAULT_GOAL := help
@@ -122,12 +122,5 @@ logs: check_docker ## Follow the logs from the api and postgres services
 	@echo "=> Tailing logs (press Ctrl+C to stop)..."
 	@docker compose logs -f
 
-fly: fly.toml Dockerfile ## Build and deploy the service to fly.io
-	@echo "=> Starting deployment to fly.io..."
-	@echo "  -> Importing application secrets from 'source-api-keys.env'..."
-	fly secrets import < source-api-keys.env
-	@echo "  -> Building the image and deploying the application..."
-	fly deploy
-	@echo "=> Deployment to fly.io complete."
 
 # - EOF -
