@@ -78,6 +78,19 @@ export function getRoutesFromSfexTest() {
           );
         }
       }
+
+      if ("routeNum" in output) {
+         const expected = output["routeNum"];
+         if (expected == 0) {
+            assert(routes.length === 0, `Expected 0 events, got ${routes.length}`);
+         } else if (expected === "*") {
+            assert(routes.length >= 1, `Expected >=1 events, got ${routes.length}`);
+         } else {
+            assert(routes.length >= expected, `Expected >=${expected} events, got ${routes.length}`);
+         }
+      } else {
+           throw new Error(`Unexpected output format: ${JSON.stringify(response)}`);
+      }
     }
   });
 }

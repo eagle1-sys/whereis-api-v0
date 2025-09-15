@@ -76,12 +76,12 @@ export async function requestWhereIs(
 }
 
 /**
- * Processes the API response, checks for errors, and returns the JSON content.
+ * Parses JSON from a Response when Content-Type indicates JSON;
  *
  * @param response - The Response object from the fetch call
  * @param uniqueId - A unique identifier string for logging purposes
  * @returns The JSON content of the response
- * @throws Error if the response is not OK or if the content type is unexpected
+ * @throws Error if the content type is not JSON-like
  */
 export async function getResponseJSON(response: Response, uniqueId: string): Promise<Record<string, unknown>> {
   const contentType = response.headers.get("content-type");

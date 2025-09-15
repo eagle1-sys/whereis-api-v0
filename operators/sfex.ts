@@ -319,6 +319,7 @@ export class Sfex {
             baseEvent.where as string,
         );
         entity.addEvent(supplementEvent);
+        entity.sortEventsByWhen();
       }
     }
 

@@ -148,6 +148,11 @@ async function assertResponse(
 
     case "eventNum" in expectedOutput: {
       const events = responseJSON.events ?? [];
+      assert(
+          response.status === 200,
+          `Expected HTTP 200, but received ${response.status} with body ${JSON.stringify(responseJSON)}`,
+      );
+
       const expectedEventNum = expectedOutput.eventNum;
 
       assert(
