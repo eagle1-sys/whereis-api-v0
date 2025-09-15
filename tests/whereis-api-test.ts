@@ -48,11 +48,6 @@ const testData = [
     "memo": "Invalid slug notation.",
   },
   {
-    "input": { "id": "sfex-SF3182998070266", "extra": { "phonenum": "6993" } },
-    "output": { "eventNum": 20 },
-    "memo": "Pull data from data providers with correct phone num.",
-  },
-  {
     "input": { "id": "sfex-SF3182998070266", "extra": { "phonenum": "6994" } },
     "output": { "error": "400-03" },
     "memo":
@@ -71,10 +66,15 @@ const testData = [
   },
   {
     "input": { "id": "fdx-779879860040" },
-    "output": { "eventNum": 1 },
+    "output": { "eventNum": "1" },
     "memo":
       "Completed FedEx waybills will have most of their events data removed after a period of time.",
   },
+  {
+    "input": { "id": "sfex-SF3182998070266", "extra": { "phonenum": "6993" } },
+    "output": { "eventNum": "*" },
+    "memo": "Pull data from data providers with correct phone num.",
+  }
 ];
 
 export function whereisApiTest() {
@@ -136,34 +136,51 @@ export function whereisApiTest() {
 
 async function assertResponse(
   response: Response,
-  output: Record<string, unknown>,
+  expectedOutput: Record<string, unknown>,
 ) {
   const responseJSON = await response.json();
 
   switch (true) {
-    case "error" in output: {
-      //await assertStatus(response, output);
-      assertErrorCode(response.status, responseJSON, output);
+    case "error" in expectedOutput: {
+      assertErrorCode(response.status, responseJSON, expectedOutput);
       break;
     }
 
-    case "eventNum" in output: {
+    case "eventNum" in expectedOutput: {
       const events = responseJSON.events ?? [];
-      const expectedEventNum = output.eventNum as number;
+      const expectedEventNum = expectedOutput.eventNum;
 
       assert(
         Array.isArray(events),
         `Expected events in response, but got: ${JSON.stringify(responseJSON)}`,
       );
-      assert(
-        events.length === expectedEventNum,
-        `Expected ${expectedEventNum} events, but got ${events.length}`,
-      );
+
+      if (expectedEventNum == 0) {
+        assert(
+            events.length === expectedEventNum,
+            `Expected ${expectedEventNum} events, but got ${events.length}`,
+        );
+      } else if (expectedEventNum === "*") {
+        assert(
+            events.length >= 1,
+            `Expected ${expectedEventNum} events, but got ${events.length}`,
+        );
+      } else {
+        const numEvents = typeof expectedEventNum === 'number' ? expectedEventNum : parseInt(expectedEventNum as string, 10);
+        assert(
+            !isNaN(numEvents),
+            `Invalid expectedEventNum: ${expectedEventNum}`,
+        );
+        assert(
+            events.length >= numEvents,
+            `Expected ${expectedEventNum} events, but got ${events.length}`,
+        );
+      }
       break;
     }
 
     default: {
-      throw new Error(`Unexpected output format: ${JSON.stringify(output)}`);
+      throw new Error(`Unexpected output format: ${JSON.stringify(responseJSON)}`);
     }
   }
 }

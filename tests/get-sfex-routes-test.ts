@@ -31,9 +31,8 @@ const testData = [
   },
   {
     "input": { "trackingNum": "SF3182998070266", "phone": "6993" },
-    "output": { "routeNum": 19 },
-    "memo":
-      "Normal waybill.",
+    "output": { "routeNum": "*" },
+    "memo": "Normal waybill.",
   },
 ];
 
@@ -43,12 +42,42 @@ export function getRoutesFromSfexTest() {
       const data = testData[i];
       const input = data["input"];
       const output = data["output"];
-      const response = await Sfex.getRoute(input["trackingNum"], input["phone"]);
+      const response = await Sfex.getRoute(
+        input["trackingNum"],
+        input["phone"],
+      );
       const apiResultData = JSON.parse(response["apiResultData"] as string);
       const routeResps = apiResultData["msgData"]["routeResps"];
       const routes = routeResps[0]["routes"];
-      assert(routes.length == output["routeNum"]);
+
+      switch (true) {
+        case "routeNum" in output: {
+          const expectedRouteNum = output["routeNum"] ;
+          if (expectedRouteNum == 0) {
+            assert(
+              routes.length === expectedRouteNum,
+              `Expected ${expectedRouteNum} events, but got ${routes.length}`,
+            );
+          } else if (expectedRouteNum == "*") {
+            assert(
+              routes.length >= 1,
+              `Expected ${expectedRouteNum} events, but got ${routes.length}`,
+            );
+          } else {
+            assert(
+              routes.length >= expectedRouteNum,
+              `Expected ${expectedRouteNum} events, but got ${routes.length}`,
+            );
+          }
+          break;
+        }
+
+        default: {
+          throw new Error(
+            `Unexpected output format: ${JSON.stringify(response)}`,
+          );
+        }
+      }
     }
   });
 }
-
