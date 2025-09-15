@@ -19,7 +19,7 @@ import {
 } from "../main/model.ts";
 import { config } from "../config.ts";
 import { logger } from "../tools/logger.ts";
-import {isOperatorActive} from "../main/gateway.ts";
+import {getResponseJSON, isOperatorActive} from "../main/gateway.ts";
 import {extractTimezone, formatTimezoneOffset} from "../tools/util.ts";
 
 /**
@@ -145,31 +145,32 @@ export class Fdx {
       const fdxApiUrl: string = config.fdx.apiUrl ?? "";
       const fdxClientId: string = Deno.env.get("FDX_CLIENT_ID") as string;
       const fdxClientSecret: string = Deno.env.get("FDX_CLIENT_SECRET") as string;
-      let data;
-      try {
-        const response = await fetch(fdxApiUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams({
-            grant_type: "client_credentials",
-            client_id: fdxClientId,
-            client_secret: fdxClientSecret,
-          }),
-        });
-        data = await response.json();
-      } catch (error) {
-        console.error("Could not get JSON:", error);
-        throw error;
+
+      const response = await fetch(fdxApiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          grant_type: "client_credentials",
+          client_id: fdxClientId,
+          client_secret: fdxClientSecret,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status} [500AC - getToken]`);
       }
 
+      const data: Record<string, unknown>  = await getResponseJSON(response, "500AC - getToken");
+
       if (data["access_token"]) {
-        this.token = data["access_token"];
-        this.expireTime = Date.now() + data["expires_in"] * 1000;
+        this.token = data["access_token"] as string;
+        this.expireTime = Date.now() + (data["expires_in"] as number) * 1000;
       } else {
         if (data["errors"]) {
-          const code = data["errors"][0]?.code;
+          const errors = data["errors"] as Array<{code: string}>;
+          const code = errors[0]?.code;
           if(code==="BAD.REQUEST.ERROR" || code==="NOT.AUTHORIZED.ERROR") {
             // Invalid or missing data source API credentials
             throw new AppError("500-01", "500AA: fdx - CLIENT_ID");
@@ -397,15 +398,10 @@ export class Fdx {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status} [500AD - getRoute]`);
     }
 
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.includes("application/json")) {
-       return await response.json();
-    } else {
-       throw new Error(`Unexpected content type: ${contentType}`);
-    }
+    return getResponseJSON(response, "500AD - getRoute");
   }
 
   /**

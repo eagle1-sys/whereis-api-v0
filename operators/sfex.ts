@@ -18,7 +18,7 @@ import {
 import { crypto } from "@std/crypto";
 import { config } from "../config.ts";
 import { logger } from "../tools/logger.ts";
-import {isOperatorActive} from "../main/gateway.ts";
+import {getResponseJSON, isOperatorActive} from "../main/gateway.ts";
 import {formatTimezoneOffset} from "../tools/util.ts";
 
 /**
@@ -249,7 +249,12 @@ export class Sfex {
         },
       ),
     });
-    return await response.json();
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status} [500BC - getRoute]`);
+    }
+
+    return await getResponseJSON(response, "500BC - getRoute")
   }
 
   /**

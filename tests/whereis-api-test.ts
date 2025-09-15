@@ -19,7 +19,7 @@
 import { assert } from "@std/assert";
 import { WHEREIS_API_URL } from "./main-test.ts";
 import { assertErrorCode } from "./main-test.ts";
-import { isOperatorActive } from "../main/gateway.ts";
+import {getResponseJSON, isOperatorActive} from "../main/gateway.ts";
 
 const testData = [
   {
@@ -138,7 +138,7 @@ async function assertResponse(
   response: Response,
   expectedOutput: Record<string, unknown>,
 ) {
-  const responseJSON = await response.json();
+  const responseJSON = await getResponseJSON(response, "500TA - Test");
 
   switch (true) {
     case "error" in expectedOutput: {
