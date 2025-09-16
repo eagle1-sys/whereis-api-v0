@@ -13,9 +13,12 @@ Since different logistics providers have their own APIs and data formats, integr
 3. Initially it supports two logistics operators: FedEx and SF Express, with a [future roadmap](https://github.com/eagle1-sys/whereis-api-v0/discussions/97) planned. Code review is on [DeepWiki](https://deepwiki.com/eagle1-sys/whereis-api-v0).
 
 ### Design intentions
-- **Beyond Simple Mapping**: Transform raw carrier data into meaningful, standardized information ([status codes](metadata/status-codes.jsonc), [mapping optimizations](https://github.com/eagle1-sys/whereis-api-v0/issues/47#issuecomment-3277018246)).
+- **Beyond Simple Mapping**: Transform raw carrier data into meaningful, standardized information.
 - **Developer-Centric**: Provide consistent, easy-to-understand API responses.
 - **Continuous Improvement**: Mapping rules evolve based on real-world data patterns via a two-stage process: (Stage 1: rule-based mapping; Stage 2: AI-assisted enhancement).
+
+### Documentation
+- [Wiki](https://github.com/eagle1-sys/whereis-api-v0/wiki)
 
 
 ## Examples
@@ -105,13 +108,11 @@ const response = await fetch(url, {
 
 # Getting started
 
-Here’s the gist for deploying Eagle1 locally using Docker containers. For step‑by‑step instructions, see the [How-to Guide](https://github.com/eagle1-sys/whereis-api-v0/wiki/How-to-deploy-locally-using-Docker).
+There are only three commands to deploy locally with Docker! Detailed, step-by-step instructions can be found in the [How-to Guide](https://github.com/eagle1-sys/whereis-api-v0/wiki/How%E2%80%90to:-Local-DEV-deployment-using-docker).
 
 ```bash
 git clone https://github.com/eagle1-sys/whereis-api-v0
-
 cd whereis-api-v0
-
 make whereis
 ```
 
