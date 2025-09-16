@@ -18,7 +18,7 @@ import {
 import { crypto } from "@std/crypto";
 import { config } from "../config.ts";
 import { logger } from "../tools/logger.ts";
-import {isOperatorActive} from "../main/gateway.ts";
+import {getResponseJSON, isOperatorActive} from "../main/gateway.ts";
 import {formatTimezoneOffset} from "../tools/util.ts";
 
 /**
@@ -249,7 +249,12 @@ export class Sfex {
         },
       ),
     });
-    return await response.json();
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status} [500BC - getRoute]`);
+    }
+
+    return await getResponseJSON(response, "500BC - getRoute")
   }
 
   /**
@@ -314,41 +319,9 @@ export class Sfex {
             baseEvent.where as string,
         );
         entity.addEvent(supplementEvent);
+        entity.sortEventsByWhen();
       }
     }
-
-    // let isCustomsEventOccurred: boolean = false;
-    // let lastEvent: Event | null = null;
-    // let hasPostCustomsEvent = false;
-    //
-    // for (const event of entity.events) {
-    //   if (event.status === 3350) {
-    //     isCustomsEventOccurred = true;
-    //   } else if (isCustomsEventOccurred) {
-    //     hasPostCustomsEvent = true;
-    //   }
-    //
-    //   // Insert missing 3400 event if necessary
-    //   if (
-    //     lastEvent &&
-    //     isCustomsEventOccurred &&
-    //     hasPostCustomsEvent &&
-    //     !entity.includeStatus(3400) &&
-    //     [3004, 3250, 3450, 3500].includes(event.status)
-    //   ) {
-    //     const supplementEvent: Event = this.createSupplementEvent(
-    //       trackingId,
-    //       3400,
-    //       event.when as string,
-    //       event.where as string,
-    //     );
-    //     entity.addEvent(supplementEvent);
-    //     // exit the loop once a 3400 event is inserted
-    //     break;
-    //   }
-    //
-    //   lastEvent = event;
-    // }
 
     return entity;
   }

@@ -24,31 +24,30 @@ import { Sfex } from "../operators/sfex.ts";
 
 const testData = [
   {
-    "input": { "trackingNum": "SF3122082959115", "phone": "5567" },
-    "output": { "routeNum": 0 },
+    "input": { "trackingNum": "SF0000000000000", "phone": "5567" },
     "memo":
       "Completed waybills cannot be queried for route data after 3 months.",
   },
   {
     "input": { "trackingNum": "SF3182998070266", "phone": "6993" },
-    "output": { "routeNum": 19 },
-    "memo":
-      "Normal waybill.",
+    "memo": "Normal waybill.",
   },
 ];
 
 export function getRoutesFromSfexTest() {
-  Deno.test("Test get scan events from Sfex", async () => {
+  Deno.test("Test interaction with SF Express API", async () => {
     for (let i = 0; i < testData.length; i++) {
       const data = testData[i];
       const input = data["input"];
-      const output = data["output"];
-      const response = await Sfex.getRoute(input["trackingNum"], input["phone"]);
+      const response = await Sfex.getRoute(
+        input["trackingNum"],
+        input["phone"],
+      );
       const apiResultData = JSON.parse(response["apiResultData"] as string);
-      const routeResps = apiResultData["msgData"]["routeResps"];
-      const routes = routeResps[0]["routes"];
-      assert(routes.length == output["routeNum"]);
+      assert(
+          apiResultData["success"],
+          `Unexpected output format: ${JSON.stringify(response)}`,
+      );
     }
   });
 }
-

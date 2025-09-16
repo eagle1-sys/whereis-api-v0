@@ -19,7 +19,7 @@ import {
 } from "../main/model.ts";
 import { config } from "../config.ts";
 import { logger } from "../tools/logger.ts";
-import {isOperatorActive} from "../main/gateway.ts";
+import {getResponseJSON, isOperatorActive} from "../main/gateway.ts";
 import {extractTimezone, formatTimezoneOffset} from "../tools/util.ts";
 
 /**
@@ -145,39 +145,40 @@ export class Fdx {
       const fdxApiUrl: string = config.fdx.apiUrl ?? "";
       const fdxClientId: string = Deno.env.get("FDX_CLIENT_ID") as string;
       const fdxClientSecret: string = Deno.env.get("FDX_CLIENT_SECRET") as string;
-      let data;
-      try {
-        const response = await fetch(fdxApiUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams({
-            grant_type: "client_credentials",
-            client_id: fdxClientId,
-            client_secret: fdxClientSecret,
-          }),
-        });
-        data = await response.json();
-      } catch (error) {
-        console.error("Could not get JSON:", error);
-        throw error;
+
+      const response = await fetch(fdxApiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          grant_type: "client_credentials",
+          client_id: fdxClientId,
+          client_secret: fdxClientSecret,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status} [500AC - getToken]`);
       }
 
+      const data: Record<string, unknown>  = await getResponseJSON(response, "500AC - getToken");
+
       if (data["access_token"]) {
-        this.token = data["access_token"];
-        this.expireTime = Date.now() + data["expires_in"] * 1000;
+        this.token = data["access_token"] as string;
+        this.expireTime = Date.now() + (data["expires_in"] as number) * 1000;
       } else {
         if (data["errors"]) {
-          const code = data["errors"][0]?.code;
+          const errors = Array.isArray(data["errors"]) ? data["errors"] as Array<{ code?: string }> : [];
+          const code = errors[0]?.code ?? "";
           if(code==="BAD.REQUEST.ERROR" || code==="NOT.AUTHORIZED.ERROR") {
             // Invalid or missing data source API credentials
             throw new AppError("500-01", "500AA: fdx - CLIENT_ID");
           } else {
-            throw new Error(`Unexpected error code from FedEx API: ${code}`);
+            throw new Error(`Unexpected error code from FedEx API: ${code} [500AE - getToken]`);
           }
         } else {
-          throw new Error("Failed to retrieve token from FedEx API: No access_token or errors provided in response");
+          throw new Error("Failed to retrieve token from FedEx API: No access_token or errors provided in response [500AF - getToken]");
         }
       }
     }
@@ -335,8 +336,8 @@ export class Fdx {
 
   /**
   * Retrieves the base event for status code 3100 from the entity's events.
-  * Looks for the earliest event with status in [3001..3004] (inclusive), which serves as the base for creating a 3100 event.
-  *
+  * Scans chronologically, skipping pre‑milestones (<=3050 and multiples of 50) and stopping at the next milestone (>3100 and multiple of 50).
+  * Returns the earliest event with status in [3001..3004] (inclusive) to serve as the base for creating a 3100 event.
   * @param {Entity} entity - The entity containing the events to search through.
   * @returns {Event | undefined} The earliest event with status 3001–3004 if found, otherwise undefined.
   *                              This event is used as a base for creating a 3100 status event.
@@ -397,15 +398,10 @@ export class Fdx {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(`HTTP error! status: ${response.status} [500AD - getRoute]`);
     }
 
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.includes("application/json")) {
-       return await response.json();
-    } else {
-       throw new Error(`Unexpected content type: ${contentType}`);
-    }
+    return await getResponseJSON(response, "500AD - getRoute");
   }
 
   /**

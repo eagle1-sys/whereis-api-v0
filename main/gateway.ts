@@ -74,3 +74,20 @@ export async function requestWhereIs(
   }
   return entities;
 }
+
+/**
+ * Parses JSON from a Response when Content-Type indicates JSON;
+ *
+ * @param response - The Response object from the fetch call
+ * @param uniqueId - A unique identifier string for logging purposes
+ * @returns The JSON content of the response
+ * @throws Error if the content type is not JSON-like
+ */
+export async function getResponseJSON(response: Response, uniqueId: string): Promise<Record<string, unknown>> {
+  const contentType = response.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    return await response.json();
+  } else {
+    throw new Error(`Unexpected content type: ${contentType} [${uniqueId}]`);
+  }
+}
