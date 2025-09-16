@@ -323,39 +323,6 @@ export class Sfex {
       }
     }
 
-    // let isCustomsEventOccurred: boolean = false;
-    // let lastEvent: Event | null = null;
-    // let hasPostCustomsEvent = false;
-    //
-    // for (const event of entity.events) {
-    //   if (event.status === 3350) {
-    //     isCustomsEventOccurred = true;
-    //   } else if (isCustomsEventOccurred) {
-    //     hasPostCustomsEvent = true;
-    //   }
-    //
-    //   // Insert missing 3400 event if necessary
-    //   if (
-    //     lastEvent &&
-    //     isCustomsEventOccurred &&
-    //     hasPostCustomsEvent &&
-    //     !entity.includeStatus(3400) &&
-    //     [3004, 3250, 3450, 3500].includes(event.status)
-    //   ) {
-    //     const supplementEvent: Event = this.createSupplementEvent(
-    //       trackingId,
-    //       3400,
-    //       event.when as string,
-    //       event.where as string,
-    //     );
-    //     entity.addEvent(supplementEvent);
-    //     // exit the loop once a 3400 event is inserted
-    //     break;
-    //   }
-    //
-    //   lastEvent = event;
-    // }
-
     return entity;
   }
 
