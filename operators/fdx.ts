@@ -158,27 +158,24 @@ export class Fdx {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status} [500AC - getToken]`);
-      }
-
       const data: Record<string, unknown>  = await getResponseJSON(response, "500AC - getToken");
 
-      if (data["access_token"]) {
+      // if successful, update the token and expiration time.
+      if (response.ok) {
         this.token = data["access_token"] as string;
         this.expireTime = Date.now() + (data["expires_in"] as number) * 1000;
       } else {
-        if (data["errors"]) {
-          const errors = Array.isArray(data["errors"]) ? data["errors"] as Array<{ code?: string }> : [];
-          const code = errors[0]?.code ?? "";
-          if(code==="BAD.REQUEST.ERROR" || code==="NOT.AUTHORIZED.ERROR") {
-            // Invalid or missing data source API credentials
-            throw new AppError("500-01", "500AA: fdx - CLIENT_ID");
-          } else {
-            throw new Error(`Unexpected error code from FedEx API: ${code} [500AE - getToken]`);
-          }
+        const errors = data["errors"] as Array<{ code?: string; message?: string }>;
+        if(errors.length===0) {
+          throw new Error("Failed to retrieve token from FedEx API: No errors provided in response [500AF - getToken]");
+        }
+        // Just handle the first error code
+        const code = errors[0]?.code ?? "";
+        if(code==="BAD.REQUEST.ERROR" || code==="NOT.AUTHORIZED.ERROR") {
+          // Invalid or missing data source API credentials
+          throw new AppError("500-01", `500AA: fdx - ${code}`);
         } else {
-          throw new Error("Failed to retrieve token from FedEx API: No access_token or errors provided in response [500AF - getToken]");
+          throw new Error(`Unexpected error code from FedEx API: ${code} [500AE - getToken]`);
         }
       }
     }
