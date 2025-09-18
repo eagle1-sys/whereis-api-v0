@@ -76,18 +76,67 @@ export async function requestWhereIs(
 }
 
 /**
- * Parses JSON from a Response when Content-Type indicates JSON;
+ * Parses JSON from a Response when Content-Type indicates JSON or when content-type is missing;
+ * Handles various JSON content-types and edge cases like 204 responses and empty bodies.
  *
  * @param response - The Response object from the fetch call
  * @param uniqueId - A unique identifier string for logging purposes
  * @returns The JSON content of the response
- * @throws Error if the content type is not JSON-like
+ * @throws Error if the content type is not JSON-like or parsing fails
  */
 export async function getResponseJSON(response: Response, uniqueId: string): Promise<Record<string, unknown>> {
   const contentType = response.headers.get("content-type");
-  if (contentType && contentType.includes("application/json")) {
-    return await response.json();
-  } else {
-    throw new Error(`Unexpected content type: ${contentType} [${uniqueId}]`);
+
+  // Handle 204 No Content responses - return empty object
+  if (response.status === 204) {
+    return {};
   }
+
+  // Check if content-type indicates JSON or JSON-like content
+  const isJsonContent = contentType ? isJsonContentType(contentType) : false;
+
+  // If no content-type header, attempt to parse as JSON (some APIs omit headers)
+  // Or if content-type indicates JSON, proceed with parsing
+  if (!contentType || isJsonContent) {
+    try {
+      const text = await response.text();
+
+      // Handle empty responses - return empty object
+      if (!text.trim()) {
+        return {};
+      }
+
+      return JSON.parse(text);
+    } catch (error) {
+      if (!contentType) {
+        throw new Error(`Failed to parse response as JSON (no content-type header): ${error instanceof Error ? error.message : String(error)} [${uniqueId}]`);
+      }
+      throw new Error(`Failed to parse JSON response: ${error instanceof Error ? error.message : String(error)} [${uniqueId}]`);
+    }
+  }
+
+  throw new Error(`Unexpected content type: ${contentType} [${uniqueId}]`);
+}
+
+/**
+ * Helper function to check if a content-type indicates JSON content
+ * @param contentType - The content-type header value
+ * @returns true if the content-type indicates JSON content
+ */
+function isJsonContentType(contentType: string): boolean {
+  const normalizedType = contentType.toLowerCase().trim();
+
+  // Common JSON content types
+  const jsonTypes = [
+    'application/json',
+    'application/problem+json',
+    'application/vnd.api+json',
+    'application/hal+json',
+    'application/ld+json',
+    'text/json'
+  ];
+
+  return jsonTypes.some(type => normalizedType.includes(type)) ||
+      // Generic check for any +json suffix (handles future JSON variants)
+      /[\/+]json($|;|\s)/.test(normalizedType);
 }
