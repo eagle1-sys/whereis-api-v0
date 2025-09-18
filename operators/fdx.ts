@@ -162,13 +162,18 @@ export class Fdx {
 
       // if successful, update the token and expiration time.
       if (response.ok) {
+        if(!data["access_token"]) {
+          throw new Error("Failed to retrieve token from FedEx API: No access_token provided in response [500AF - getToken]");
+        }
+
         this.token = data["access_token"] as string;
         this.expireTime = Date.now() + (data["expires_in"] as number) * 1000;
       } else {
-        const errors = data["errors"] as Array<{ code?: string; message?: string }>;
-        if(errors.length===0) {
+        if(!data["errors"]) {
           throw new Error("Failed to retrieve token from FedEx API: No errors provided in response [500AF - getToken]");
         }
+
+        const errors = data["errors"] as Array<{ code?: string; message?: string }>;
         // Just handle the first error code
         const code = errors[0]?.code ?? "";
         if(code==="BAD.REQUEST.ERROR" || code==="NOT.AUTHORIZED.ERROR") {
