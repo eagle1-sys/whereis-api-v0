@@ -116,4 +116,5 @@ export async function getResponseJSON(response: Response, uniqueId: string): Pro
   }
 
   throw new Error(`Unexpected content type: ${contentType} [${uniqueId}]`);
+
 }
