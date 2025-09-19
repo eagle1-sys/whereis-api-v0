@@ -93,7 +93,7 @@ export async function getResponseJSON(response: Response, uniqueId: string): Pro
   }
 
   // Check if content-type indicates JSON or JSON-like content
-  const isJsonContent = contentType ? isJsonContentType(contentType) : false;
+  const isJsonContent = contentType ? contentType.toLowerCase().split(';')[0].trim().endsWith('json') : false;
 
   // If no content-type header, attempt to parse as JSON (some APIs omit headers)
   // Or if content-type indicates JSON, proceed with parsing
@@ -116,27 +116,5 @@ export async function getResponseJSON(response: Response, uniqueId: string): Pro
   }
 
   throw new Error(`Unexpected content type: ${contentType} [${uniqueId}]`);
-}
 
-/**
- * Helper function to check if a content-type indicates JSON content
- * @param contentType - The content-type header value
- * @returns true if the content-type indicates JSON content
- */
-function isJsonContentType(contentType: string): boolean {
-  const normalizedType = contentType.toLowerCase().trim();
-
-  // Common JSON content types
-  const jsonTypes = [
-    'application/json',
-    'application/problem+json',
-    'application/vnd.api+json',
-    'application/hal+json',
-    'application/ld+json',
-    'text/json'
-  ];
-
-  return jsonTypes.some(type => normalizedType.includes(type)) ||
-      // Generic check for any +json suffix (handles future JSON variants)
-      /[\/+]json($|;|\s)/.test(normalizedType);
 }

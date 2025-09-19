@@ -99,3 +99,25 @@ export function extractTimezone(dateString: string): number {
 
     return 0; // Return 0 if no timezone information is found
 }
+
+/**
+ * Adjusts a given date by subtracting one second and formats it according to a specified timezone.
+ *
+ * @param date - The original Date object to be adjusted.
+ * @param timeZone - The timezone offset in hours (e.g., 8 for UTC+8, -5 for UTC-5).
+ * @returns A tuple containing:
+ *   - number: The adjusted date as seconds since the Unix epoch.
+ *   - string: The adjusted date formatted as an ISO 8601 string with the specified timezone offset.
+ */
+export function adjustDateAndFormatWithTimezone(date: Date, timeZone: number): [number, string] {
+    // Set supplement event time 1 second before the base event
+    date.setMilliseconds(date.getMilliseconds() - 1000);
+    const secondsSinceEpoch = Math.floor(date.getTime() / 1000);
+
+    // Adjust for timezone defined in the configuration
+    const utcDate = new Date(date.getTime() + (timeZone * 60 * 60 * 1000));
+    // Format the date to "2024-10-26T06:12:43+08:00"
+    const formatedDate = utcDate.toISOString().replace(/\.\d{3}Z$/, formatTimezoneOffset(timeZone));
+
+    return [secondsSinceEpoch, formatedDate];
+}
