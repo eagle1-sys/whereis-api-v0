@@ -116,7 +116,7 @@ export function adjustDateAndFormatWithTimezone(basedOnDate: Date, timeZone: num
     // Adjust for timezone defined in the configuration
     const utcDate = new Date(adjustedDate.getTime() + (timeZone * 60 * 60 * 1000));
     // Format the date to "2024-10-26T06:12:43+08:00"
-    const formatedDate = utcDate.toISOString().replace(/\.\d{3}Z$/, formatTimezoneOffset(timeZone));
+    const formattedDate = utcDate.toISOString().replace(/\.\d{3}Z$/, formatTimezoneOffset(timeZone));
 
-    return [secondsSinceEpoch, formatedDate];
+    return [secondsSinceEpoch, formattedDate];
 }
