@@ -153,6 +153,9 @@ async function assertResponse(
           `Expected HTTP 200, but received ${response.status} with body ${JSON.stringify(responseJSON)}`,
       );
 
+      // Assert presence of ‘events’ field explicitly
+      assert("events" in responseJSON, `Missing 'events' in response: ${JSON.stringify(responseJSON)}`);
+
       const expectedEventNum = expectedOutput.eventNum;
 
       assert(
