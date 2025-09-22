@@ -166,6 +166,10 @@ export class Fdx {
           throw new Error("Failed to retrieve token from FedEx API: No access_token provided in response [500AF - getToken]");
         }
 
+        if (typeof data["expires_in"] !== "number" || data["expires_in"] <= 0) {
+          throw new Error("Failed to retrieve token from FedEx API: Invalid or missing expires_in value [500AG - getToken]");
+        }
+
         this.token = data["access_token"] as string;
         this.expireTime = Date.now() + (data["expires_in"] as number) * 1000;
       } else {
