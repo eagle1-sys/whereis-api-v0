@@ -77,9 +77,13 @@ export async function jsonToMd5(
 export  function formatTimezoneOffset(offset: number): string {
     const sign = offset >= 0 ? '+' : '-';
     const absOffset = Math.abs(offset);
-    const hours = String(Math.floor(absOffset)).padStart(2, '0');
-    const minutes = '00';
-    return `${sign}${hours}:${minutes}`;
+    const hours = Math.floor(absOffset);
+    const minutes = Math.round((absOffset - hours) * 60);
+
+    const formattedHours = String(hours).padStart(2, '0');
+    const formattedMinutes = String(minutes).padStart(2, '0');
+
+    return `${sign}${formattedHours}:${formattedMinutes}`;
 }
 
 /**
