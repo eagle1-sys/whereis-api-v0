@@ -177,6 +177,10 @@ export class Fdx {
           throw new Error("Failed to retrieve token from FedEx API: No errors provided in response [500AF - getToken]");
         }
 
+        if(!Array.isArray(data["errors"])){
+          throw new Error("Invalid FedEx API response format: 'errors' field must be an array [500AH - getToken]");
+        }
+
         const errors = data["errors"] as Array<{ code?: string; message?: string }>;
         // Just handle the first error code
         const code = errors[0]?.code ?? "";
