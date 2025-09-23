@@ -69,10 +69,10 @@ export async function jsonToMd5(
 /**
  * Formats a timezone offset into a string representation.
  *
- * @param offset - The timezone offset in hours. Positive values represent offsets ahead of UTC,
- *                 while negative values represent offsets behind UTC.
+ * @param offset - The timezone offset in hours. Positive values represent offsets east of UTC,
+ *                 negative values represent offsets west of UTC.
  * @returns A string representation of the timezone offset in the format "+HH:MM" or "-HH:MM".
- *          The hours are always two digits, and the minutes are always "00".
+ *          For example, 5.5 returns "+05:30", -3.25 returns "-03:15".
  */
 export  function formatTimezoneOffset(offset: number): string {
     const sign = offset >= 0 ? '+' : '-';
