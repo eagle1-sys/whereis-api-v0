@@ -87,9 +87,13 @@ export  function formatTimezoneOffset(offset: number): string {
 }
 
 /**
- * Extracts the timezone offset in hours from an ISO 8601 formatted date string.
- * @param dateString - The ISO 8601 formatted date string.
- * @returns The timezone offset as a number (e.g., 8 for "+08:00", -6 for "-06:00") or 0 if not found.
+ * Extracts the timezone offset (in hours) from an ISO 8601 date/time string.
+ *
+ * Supports a trailing `Z`/`z` (returns 0 for UTC) and timezone suffixes in the form `±HH:MM`.
+ * Parses hours and minutes and returns the total offset in hours, including fractional hours.
+ *
+ * @param dateString - ISO 8601 date/time string to parse (e.g., `2025-09-23T12:34:56+08:30`).
+ * @returns The timezone offset as a number in hours (e.g., `8` for `+08:00`, `8.5` for `+08:30`, `-3.25` for `-03:15`), or `0` if no timezone information is present.
  */
 export function extractTimezone(dateString: string): number {
     // Support trailing 'Z' (UTC) and ±HH:MM
