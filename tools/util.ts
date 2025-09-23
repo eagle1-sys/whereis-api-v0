@@ -69,10 +69,10 @@ export async function jsonToMd5(
 /**
  * Formats a timezone offset into a string representation.
  *
- * @param offset - The timezone offset in hours. Positive values represent offsets ahead of UTC,
- *                 while negative values represent offsets behind UTC.
+ * @param offset - The timezone offset in hours. Positive values represent offsets east of UTC,
+ *                 negative values represent offsets west of UTC.
  * @returns A string representation of the timezone offset in the format "+HH:MM" or "-HH:MM".
- *          The hours are always two digits, and the minutes are always "00".
+ *          For example, 5.5 returns "+05:30", -3.25 returns "-03:15".
  */
 export  function formatTimezoneOffset(offset: number): string {
     const sign = offset >= 0 ? '+' : '-';
@@ -92,16 +92,15 @@ export  function formatTimezoneOffset(offset: number): string {
  * @returns The timezone offset as a number (e.g., 8 for "+08:00", -6 for "-06:00") or 0 if not found.
  */
 export function extractTimezone(dateString: string): number {
-    const timezoneRegex = /([+-])(\d{2}):(\d{2})$/;
-    const match = dateString.match(timezoneRegex);
+    // Support trailing 'Z' (UTC) and ±HH:MM
+    if (/[Zz]$/.test(dateString)) return 0;
+    const match = dateString.match(/([+-])(\d{2}):(\d{2})$/);
+    if (!match) return 0;
 
-    if (match) {
-        const sign = match[1] === '+' ? 1 : -1;
-        const hours = parseInt(match[2], 10);
-        return sign * hours;
-    }
-
-    return 0; // Return 0 if no timezone information is found
+    const sign = match[1] === "+" ? 1 : -1;
+    const hours = parseInt(match[2], 10);
+    const minutes = parseInt(match[3], 10);
+    return sign * (hours + minutes / 60);
 }
 
 /**
