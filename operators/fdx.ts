@@ -194,11 +194,11 @@ export class Fdx {
     // if successful, update the token and expiration time.
     if (response.ok) {
       if(!data["access_token"]) {
-        throw new Error("Failed to retrieve token from FedEx API: No access_token provided in response [500AF - getToken]");
+        throw new Error("SNH: No access_token provided in response [500AF - getToken]");
       }
 
       if (typeof data["expires_in"] !== "number" || data["expires_in"] <= 0) {
-        throw new Error("Failed to retrieve token from FedEx API: Invalid or missing expires_in value [500AG - getToken]");
+        throw new Error("SNH: Invalid or missing expires_in value [500AG - getToken]");
       }
 
       this.token = data["access_token"] as string;
@@ -206,11 +206,11 @@ export class Fdx {
       return this.token;
     } else {
       if(!data["errors"]) {
-        throw new Error("Failed to retrieve token from FedEx API: No errors provided in response [500AF - getToken]");
+        throw new Error("SNH: No errors provided in response [500AF - getToken]");
       }
 
       if(!Array.isArray(data["errors"])){
-        throw new Error("Invalid FedEx API response format: 'errors' field must be an array [500AH - getToken]");
+        throw new Error("SNH 'errors' field must be an array [500AH - getToken]");
       }
 
       const errors = data["errors"] as Array<{ code?: string; message?: string }>;

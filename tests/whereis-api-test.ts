@@ -147,15 +147,15 @@ async function assertResponse(
     }
 
     case "eventNum" in expectedOutput: {
-      const events = responseJSON.events ?? [];
       assert(
           response.status === 200,
           `Expected HTTP 200, but received ${response.status} with body ${JSON.stringify(responseJSON)}`,
       );
 
       // Assert presence of ‘events’ field explicitly
-      assert("events" in responseJSON, `Missing 'events' in response: ${JSON.stringify(responseJSON)}`);
+      assert("events" in responseJSON, `SNH - Missing 'events' in response: ${JSON.stringify(responseJSON)}`);
 
+      const events = responseJSON.events ?? [];
       const expectedEventNum = expectedOutput.eventNum;
 
       assert(
