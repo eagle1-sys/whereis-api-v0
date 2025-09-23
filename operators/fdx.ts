@@ -143,7 +143,7 @@ export class Fdx {
     }
 
     // If the token is still valid, return it immediately
-    if (Date.now() <= this.expireTime - 5000 && this.token) {
+    if (Date.now() <= this.expireTime - 30000 && this.token) {
       return this.token;
     }
 
