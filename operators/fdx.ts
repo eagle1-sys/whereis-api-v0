@@ -174,8 +174,11 @@ export class Fdx {
    */
   static async fetchNewToken(): Promise<string> {
     const fdxApiUrl: string = config.fdx.apiUrl ?? "";
-    const fdxClientId: string = Deno.env.get("FDX_CLIENT_ID") as string;
-    const fdxClientSecret: string = Deno.env.get("FDX_CLIENT_SECRET") as string;
+    const fdxClientId = Deno.env.get("FDX_CLIENT_ID");
+    const fdxClientSecret = Deno.env.get("FDX_CLIENT_SECRET");
+    if (!fdxClientId || !fdxClientSecret) {
+      throw new AppError("500-01", "500AA: fdx - CLIENT_ID/SECRET");
+    }
 
     const response = await fetch(fdxApiUrl, {
       method: "POST",
