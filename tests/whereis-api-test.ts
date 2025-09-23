@@ -134,6 +134,22 @@ export function whereisApiTest() {
   });
 }
 
+/**
+ * Validate a WHEREIS API response against an expected output specification and assert correctness.
+ *
+ * Accepts two expectation shapes:
+ * - { error: string } — verifies the response contains the specified error code via assertErrorCode.
+ * - { eventNum: number | "*" } — asserts HTTP 200, that the body contains an `events` array, and that
+ *   the number of events meets the expectation:
+ *     - 0 : exact zero events
+ *     - "*" : at least one event
+ *     - number : at least that many events
+ *
+ * @param response - The fetch Response object returned by the WHEREIS endpoint.
+ * @param expectedOutput - An object describing the expected response. Must contain either an `error` key
+ *                         or an `eventNum` key as described above.
+ * @throws AssertionError if any assertion about status, presence/shape of `events`, or event counts fails.
+ */
 async function assertResponse(
   response: Response,
   expectedOutput: Record<string, unknown>,
