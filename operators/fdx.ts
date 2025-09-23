@@ -8,19 +8,11 @@
  * @license BSD 3-Clause License
  */
 
-import {
-  DataUpdateMethod,
-  Entity,
-  Event,
-  ExceptionCode,
-  StatusCode,
-  TrackingID,
-  AppError,
-} from "../main/model.ts";
-import { config } from "../config.ts";
-import { logger } from "../tools/logger.ts";
+import {AppError, DataUpdateMethod, Entity, Event, ExceptionCode, StatusCode, TrackingID,} from "../main/model.ts";
+import {config} from "../config.ts";
+import {logger} from "../tools/logger.ts";
 import {getResponseJSON, isOperatorActive} from "../main/gateway.ts";
-import {extractTimezone, adjustDateAndFormatWithTimezone} from "../tools/util.ts";
+import {adjustDateAndFormatWithTimezone, extractTimezone} from "../tools/util.ts";
 
 /**
  * A class to interact with the FedEx tracking API and manage shipment tracking information.
@@ -30,6 +22,8 @@ export class Fdx {
   private static token: string;
   /** @type {number} The expiration time of the token in milliseconds since epoch. Initially 0. */
   private static expireTime: number = 0;
+  private static tokenPromise: Promise<string> | null = null;
+
   /**
    * A mapping of FedEx status codes and event types to internal event codes or functions.
    * @type {Record<string, Record<string, unknown>>}
@@ -136,59 +130,98 @@ export class Fdx {
 
   /**
    * Fetches and manages the FedEx API authentication token.
-   * @returns {Promise<string>} A promise resolving to the current or newly fetched token.
+   * This method implements a caching mechanism to reuse valid tokens and prevent multiple
+   * simultaneous token requests.
+   *
+   * @returns {Promise<string>} A promise that resolves to the current or newly fetched authentication token.
    * @throws {Error} If the token cannot be retrieved from the FedEx API.
    */
   static async getToken(): Promise<string> {
-    // Refresh the token 5 seconds before expiration.
-    if (Date.now() > this.expireTime - 5000) {
-      const fdxApiUrl: string = config.fdx.apiUrl ?? "";
-      const fdxClientId: string = Deno.env.get("FDX_CLIENT_ID") as string;
-      const fdxClientSecret: string = Deno.env.get("FDX_CLIENT_SECRET") as string;
-
-      const response = await fetch(fdxApiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: new URLSearchParams({
-          grant_type: "client_credentials",
-          client_id: fdxClientId,
-          client_secret: fdxClientSecret,
-        }),
-      });
-
-      const data: Record<string, unknown>  = await getResponseJSON(response, "500AC - getToken");
-
-      // if successful, update the token and expiration time.
-      if (response.ok) {
-        if(!data["access_token"]) {
-          throw new Error("Failed to retrieve token from FedEx API: No access_token provided in response [500AF - getToken]");
-        }
-
-        this.token = data["access_token"] as string;
-        this.expireTime = Date.now() + (data["expires_in"] as number) * 1000;
-      } else {
-        if(!data["errors"]) {
-          throw new Error("Failed to retrieve token from FedEx API: No errors provided in response [500AF - getToken]");
-        }
-
-        const errors = data["errors"] as Array<{ code?: string; message?: string }>;
-        // Just handle the first error code
-        const code = errors[0]?.code ?? "";
-        if(code==="BAD.REQUEST.ERROR" || code==="NOT.AUTHORIZED.ERROR") {
-          // Invalid or missing data source API credentials
-          throw new AppError("500-01", `500AA: fdx - ${code}`);
-        } else {
-          throw new Error(`Unexpected error code from FedEx API: ${code} [500AE - getToken]`);
-        }
-      }
+    // If a token fetch is already in progress, return that promise
+    if (this.tokenPromise) {
+      return this.tokenPromise;
     }
 
-    if (this.expireTime > 0) {
+    // If the token is still valid, return it immediately
+    if (Date.now() <= this.expireTime - 5000 && this.token) {
+      return this.token;
+    }
+
+    // Start a new token fetch
+    this.tokenPromise = this.fetchNewToken();
+
+    try {
+      // Wait for the token fetch to complete
+      return await this.tokenPromise;
+    } finally {
+      // Clear the promise so future calls will start a new fetch if needed
+      this.tokenPromise = null;
+    }
+  }
+
+  /**
+   * Fetches a new authentication token from the FedEx API.
+   *
+   * This function sends a POST request to the FedEx API to obtain a new access token.
+   * It uses the client credentials (ID and secret) to authenticate the request.
+   * If successful, it updates the class's token and expiration time.
+   *
+   * @throws {Error} If the API response doesn't contain an access token or has an invalid expiration time.
+   * @throws {AppError} If the API returns specific error codes related to authentication.
+   * @throws {Error} For any other unexpected API error responses.
+   *
+   * @returns {Promise<string>} A promise that resolves to the newly obtained access token.
+   */
+  static async fetchNewToken(): Promise<string> {
+    const fdxApiUrl: string = config.fdx.apiUrl ?? "";
+    const fdxClientId: string = Deno.env.get("FDX_CLIENT_ID") as string;
+    const fdxClientSecret: string = Deno.env.get("FDX_CLIENT_SECRET") as string;
+
+    const response = await fetch(fdxApiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        grant_type: "client_credentials",
+        client_id: fdxClientId,
+        client_secret: fdxClientSecret,
+      }),
+    });
+
+    const data: Record<string, unknown>  = await getResponseJSON(response, "500AC - getToken");
+
+    // if successful, update the token and expiration time.
+    if (response.ok) {
+      if(!data["access_token"]) {
+        throw new Error("Failed to retrieve token from FedEx API: No access_token provided in response [500AF - getToken]");
+      }
+
+      if (typeof data["expires_in"] !== "number" || data["expires_in"] <= 0) {
+        throw new Error("Failed to retrieve token from FedEx API: Invalid or missing expires_in value [500AG - getToken]");
+      }
+
+      this.token = data["access_token"] as string;
+      this.expireTime = Date.now() + (data["expires_in"] as number) * 1000;
       return this.token;
     } else {
-      return "";
+      if(!data["errors"]) {
+        throw new Error("Failed to retrieve token from FedEx API: No errors provided in response [500AF - getToken]");
+      }
+
+      if(!Array.isArray(data["errors"])){
+        throw new Error("Invalid FedEx API response format: 'errors' field must be an array [500AH - getToken]");
+      }
+
+      const errors = data["errors"] as Array<{ code?: string; message?: string }>;
+      // Just handle the first error code
+      const code = errors[0]?.code ?? "";
+      if(code==="BAD.REQUEST.ERROR" || code==="NOT.AUTHORIZED.ERROR") {
+        // Invalid or missing data source API credentials
+        throw new AppError("500-01", `500AA: fdx - ${code}`);
+      } else {
+        throw new Error(`Unexpected error code from FedEx API: ${code} [500AE - getToken]`);
+      }
     }
   }
 

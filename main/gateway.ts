@@ -86,9 +86,10 @@ export async function requestWhereIs(
  */
 export async function getResponseJSON(response: Response, uniqueId: string): Promise<Record<string, unknown>> {
   const contentType = response.headers.get("content-type");
+  const contentLength = response.headers.get("content-length");
 
-  // Handle 204 No Content responses - return empty object
-  if (response.status === 204) {
+  // Handle 204 No Content responses or explicit zero-length bodies
+  if (response.status === 204 || contentLength === "0") {
     return {};
   }
 
@@ -98,23 +99,35 @@ export async function getResponseJSON(response: Response, uniqueId: string): Pro
   // If no content-type header, attempt to parse as JSON (some APIs omit headers)
   // Or if content-type indicates JSON, proceed with parsing
   if (!contentType || isJsonContent) {
+    let parsed;
     try {
-      const text = await response.text();
+      let text = await response.text();
 
       // Handle empty responses - return empty object
       if (!text.trim()) {
         return {};
       }
 
-      return JSON.parse(text);
+      // Strip UTF-8 BOM if present
+      if (text.charCodeAt(0) === 0xFEFF) {
+        text = text.slice(1);
+      }
+
+      parsed = JSON.parse(text);
     } catch (error) {
       if (!contentType) {
         throw new Error(`Failed to parse response as JSON (no content-type header): ${error instanceof Error ? error.message : String(error)} [${uniqueId}]`);
       }
       throw new Error(`Failed to parse JSON response: ${error instanceof Error ? error.message : String(error)} [${uniqueId}]`);
     }
+
+    // Enforce object root type
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      throw new TypeError(`Response root is not an object [${uniqueId}]`);
+    }
+
+    return parsed;
   }
 
   throw new Error(`Unexpected content type: ${contentType} [${uniqueId}]`);
-
 }
