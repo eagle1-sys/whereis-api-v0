@@ -1,4 +1,4 @@
-# Eagle1 whereis API
+# Eagle1 Whereis API
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/eagle1-sys/whereis-api-v0)
 
 ## Goal
