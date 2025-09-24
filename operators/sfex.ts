@@ -397,7 +397,8 @@ export class Sfex {
     updateMethod: string,
   ): Event {
     const trackingNum: string = trackingId.trackingNum;
-    const status: number = Sfex.getStatusCode(entity, route);
+    // Get the original status before future event check
+    let status: number = Sfex.getStatusCode(entity, route);
 
     const event: Event = new Event();
     const timeZone = config.sfex.dataSourceTimezone;
@@ -406,6 +407,23 @@ export class Sfex {
     // eg: convert to isoStringWithTimezone : "2024-10-26T06:12:43+08:00"
     const eventTime: string = acceptTime.replace(" ", "T") + formatTimezoneOffset(timeZone);
     const date = new Date(eventTime);
+
+    // Check if this is a future event
+    const eventTimestamp = date.getTime();
+    const currentTimestamp = Date.now();
+
+    if (eventTimestamp > currentTimestamp) {
+      // Override status for future events
+      status = 3005; // "Information Received"
+      // Log the future event detection for monitoring
+      const updateMethodName = DataUpdateMethod.getDisplayText(updateMethod);
+      logger.info(
+          `${updateMethodName} -> SFEX: Future event detected for ${trackingId.toString()}. ` +
+          `Event time: ${acceptTime}, Current time: ${new Date().toISOString().slice(0, 19).replace('T', ' ')}. ` +
+          `Assigning status 3005 (Information Received).`
+      );
+    }
+
     const secondsSinceEpoch = Math.floor(date.getTime() / 1000);
     event.eventId =
       `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
