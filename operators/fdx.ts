@@ -213,7 +213,7 @@ export class Fdx {
       }
 
       if(!Array.isArray(data["errors"])){
-        throw new Error("SNH 'errors' field must be an array [500AH - getToken]");
+        throw new Error("SNH: 'errors' field must be an array [500AH - getToken]");
       }
 
       const errors = data["errors"] as Array<{ code?: string; message?: string }>;
