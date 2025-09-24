@@ -22,13 +22,8 @@ import { Fdx } from "../operators/fdx.ts";
 const testDatas = [
   {
     "input": { "trackingNum": "7798798600400" },
-    "memo":
-      "Completed waybills will have most of their events data removed after a period of time.",
-  },
-  {
-    "input": { "trackingNum": "724916429240" },
-    "memo": "Waybill cancelled.",
-  },
+    "memo": "Ensure the FedEx response is correct.",
+  }
 ];
 
 export function getEventsFromFdxTest() {

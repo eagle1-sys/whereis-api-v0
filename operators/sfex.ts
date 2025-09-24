@@ -334,6 +334,13 @@ export class Sfex {
    * @returns A boolean indicating whether a 3400 status event is missing (true) or not (false).
    */
   static isMissing3400(entity: Entity): boolean {
+    // Cache the has3400 check to avoid repeated scans
+    if (entity.includeStatus(3400)) {
+      return false;
+    }
+
+    // Only include statuses that can legitimately occur after customs clearance (3350)
+    const postCustomsStatuses = [3004, 3450, 3500];
     let isCustomsEventOccurred: boolean = false;
 
     for (const event of entity.events) {
@@ -341,11 +348,7 @@ export class Sfex {
         isCustomsEventOccurred = true;
       }
 
-      if (
-          isCustomsEventOccurred &&
-          !entity.includeStatus(3400) &&
-          [3004, 3250, 3450, 3500].includes(event.status)
-      ) {
+      if (isCustomsEventOccurred && postCustomsStatuses.includes(event.status)) {
         return true;
       }
     }
@@ -361,6 +364,8 @@ export class Sfex {
    * @returns The Event object that can serve as the base for a 3400 status event, or undefined if no suitable event is found.
    */
   static get3400BaseEvent(entity: Entity): Event | undefined {
+    // Only include statuses that can legitimately occur after customs clearance (3350)
+    const postCustomsStatuses = [3004, 3450, 3500];
     let isCustomsEventOccurred: boolean = false;
 
     for (const event of entity.events) {
@@ -368,10 +373,7 @@ export class Sfex {
         isCustomsEventOccurred = true;
       }
 
-      if (
-          isCustomsEventOccurred &&
-          [3004, 3250, 3450, 3500].includes(event.status)
-      ) {
+      if (isCustomsEventOccurred && postCustomsStatuses.includes(event.status)) {
         return event;
       }
     }
@@ -395,7 +397,8 @@ export class Sfex {
     updateMethod: string,
   ): Event {
     const trackingNum: string = trackingId.trackingNum;
-    const status: number = Sfex.getStatusCode(entity, route);
+    // Get the original status before future event check
+    let status: number = Sfex.getStatusCode(entity, route);
 
     const event: Event = new Event();
     const timeZone = config.sfex.dataSourceTimezone;
@@ -404,6 +407,23 @@ export class Sfex {
     // eg: convert to isoStringWithTimezone : "2024-10-26T06:12:43+08:00"
     const eventTime: string = acceptTime.replace(" ", "T") + formatTimezoneOffset(timeZone);
     const date = new Date(eventTime);
+
+    // Check if this is a future event
+    const eventTimestamp = date.getTime();
+    const currentTimestamp = Date.now();
+
+    if (eventTimestamp > currentTimestamp) {
+      // Override status for future events
+      status = 3005; // "Information Received"
+      // Log the future event detection for monitoring
+      const updateMethodName = DataUpdateMethod.getDisplayText(updateMethod);
+      logger.info(
+          `${updateMethodName} -> SFEX: Future event detected for ${trackingId.toString()}. ` +
+          `Event time: ${acceptTime}, Current time: ${new Date().toISOString().slice(0, 19).replace('T', ' ')}. ` +
+          `Assigning status 3005 (Information Received).`
+      );
+    }
+
     const secondsSinceEpoch = Math.floor(date.getTime() / 1000);
     event.eventId =
       `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
