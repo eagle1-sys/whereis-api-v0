@@ -104,6 +104,7 @@ export function extractTimezone(dateString: string): number {
     const sign = match[1] === "+" ? 1 : -1;
     const hours = parseInt(match[2], 10);
     const minutes = parseInt(match[3], 10);
+    if (hours > 14 || minutes > 59) return 0;
     return sign * (hours + minutes / 60);
 }
 
