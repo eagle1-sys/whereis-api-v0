@@ -334,6 +334,13 @@ export class Sfex {
    * @returns A boolean indicating whether a 3400 status event is missing (true) or not (false).
    */
   static isMissing3400(entity: Entity): boolean {
+    // Cache the has3400 check to avoid repeated scans
+    if (entity.includeStatus(3400)) {
+      return false;
+    }
+
+    // Only include statuses that can legitimately occur after customs clearance (3350)
+    const postCustomsStatuses = [3004, 3450, 3500];
     let isCustomsEventOccurred: boolean = false;
 
     for (const event of entity.events) {
@@ -341,11 +348,7 @@ export class Sfex {
         isCustomsEventOccurred = true;
       }
 
-      if (
-          isCustomsEventOccurred &&
-          !entity.includeStatus(3400) &&
-          [3004, 3250, 3450, 3500].includes(event.status)
-      ) {
+      if (isCustomsEventOccurred && postCustomsStatuses.includes(event.status)) {
         return true;
       }
     }
@@ -361,6 +364,8 @@ export class Sfex {
    * @returns The Event object that can serve as the base for a 3400 status event, or undefined if no suitable event is found.
    */
   static get3400BaseEvent(entity: Entity): Event | undefined {
+    // Only include statuses that can legitimately occur after customs clearance (3350)
+    const postCustomsStatuses = [3004, 3450, 3500];
     let isCustomsEventOccurred: boolean = false;
 
     for (const event of entity.events) {
@@ -368,10 +373,7 @@ export class Sfex {
         isCustomsEventOccurred = true;
       }
 
-      if (
-          isCustomsEventOccurred &&
-          [3004, 3250, 3450, 3500].includes(event.status)
-      ) {
+      if (isCustomsEventOccurred && postCustomsStatuses.includes(event.status)) {
         return event;
       }
     }
