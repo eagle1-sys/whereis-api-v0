@@ -417,7 +417,7 @@ export class Sfex {
       const updateMethodName = DataUpdateMethod.getDisplayText(updateMethod);
       logger.info(
           `${updateMethodName} -> SFEX: Future event detected for ${trackingId.toString()}. ` +
-          `Event time: ${acceptTime}, Current time: ${new Date().toISOString().slice(0, 19).replace('T', ' ')}. ` +
+          `Event time: ${eventTime}, Current time(UTC): ${new Date().toISOString()}. ` +
           `Assigning status 3005 (Information Received).`
       );
     }
