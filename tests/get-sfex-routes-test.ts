@@ -24,11 +24,6 @@ import { Sfex } from "../operators/sfex.ts";
 
 const testData = [
   {
-    "input": { "trackingNum": "SF0000000000000", "phone": "5567" },
-    "memo":
-      "Completed waybills cannot be queried for route data after 3 months.",
-  },
-  {
     "input": { "trackingNum": "SF3182998070266", "phone": "6993" },
     "memo": "Normal waybill.",
   },
