@@ -11,7 +11,6 @@
 import { crypto } from "@std/crypto";
 import { parse } from "@std/jsonc";
 
-
 /**
  * Asynchronously loads and parses a JSON file from the filesystem.
  *
@@ -22,16 +21,16 @@ import { parse } from "@std/jsonc";
  * @throws {Error} If file reading or JSON parsing fails
  */
 export async function loadJSONFromFs(
-    filePath: string,
+  filePath: string,
 ): Promise<Record<string, unknown>> {
-    // read file content
-    const jsonString = await Deno.readTextFile(filePath);
-    // parse
-    const v = parse(jsonString);
-    if (v === null || typeof v !== 'object' || Array.isArray(v)) {
-        throw new Error(`Invalid JSON file format: ${filePath}`);
-    }
-    return v as Record<string, unknown>;
+  // read file content
+  const jsonString = await Deno.readTextFile(filePath);
+  // parse
+  const v = parse(jsonString);
+  if (v === null || typeof v !== "object" || Array.isArray(v)) {
+    throw new Error(`Invalid JSON file format: ${filePath}`);
+  }
+  return v as Record<string, unknown>;
 }
 
 /**
@@ -49,21 +48,21 @@ export async function loadJSONFromFs(
  * ```
  */
 export async function jsonToMd5(
-    json: Record<string, unknown>,
+  json: Record<string, unknown>,
 ): Promise<string> {
-    // Convert JSON object to string
-    const jsonString = JSON.stringify(json);
+  // Convert JSON object to string
+  const jsonString = JSON.stringify(json);
 
-    // Convert json stringto Uint8Array
-    const encoder = new TextEncoder();
-    const data = encoder.encode(jsonString);
+  // Convert json stringto Uint8Array
+  const encoder = new TextEncoder();
+  const data = encoder.encode(jsonString);
 
-    // Calcualte MD5
-    const hashBuffer = await crypto.subtle.digest("MD5", data);
+  // Calcualte MD5
+  const hashBuffer = await crypto.subtle.digest("MD5", data);
 
-    // Convert HASH value to Hex string
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  // Convert HASH value to Hex string
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 /**
@@ -74,17 +73,17 @@ export async function jsonToMd5(
  * @returns A string representation of the timezone offset in the format "+HH:MM" or "-HH:MM".
  *          For example, 5.5 returns "+05:30", -3.25 returns "-03:15".
  */
-export  function formatTimezoneOffset(offset: number): string {
-    const sign = offset >= 0 ? '+' : '-';
-    const absOffset = Math.abs(offset);
-    const totalMinutes = Math.round(absOffset * 60);
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
+export function formatTimezoneOffset(offset: number): string {
+  const sign = offset >= 0 ? "+" : "-";
+  const absOffset = Math.abs(offset);
+  const totalMinutes = Math.round(absOffset * 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
 
-    const formattedHours = String(hours).padStart(2, '0');
-    const formattedMinutes = String(minutes).padStart(2, '0');
+  const formattedHours = String(hours).padStart(2, "0");
+  const formattedMinutes = String(minutes).padStart(2, "0");
 
-    return `${sign}${formattedHours}:${formattedMinutes}`;
+  return `${sign}${formattedHours}:${formattedMinutes}`;
 }
 
 /**
@@ -97,16 +96,24 @@ export  function formatTimezoneOffset(offset: number): string {
  * @returns The timezone offset as a number in hours (e.g., `8` for `+08:00`, `8.5` for `+08:30`, `-3.25` for `-03:15`), or `0` if no timezone information is present.
  */
 export function extractTimezone(dateString: string): number {
-    // Support trailing 'Z' (UTC) and ±HH:MM
-    if (/[Zz]$/.test(dateString)) return 0;
-    const match = dateString.match(/([+-])(\d{2}):(\d{2})$/);
-    if (!match) return 0;
+  // Support trailing 'Z' (UTC) and ±HH:MM
+  if (/[Zz]$/.test(dateString)) return 0;
+  const match = dateString.match(/([+-])(\d{2}):(\d{2})$/);
+  if (!match) return 0;
 
-    const sign = match[1] === "+" ? 1 : -1;
-    const hours = parseInt(match[2], 10);
-    const minutes = parseInt(match[3], 10);
-    if (hours > 14 || minutes > 59) return 0;
-    return sign * (hours + minutes / 60);
+  const sign = match[1] === "+" ? 1 : -1;
+  const hours = parseInt(match[2], 10);
+  const minutes = parseInt(match[3], 10);
+
+  if (minutes > 59) return 0;
+  // Enforce IANA-like bounds: +14:00 max, -12:00 min
+  if (
+    (sign === 1 && (hours > 14 || (hours === 14 && minutes > 0))) ||
+    (sign === -1 && (hours > 12 || (hours === 12 && minutes > 0)))
+  ) {
+    return 0;
+  }
+  return sign * (hours + minutes / 60);
 }
 
 /**
@@ -118,14 +125,22 @@ export function extractTimezone(dateString: string): number {
  *   - number: The adjusted date as seconds since the Unix epoch.
  *   - string: The adjusted date formatted as an ISO 8601 string with the specified timezone offset.
  */
-export function adjustDateAndFormatWithTimezone(basedOnDate: Date, timeZone: number): [number, string] {
-    // Set supplement event time 1 second before the base event
-    const adjustedDate = new Date(basedOnDate.getTime() - 1000);
-    const secondsSinceEpoch = Math.floor(adjustedDate.getTime() / 1000);
-    // Adjust for timezone defined in the configuration
-    const utcDate = new Date(adjustedDate.getTime() + (timeZone * 60 * 60 * 1000));
-    // Format the date to "2024-10-26T06:12:43+08:00"
-    const formattedDate = utcDate.toISOString().replace(/\.\d{3}Z$/, formatTimezoneOffset(timeZone));
+export function adjustDateAndFormatWithTimezone(
+  basedOnDate: Date,
+  timeZone: number,
+): [number, string] {
+  // Set supplement event time 1 second before the base event
+  const adjustedDate = new Date(basedOnDate.getTime() - 1000);
+  const secondsSinceEpoch = Math.floor(adjustedDate.getTime() / 1000);
+  // Adjust for timezone defined in the configuration
+  const utcDate = new Date(
+    adjustedDate.getTime() + (timeZone * 60 * 60 * 1000),
+  );
+  // Format the date to "2024-10-26T06:12:43+08:00"
+  const formattedDate = utcDate.toISOString().replace(
+    /\.\d{3}Z$/,
+    formatTimezoneOffset(timeZone),
+  );
 
-    return [secondsSinceEpoch, formattedDate];
+  return [secondsSinceEpoch, formattedDate];
 }

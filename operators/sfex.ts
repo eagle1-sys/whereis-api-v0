@@ -26,6 +26,8 @@ import {adjustDateAndFormatWithTimezone, formatTimezoneOffset} from "../tools/ut
  */
 export class Sfex {
 
+  private static POST_CUSTOMS_STATUSES: number[] = [3004, 3450, 3500];
+
   /**
    * Mapping of SF Express status codes and operation codes to internal event codes.
    * @private
@@ -339,8 +341,6 @@ export class Sfex {
       return false;
     }
 
-    // Only include statuses that can legitimately occur after customs clearance (3350)
-    const postCustomsStatuses = [3004, 3450, 3500];
     let isCustomsEventOccurred: boolean = false;
 
     for (const event of entity.events) {
@@ -348,7 +348,7 @@ export class Sfex {
         isCustomsEventOccurred = true;
       }
 
-      if (isCustomsEventOccurred && postCustomsStatuses.includes(event.status)) {
+      if (isCustomsEventOccurred && Sfex.POST_CUSTOMS_STATUSES.includes(event.status)) {
         return true;
       }
     }
@@ -364,8 +364,6 @@ export class Sfex {
    * @returns The Event object that can serve as the base for a 3400 status event, or undefined if no suitable event is found.
    */
   static get3400BaseEvent(entity: Entity): Event | undefined {
-    // Only include statuses that can legitimately occur after customs clearance (3350)
-    const postCustomsStatuses = [3004, 3450, 3500];
     let isCustomsEventOccurred: boolean = false;
 
     for (const event of entity.events) {
@@ -373,7 +371,7 @@ export class Sfex {
         isCustomsEventOccurred = true;
       }
 
-      if (isCustomsEventOccurred && postCustomsStatuses.includes(event.status)) {
+      if (isCustomsEventOccurred && Sfex.POST_CUSTOMS_STATUSES.includes(event.status)) {
         return event;
       }
     }
@@ -419,7 +417,7 @@ export class Sfex {
       const updateMethodName = DataUpdateMethod.getDisplayText(updateMethod);
       logger.info(
           `${updateMethodName} -> SFEX: Future event detected for ${trackingId.toString()}. ` +
-          `Event time: ${acceptTime}, Current time: ${new Date().toISOString().slice(0, 19).replace('T', ' ')}. ` +
+          `Event time: ${eventTime}, Current time(UTC): ${new Date().toISOString()}. ` +
           `Assigning status 3005 (Information Received).`
       );
     }

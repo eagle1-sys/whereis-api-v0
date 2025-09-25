@@ -19,7 +19,7 @@
 import { assert } from "@std/assert";
 import { WHEREIS_API_URL } from "./main-test.ts";
 import { assertErrorCode } from "./main-test.ts";
-import {getResponseJSON, isOperatorActive} from "../main/gateway.ts";
+import { getResponseJSON, isOperatorActive } from "../main/gateway.ts";
 
 const testData = [
   {
@@ -74,7 +74,7 @@ const testData = [
     "input": { "id": "sfex-SF3182998070266", "extra": { "phonenum": "6993" } },
     "output": { "eventNum": "*" },
     "memo": "Pull data from data providers with correct phone num.",
-  }
+  },
 ];
 
 export function whereisApiTest() {
@@ -109,11 +109,11 @@ export function whereisApiTest() {
       const trackingId: string = input["id"];
 
       // Ignore tests for non-active operators
-      if(trackingId.startsWith("fdx-") && !isOperatorActive("fdx")) continue;
-      if(trackingId.startsWith("sfex-") && !isOperatorActive("sfex")) continue;
+      if (trackingId.startsWith("fdx-") && !isOperatorActive("fdx")) continue;
+      if (trackingId.startsWith("sfex-") && !isOperatorActive("sfex")) continue;
 
       const extra: { [key: string]: string | undefined } | undefined =
-          input["extra"];
+        input["extra"];
       let url = `${WHEREIS_API_URL}/v0/whereis/${trackingId}`;
       if (extra !== undefined) {
         const params = new URLSearchParams(extra as Record<string, string>);
@@ -164,47 +164,58 @@ async function assertResponse(
 
     case "eventNum" in expectedOutput: {
       assert(
-          response.status === 200,
-          `Expected HTTP 200, but received ${response.status} with body ${JSON.stringify(responseJSON)}`,
+        response.status === 200,
+        `Expected HTTP 200, but received ${response.status} with body ${
+          JSON.stringify(responseJSON)
+        }`,
       );
 
       // Assert presence of ‘events’ field explicitly
-      assert("events" in responseJSON, `SNH - Missing 'events' in response: ${JSON.stringify(responseJSON)}`);
-
-      const events = responseJSON.events ?? [];
-      const expectedEventNum = expectedOutput.eventNum;
-
       assert(
-        Array.isArray(events),
+        "events" in responseJSON,
+        `SNH - Missing 'events' in response: ${JSON.stringify(responseJSON)}`,
+      );
+
+      // Assert eventsValue is an array
+      const eventsValue = (responseJSON as Record<string, unknown>)["events"];
+      assert(
+        Array.isArray(eventsValue),
         `Expected events in response, but got: ${JSON.stringify(responseJSON)}`,
       );
 
+      const events = eventsValue as unknown[];
+      const expectedEventNum = expectedOutput.eventNum;
+
       if (expectedEventNum == 0) {
         assert(
-            events.length === expectedEventNum,
-            `Expected ${expectedEventNum} events, but got ${events.length}`,
+          events.length === expectedEventNum,
+          `Expected ${expectedEventNum} events, but got ${events.length}`,
         );
       } else if (expectedEventNum === "*") {
         assert(
-            events.length >= 1,
-            `Expected ${expectedEventNum} events, but got ${events.length}`,
+          events.length >= 1,
+          `Expected ${expectedEventNum} events, but got ${events.length}`,
         );
       } else {
-        const numEvents = typeof expectedEventNum === 'number' ? expectedEventNum : parseInt(expectedEventNum as string, 10);
+        const numEvents = typeof expectedEventNum === "number"
+          ? expectedEventNum
+          : parseInt(expectedEventNum as string, 10);
         assert(
-            !isNaN(numEvents),
-            `Invalid expectedEventNum: ${expectedEventNum}`,
+          !isNaN(numEvents),
+          `Invalid expectedEventNum: ${expectedEventNum}`,
         );
         assert(
-            events.length >= numEvents,
-            `Expected ${expectedEventNum} events, but got ${events.length}`,
+          events.length >= numEvents,
+          `Expected ${expectedEventNum} events, but got ${events.length}`,
         );
       }
       break;
     }
 
     default: {
-      throw new Error(`Unexpected output format: ${JSON.stringify(responseJSON)}`);
+      throw new Error(
+        `Unexpected output format: ${JSON.stringify(responseJSON)}`,
+      );
     }
   }
 }
