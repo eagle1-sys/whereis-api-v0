@@ -26,7 +26,7 @@ import {adjustDateAndFormatWithTimezone, formatTimezoneOffset} from "../tools/ut
  */
 export class Sfex {
 
-  private static POST_CUSTOMS_STATUSES: number[] = [3004, 3450, 3500];
+  private static readonly POST_CUSTOMS_STATUSES: number[] = [3004, 3450, 3500] as const;
 
   /**
    * Mapping of SF Express status codes and operation codes to internal event codes.
