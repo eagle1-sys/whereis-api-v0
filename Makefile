@@ -91,6 +91,8 @@ update: build ## Build whereis-api docker image and restart api and postgres ser
 	@$(MAKE) status
 
 test: check_docker ## Run 'deno task test' in the api container
+	@echo "=> Checking deno version"
+	@docker exec -it whereis-api-v0 deno --version
 	@echo "=> Running 'deno task test' within api container ..."
 	@docker exec -it whereis-api-v0 deno task test
 
