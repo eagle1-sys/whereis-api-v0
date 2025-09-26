@@ -88,9 +88,9 @@ export async function getResponseJSON(response: Response, uniqueId: string): Pro
   const contentType = response.headers.get("content-type");
   const contentLength = response.headers.get("content-length");
 
-  // Handle 204 No Content responses or explicit zero-length bodies
-  if (response.status === 204 || response.status === 205 || response.status === 304 || contentLength === "0") {
-      return {};
+  // Handle explicit zero-length bodies
+  if (contentLength === "0") {
+    throw new Error(`Failed to get response as JSON (contentLength = 0) [${uniqueId}]`);
   }
 
   // Check if content-type indicates JSON or JSON-like content

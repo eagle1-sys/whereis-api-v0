@@ -214,7 +214,9 @@ async function assertResponse(
 
     default: {
       throw new Error(
-        `Unexpected output format: ${JSON.stringify(responseJSON)}`,
+          `Unexpected expectedOutput format: ${JSON.stringify(expectedOutput)}. " +
+          "Expected output should contain either 'error' or 'eventNum' key. " +
+          "Received response: ${JSON.stringify(responseJSON)}`,
       );
     }
   }

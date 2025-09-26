@@ -26,7 +26,12 @@ export async function loadJSONFromFs(
   // read file content
   const jsonString = await Deno.readTextFile(filePath);
   // parse
-  const v = parse(jsonString);
+  let v;
+  try {
+    v = parse(jsonString);
+  } catch (error) {
+    throw new Error(`Failed to parse JSONC file '${filePath}': ${error instanceof Error ? error.message : String(error)}`);
+  }
   if (v === null || typeof v !== "object" || Array.isArray(v)) {
     throw new Error(`Invalid JSON file format: ${filePath}`);
   }
@@ -87,29 +92,77 @@ export function formatTimezoneOffset(offset: number): string {
 }
 
 /**
- * Extracts the timezone offset (in hours) from an ISO 8601 date/time string.
+ * Extracts the timezone offset from a date string in various ISO8601 formats.
  *
- * Supports a trailing `Z`/`z` (returns 0 for UTC) and timezone suffixes in the form `±HH:MM`.
- * Parses hours and minutes and returns the total offset in hours, including fractional hours.
+ * This function supports the following timezone formats:
+ * - Trailing 'Z' for UTC
+ * - ±HH:MM
+ * - ±HHMM
+ * - ±HH
  *
- * @param dateString - ISO 8601 date/time string to parse (e.g., `2025-09-23T12:34:56+08:30`).
- * @returns The timezone offset as a number in hours (e.g., `8` for `+08:00`, `8.5` for `+08:30`, `-3.25` for `-03:15`), or `0` if no timezone information is present.
+ * @param dateString - The date string from which to extract the timezone.
+ *                     This should be a string representation of a date that includes
+ *                     timezone information in one of the supported formats.
+ *
+ * @returns The timezone offset in hours as a number.
+ *          Positive values represent offsets east of UTC, negative values west of UTC.
+ *          Returns 0 for UTC or if no valid timezone information is found.
  */
 export function extractTimezone(dateString: string): number {
-  // Support trailing 'Z' (UTC) and ±HH:MM
+  // Support trailing 'Z' (UTC) and various ISO8601 timezone formats: ±HH:MM, ±HHMM, ±HH
   if (/[Zz]$/.test(dateString)) return 0;
-  const match = dateString.match(/([+-])(\d{2}):(\d{2})$/);
-  if (!match) return 0;
 
-  const sign = match[1] === "+" ? 1 : -1;
-  const hours = parseInt(match[2], 10);
-  const minutes = parseInt(match[3], 10);
+  // Try ±HH:MM format first
+  let match = dateString.match(/([+-])(\d{2}):(\d{2})$/);
+  if (match) {
+    const sign = match[1] === "+" ? 1 : -1;
+    const hours = parseInt(match[2], 10);
+    const minutes = parseInt(match[3], 10);
+    return getTimezoneOffset(sign, hours, minutes);
+  }
 
+  // Try ±HHMM format
+  match = dateString.match(/([+-])(\d{4})$/);
+  if (match) {
+    const sign = match[1] === "+" ? 1 : -1;
+    const timeStr = match[2];
+    const hours = parseInt(timeStr.substring(0, 2), 10);
+    const minutes = parseInt(timeStr.substring(2, 4), 10);
+    return getTimezoneOffset(sign, hours, minutes);
+  }
+
+  // Try ±HH format
+  match = dateString.match(/([+-])(\d{2})$/);
+  if (match) {
+    const sign = match[1] === "+" ? 1 : -1;
+    const hours = parseInt(match[2], 10);
+
+    if (
+        (sign === 1 && hours > 14) ||
+        (sign === -1 && hours > 12)
+    ) {
+      return 0;
+    }
+    return getTimezoneOffset(sign, hours, 0);
+  }
+
+  return 0;
+}
+
+/**
+ * Calculates the timezone offset in hours based on the provided sign, hours, and minutes.
+ *
+ * @param sign - The sign of the offset. 1 for positive (east of UTC), -1 for negative (west of UTC).
+ * @param hours - The number of hours in the timezone offset.
+ * @param minutes - The number of minutes in the timezone offset.
+ * @returns The timezone offset in hours as a number. Returns 0 if the offset is invalid.
+ */
+function getTimezoneOffset(sign:number, hours:number, minutes:number): number {
   if (minutes > 59) return 0;
-  // Enforce IANA-like bounds: +14:00 max, -12:00 min
+
   if (
-    (sign === 1 && (hours > 14 || (hours === 14 && minutes > 0))) ||
-    (sign === -1 && (hours > 12 || (hours === 12 && minutes > 0)))
+      (sign === 1 && (hours > 14 || (hours === 14 && minutes > 0))) ||
+      (sign === -1 && (hours > 12 || (hours === 12 && minutes > 0)))
   ) {
     return 0;
   }
