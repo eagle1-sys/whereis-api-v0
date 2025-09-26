@@ -26,7 +26,12 @@ export async function loadJSONFromFs(
   // read file content
   const jsonString = await Deno.readTextFile(filePath);
   // parse
-  const v = parse(jsonString);
+  let v;
+  try {
+    v = parse(jsonString);
+  } catch (error) {
+    throw new Error(`Failed to parse JSONC file '${filePath}': ${error instanceof Error ? error.message : String(error)}`);
+  }
   if (v === null || typeof v !== "object" || Array.isArray(v)) {
     throw new Error(`Invalid JSON file format: ${filePath}`);
   }
