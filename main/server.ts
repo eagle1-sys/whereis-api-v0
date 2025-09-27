@@ -193,7 +193,7 @@ app.get("/v0/whereis/:id", async (c: Context) => {
     );
 
   if (!entity) {
-    throw new AppError("404-01", "404AA: server - DATA_PROVIDER");
+    throw new AppError("404-01", `404AA: Received empty data from source ${trackingID.operator}`);
   }
 
   const elapsed = performance.now() - start;
@@ -357,7 +357,7 @@ async function getStatus(
   );
 
   if (result.length === 0) {
-    throw new AppError("404-01", "404AB: server - DATA_PROVIDER"); // Not found in data provider
+    throw new AppError("404-01", `404AB: Received empty data from source ${trackingID.operator}`); // Not found in data provider
   }
 
   try {

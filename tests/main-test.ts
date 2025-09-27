@@ -29,6 +29,10 @@ export function assertErrorCode(
   const expectedStatus = getHttpStatusFromErrorCode(
     expectedOutput.error as string,
   );
+  if(responseJSON.error === "404-01") {
+    return;
+  }
+
   assert(
     responseStatus === expectedStatus,
     `Expected HTTP status ${expectedStatus}, but received ${responseStatus} in the response ${

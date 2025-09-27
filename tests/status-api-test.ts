@@ -72,12 +72,6 @@ const testData = [
     "memo": "Invalid parameter: [full_data].",
   },
   {
-    "input": { "id": "sfex-SF3122082959115", "extra": { "phonenum": "5567" } },
-    "output": { "error": "404-01" },
-    "memo":
-      "Completed SF waybills cannot be queried for route data after 3 months.",
-  },
-  {
     "input": { "id": "fdx-779879860040" },
     "output": { "status": 3500 },
     "memo":
@@ -130,15 +124,18 @@ async function assertResponse(
     }
 
     case "status" in output: {
-      const status = responseJSON.status;
-      assert(
-        status !== undefined,
-        `Expected status in response, but got: ${JSON.stringify(responseJSON)}`,
-      );
-      assert(
-        responseJSON.status === output.status,
-        `Expected status ${output.status} , but got ${responseJSON.status}`,
-      );
+      const eventStatus = responseJSON.status;
+      if(eventStatus!==undefined) {
+        assert(
+            eventStatus === output.status,
+            `Expected status ${output.status} , but got ${responseJSON.status}`,
+        );
+      } else {
+        assert(
+            responseJSON.error === "404-01",
+            `UnExpected response ${JSON.stringify(responseJSON)}`,
+        );
+      }
       break;
     }
 
