@@ -26,7 +26,7 @@
  * @license BSD 3-Clause License
  */
 import { assert } from "@std/assert";
-import { WHEREIS_API_URL } from "./main-test.ts";
+import {handleEmptyDataError, WHEREIS_API_URL} from "./main-test.ts";
 import { assertErrorCode } from "./main-test.ts";
 import {isOperatorActive} from "../main/gateway.ts";
 
@@ -124,18 +124,15 @@ async function assertResponse(
     }
 
     case "status" in output: {
-      const eventStatus = responseJSON.status;
-      if(eventStatus!==undefined) {
-        assert(
-            eventStatus === output.status,
-            `Expected status ${output.status} , but got ${responseJSON.status}`,
-        );
-      } else {
-        assert(
-            responseJSON.error === "404-01",
-            `UnExpected response ${JSON.stringify(responseJSON)}`,
-        );
+      if (handleEmptyDataError(response, responseJSON)) {
+        break;
       }
+
+      const eventStatus = responseJSON.status;
+      assert(
+          eventStatus === output.status,
+          `Expected status ${output.status} , but got ${eventStatus}`,
+      );
       break;
     }
 

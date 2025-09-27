@@ -17,7 +17,7 @@
  * @license BSD 3-Clause License
  */
 import { assert } from "@std/assert";
-import { WHEREIS_API_URL } from "./main-test.ts";
+import { handleEmptyDataError, WHEREIS_API_URL } from "./main-test.ts";
 import { assertErrorCode } from "./main-test.ts";
 import { getResponseJSON, isOperatorActive } from "../main/gateway.ts";
 
@@ -157,9 +157,10 @@ async function assertResponse(
     }
 
     case "eventNum" in expectedOutput: {
-      if(responseJSON.error === "404-01") {
+      if (handleEmptyDataError(response, responseJSON)) {
         break;
       }
+
       assert(
         response.status === 200,
         `Expected HTTP 200, but received ${response.status} with body ${
@@ -211,7 +212,9 @@ async function assertResponse(
 
     default: {
       throw new Error(
-          `Unexpected expectedOutput format: ${JSON.stringify(expectedOutput)}. " +
+        `Unexpected expectedOutput format: ${
+          JSON.stringify(expectedOutput)
+        }. " +
           "Expected output should contain either 'error' or 'eventNum' key. " +
           "Received response: ${JSON.stringify(responseJSON)}`,
       );
