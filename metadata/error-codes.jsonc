@@ -13,7 +13,6 @@
   "403-01": "Forbidden: The provided Whereis API key is not authorized for this request.",
 
   "404-01": "Whereis API could not retrieve tracking information from the data source provider.",
-  "404-02": "The tracking number has expired with the data source provider.",
 
   "429-01": "Too many requests.",
 
