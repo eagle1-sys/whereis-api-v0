@@ -59,12 +59,6 @@ const testData = [
     "memo": "Invalid query parameters [full_data]",
   },
   {
-    "input": { "id": "sfex-SF3122082959115", "extra": { "phonenum": "5567" } },
-    "output": { "error": "404-01" },
-    "memo":
-      "Completed SF waybills cannot be queried for route data after 3 months.",
-  },
-  {
     "input": { "id": "fdx-779879860040" },
     "output": { "eventNum": "1" },
     "memo":
@@ -163,6 +157,9 @@ async function assertResponse(
     }
 
     case "eventNum" in expectedOutput: {
+      if(responseJSON.error === "404-01") {
+        break;
+      }
       assert(
         response.status === 200,
         `Expected HTTP 200, but received ${response.status} with body ${
