@@ -20,6 +20,27 @@ export function getHttpStatusFromErrorCode(errorCode: string): number {
   return match ? parseInt(match[1], 10) : 500; // Default to 500 if parsing fails
 }
 
+/**
+ * Handles the case of an empty data error in the API response.
+ * This function checks if the error code is "404-01" and asserts that the response status is 404.
+ *
+ * @param response - The Response object from the API call.
+ * @param responseJSON - The parsed JSON response body as a Record<string, unknown>.
+ */
+export function handleEmptyDataError(
+  response: Response,
+  responseJSON: Record<string, unknown>,
+): boolean {
+  if (responseJSON.error === "404-01") {
+    assert(
+      response.status === 404,
+      `UnExpected response status ${JSON.stringify(responseJSON)}`,
+    );
+    return true;
+  }
+  return false;
+}
+
 export function assertErrorCode(
   responseStatus: number,
   responseJSON: Record<string, unknown>,
@@ -29,7 +50,7 @@ export function assertErrorCode(
   const expectedStatus = getHttpStatusFromErrorCode(
     expectedOutput.error as string,
   );
-  if(responseJSON.error === "404-01") {
+  if (responseJSON.error === "404-01") {
     return;
   }
 
