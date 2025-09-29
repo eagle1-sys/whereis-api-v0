@@ -1,0 +1,27 @@
+name: Fly Deploy
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  deploy:
+    name: Deploy app
+    runs-on: ubuntu-latest
+    concurrency: deploy-group    # optional: ensure only one action runs at a time
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to production
+        if: github.ref_name == 'main'
+        run: flyctl deploy --remote-only -a whereis-api-v0
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_PROD }}
+
+      - name: Deploy to QA
+        if: github.ref_name == 'develop'
+        run: flyctl deploy --remote-only -a whereis-api-v0-test
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_QA }}
