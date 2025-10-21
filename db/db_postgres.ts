@@ -88,23 +88,25 @@ export class PostgresWrapper implements DatabaseWrapper {
    * @throws Will throw an error if the database operation fails.
    */
   async insertEntity(entity: Entity): Promise<number | undefined> {
-    await this.sql.begin(async (_sql: ReturnType<typeof postgres>) => {
-      const result = await this.sql`
+    let inserted = 0;
+    await this.sql.begin(async (tx: ReturnType<typeof postgres>) => {
+      const result = await tx`
         INSERT INTO entities (uuid, id, type, creation_time, completed, extra, params)
         VALUES (${entity.uuid},
                 ${entity.id},
                 ${entity.type},
                 ${entity.getCreationTime()},
                 ${entity.isCompleted()},
-                ${this.sql.json(entity.extra)},
-                ${this.sql.json(entity.params)}) `;
+                ${tx.json(entity.extra)},
+                ${tx.json(entity.params)}) `;
 
-      if (result.count == 1 && entity.events != undefined) {
+      inserted = result.count ?? 0;
+      if (inserted == 1 && entity.events != undefined) {
         await this.insertEvents(entity.events, DataUpdateMethod.getDisplayText("manual-pull"));
       }
     });
 
-    return 1;
+    return inserted;
   }
 
   /**
@@ -127,11 +129,11 @@ export class PostgresWrapper implements DatabaseWrapper {
   async updateEntity(entity: Entity, eventIdsNew: string[], eventIdsToBeRemoved: string[]): Promise<boolean> {
     const updateMethod = DataUpdateMethod.getDisplayText("auto-pull");
 
-    await this.sql.begin(async (_sql: ReturnType<typeof postgres>) => {
+    await this.sql.begin(async (tx: ReturnType<typeof postgres>) => {
       // update the entity record
       // step 1: update the entity record ONLY when the entity is completed
       if (entity.isCompleted()) {
-        await this.sql`update entities set completed = true where id = ${entity.id as string}`;
+        await tx`update entities set completed = true where id = ${entity.id as string}`;
       }
 
       // step 2: insert new events
