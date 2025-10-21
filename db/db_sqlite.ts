@@ -346,7 +346,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
    */
   deleteEvent(eventID: string): Promise<number | undefined> {
     return new Promise((resolve, _reject) => {
-      const result = this.db.exec(`DELETE FROM events WHERE event_id = ?`,[eventID]);
+      const result = this.db.exec(`DELETE FROM events WHERE event_id = ?`, eventID);
       resolve(result);
     });
   }
