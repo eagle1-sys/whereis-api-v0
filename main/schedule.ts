@@ -8,7 +8,7 @@
  * @copyright (c) 2025, the Eagle1 authors
  * @license BSD 3-Clause License
  */
-import { dbClient } from "./main.ts";
+import { dbClient } from "../db/dbutil.ts";
 import { logger } from "../tools/logger.ts";
 import { requestWhereIs } from "./gateway.ts";
 import { AppError, Entity, TrackingID } from "./model.ts";

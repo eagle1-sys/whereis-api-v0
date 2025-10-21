@@ -5,22 +5,30 @@
  * @copyright (c) 2025, the Eagle1 authors
  * @license BSD 3-Clause License
  */
+import { Database } from "sqlite";
 import postgres from "postgresjs";
-import { logger } from "../tools/logger.ts";
+import { DatabaseWrapper } from "./db_wrapper.ts";
+import { SQLiteWrapper } from "./db_sqlite.ts";
+import { PostgresWrapper } from "./db_postgres.ts";
+
+let dbClient: DatabaseWrapper;
 
 let db: Database | undefined;
 let sql: ReturnType<typeof postgres> | undefined;
-import { Database } from "sqlite";
 import { initDatabase, insertToken } from "./db_sqlite.ts";
+import { logger } from "../tools/logger.ts";
 
 export async function initConnection() {
   const dbType = Deno.env.get("DB_TYPE") || "sqlite";
   if (dbType === "postgres") {
     await initPgConnection();
+    dbClient = new PostgresWrapper(sql!);
   } else {
     db = new Database("whereis.db");
     initDatabase(db);
     insertToken(db, "eagle1", "test_user");
+    dbClient = new SQLiteWrapper(db!);
+
   }
 }
 
@@ -80,4 +88,6 @@ export async function initPgConnection() {
   }
 }
 
-export { db, sql };
+// export { db, sql };
+export { dbClient };
+

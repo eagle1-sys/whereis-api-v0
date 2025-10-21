@@ -9,7 +9,7 @@
 import { Context, Hono, HonoRequest, Next } from "hono";
 import { ContentfulStatusCode } from "hono/utils/http-status";
 import { cors } from "hono/cors";
-import { dbClient} from "./main.ts";
+import { dbClient} from "../db/dbutil.ts";
 import { logger } from "../tools/logger.ts";
 import { isOperatorActive, requestWhereIs } from "./gateway.ts";
 import {

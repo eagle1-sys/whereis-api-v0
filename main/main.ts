@@ -9,13 +9,9 @@
 import { app } from "./server.ts";
 import { syncRoutes } from "./schedule.ts";
 import {initializeOperatorStatus, loadEnv, loadMetaData} from "./app.ts";
-import {db, initConnection, sql} from "../db/dbutil.ts";
+import {initConnection} from "../db/dbutil.ts";
 import { getLogger  } from "../tools/logger.ts";
-import {DatabaseWrapper} from "../db/db_wrapper.ts";
-import {SQLiteWrapper} from "../db/db_sqlite.ts";
-import {PostgresWrapper} from "../db/db_postgres.ts";
 
-let dbClient: DatabaseWrapper;
 
 /**
  * Main entry point of the application.
@@ -36,14 +32,6 @@ async function main(): Promise<void> {
   await initConnection();
 
   initializeOperatorStatus(); // initialize operator status
-
-  if(db!==undefined) {
-    // For SQLite
-    dbClient = new SQLiteWrapper(db);
-  } else {
-    // For PostgreSQL
-    dbClient = new PostgresWrapper(sql);
-  }
 
   /**
    * Starts a scheduler that periodically synchronizes tracking routes.
@@ -66,7 +54,6 @@ main().catch((err) => {
   Deno.exit(1);
 });
 
-export {dbClient}
 
 // Export the fetch handler for deno serve
 export default {
