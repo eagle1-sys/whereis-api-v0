@@ -8,8 +8,8 @@
 import postgres from "postgresjs";
 import { logger } from "../tools/logger.ts";
 
-let db: Database;
-let sql: ReturnType<typeof postgres>;
+let db: Database | undefined;
+let sql: ReturnType<typeof postgres> | undefined;
 import { Database } from "sqlite";
 import { initDatabase, insertToken } from "./db_sqlite.ts";
 
