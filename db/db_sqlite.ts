@@ -235,7 +235,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
    * @returns A Promise that resolves to the Entity object if found, or undefined if not found.
    */
   async queryEntity(trackingID: TrackingID): Promise<Entity | undefined> {
-    let entity;
+    let entity: Entity | undefined;
     const stmt = this.db.prepare(`
     SELECT uuid, id, type, completed, extra, params, creation_time
     FROM entities
@@ -254,7 +254,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
       } | undefined;
 
       if (row) {
-        const entity = new Entity();
+        entity = new Entity();
         entity.uuid = row.uuid;
         entity.id = row.id;
         entity.type = row.type;
@@ -262,23 +262,18 @@ export class SQLiteWrapper implements DatabaseWrapper {
         entity.extra = JSON.parse(row.extra);
         entity.params = JSON.parse(row.params);
         entity.creationTime = row.creation_time;
-
         // Query events for this entity
-        const events = await this.queryEvents(trackingID);
-
-        if (events.length === 0) {
-          logger.info(
-              `Query-Entity: Event record not found for ID ${trackingID.toString()}`,
-          );
-          return undefined;
-        }
-        entity.events = events;
+        entity.events  = await this.queryEvents(trackingID);
       }
     } finally {
       stmt.finalize();
     }
-    return new Promise( (resolve, _reject) => {
-      resolve(entity) ;
+    return new Promise((resolve) => {
+      if (entity && entity.events.length > 0) {
+        resolve(entity)
+      } else {
+        resolve(undefined);
+      }
     });
   }
 
