@@ -248,7 +248,7 @@ export class PostgresWrapper implements DatabaseWrapper {
       entity.completed = row.completed;
       entity.extra = row.extra as Record<string, string>;
       entity.params = row.params as Record<string, string>;
-      entity.creationTime = row.creationTime as string;
+      entity.creationTime = row.creation_time as string;
       entity.events = events;
     }
 
