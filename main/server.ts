@@ -6,14 +6,11 @@
  * @copyright (c) 2025, the Eagle1 authors
  * @license BSD 3-Clause License
  */
-
-import postgres from "postgresjs";
 import { Context, Hono, HonoRequest, Next } from "hono";
 import { ContentfulStatusCode } from "hono/utils/http-status";
 import { cors } from "hono/cors";
-import { sql } from "../db/dbutil.ts";
+import { dbClient} from "./main.ts";
 import { logger } from "../tools/logger.ts";
-import { deleteEntity, isTokenValid } from "../db/dbop.ts";
 import { isOperatorActive, requestWhereIs } from "./gateway.ts";
 import {
   ApiParams,
@@ -22,7 +19,6 @@ import {
   TrackingID,
   AppError,
 } from "./model.ts";
-import { insertEntity, queryEntity } from "../db/dbop.ts";
 
 declare module "hono" {
   // noinspection JSUnusedGlobalSymbols
@@ -49,7 +45,7 @@ const customBearerAuth = async (c: Context, next: Next) => {
   }
 
   const token = authHeader.split(" ")[1];
-  const isValidToken = await verifyToken(token); // verify the token
+  const isValidToken = await dbClient.isTokenValid(token); // verify the token
   if (!isValidToken) {
     throw new AppError("401-02", "401AB: server - TOKEN_VALIDATION");
   }
@@ -233,8 +229,8 @@ app.get("/web-health", (c: Context) => {
  */
 app.get("/app-health", async (c: Context) => {
   // Test the connection by executing a simple query
-  const testResult = await sql`SELECT 1 as connection_test`;
-  if (testResult[0].connection_test === 1) {
+  const testResult = await dbClient.ping();
+  if (testResult === 1) {
     return c.html("UP");
   }
   return c.html("Failed");
@@ -280,11 +276,7 @@ async function refreshEntityFromProvider(
     "manual-pull",
   );
   if (entities.length === 1) {
-    await sql.begin(async (sql: ReturnType<typeof postgres>) => {
-      // Delete and insert the entity to ensure the latest data
-      await deleteEntity(sql, trackingID);
-      await insertEntity(sql, entities[0] as Entity);
-    });
+    await dbClient.refreshEntity(trackingID, entities[0] as Entity);
   }
   return entities.length === 0 ? undefined : entities[0];
 }
@@ -294,7 +286,7 @@ async function getEntityFromDbOrProvider(
   parsedParams: Record<string, string>,
   queryParams: Record<string, string>,
 ): Promise<Entity | undefined> {
-  let entity = await queryEntity(sql, trackingID);
+  let entity = await dbClient.queryEntity(trackingID);
 
   if (!entity) {
     const entities = await requestWhereIs(
@@ -305,9 +297,7 @@ async function getEntityFromDbOrProvider(
     );
     if (entities.length === 1) {
       entity = entities[0];
-      await sql.begin(async (sql: ReturnType<typeof postgres>) => {
-        await insertEntity(sql, entity as Entity);
-      });
+      await dbClient.insertEntity(entity as Entity);
     }
   } else if (
     trackingID.operator === "sfex" &&
@@ -337,7 +327,7 @@ async function getStatus(
   queryParams: Record<string, string>,
 ): Promise<Record<string, unknown> | undefined> {
   // Try to get entity from database first
-  const entity = await queryEntity(sql, trackingID);
+  const entity = await dbClient.queryEntity(trackingID);
   if (entity) {
     if (
       trackingID.operator === "sfex" &&
@@ -361,10 +351,7 @@ async function getStatus(
   }
 
   try {
-    await sql.begin(async (sql: ReturnType<typeof postgres>) => {
-      await insertEntity(sql, result[0] as Entity);
-      return true;
-    });
+    await dbClient.insertEntity(result[0] as Entity);
   } catch (error) {
     throw error;
   }
@@ -432,17 +419,6 @@ function validateQueryParams(
 
   return invalidParams;
 }
-
-/**
- * Verifies if the provided token is valid
- * @param token - The Bearer token to verify
- * @returns boolean indicating if token is valid
- */
-async function verifyToken(token: string): Promise<boolean> {
-  return await isTokenValid(sql, token);
-}
-
-
 
 // Export the Hono app instance
 export { app };

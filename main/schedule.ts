@@ -8,16 +8,10 @@
  * @copyright (c) 2025, the Eagle1 authors
  * @license BSD 3-Clause License
  */
-import postgres from "postgresjs";
-import { sql } from "../db/dbutil.ts";
-import {
-  getInProcessingTrackingNums,
-  queryEventIds,
-  updateEntity,
-} from "../db/dbop.ts";
+import { dbClient } from "./main.ts";
 import { logger } from "../tools/logger.ts";
 import { requestWhereIs } from "./gateway.ts";
-import { Entity, TrackingID, AppError } from "./model.ts";
+import { AppError, Entity, TrackingID } from "./model.ts";
 
 /**
  * Groups tracking numbers by operator.
@@ -43,7 +37,6 @@ function groupTrackingNumsByOperator(
 }
 
 async function processTrackingIds(
-  sql: ReturnType<typeof postgres>,
   operator: string,
   trackingIds: TrackingID[],
   params: Record<string, string>,
@@ -61,8 +54,7 @@ async function processTrackingIds(
   for (const entity of entities) {
     let dataChanged = true; // assume data changed
     const eventIdsFresh: string[] = entity.eventIds();
-    const eventIdsInDb: string[] = await queryEventIds(
-      sql,
+    const eventIdsInDb: string[] = await dbClient.queryEventIds(
       TrackingID.parse(entity.id),
     );
     const eventIdsNew = eventIdsFresh.filter((item) =>
@@ -77,7 +69,7 @@ async function processTrackingIds(
 
     // step 3：update the database
     if (dataChanged) {
-      await updateEntity(sql, entity, eventIdsNew, eventIdsToBeRemoved);
+      await dbClient.updateEntity(entity, eventIdsNew, eventIdsToBeRemoved);
     }
   }
 }
@@ -93,57 +85,45 @@ async function processTrackingIds(
 export async function syncRoutes() {
   let inProcessTrackingNums: Record<string, unknown>;
   try {
-    inProcessTrackingNums = await getInProcessingTrackingNums(sql);
+    inProcessTrackingNums = await dbClient.getInProcessingTrackingNums();
 
     // Group tracking numbers by operator
     const groupedTrackingNums = groupTrackingNumsByOperator(
       inProcessTrackingNums,
     );
 
-    await sql.begin(async (sql: ReturnType<typeof postgres>) => {
-      for (
-        const [operator, trackingNums] of Object.entries(groupedTrackingNums)
-      ) {
-        if (operator === "sfex") {
-          for (const [id, params] of Object.entries(trackingNums)) {
-            await processTrackingIds(
-              sql,
-              operator,
-              [TrackingID.parse(id)],
-              params as Record<string, string>,
-            );
-          }
-        } else if (operator === "fdx") {
-          const batchSize = 10;
-          const trackingIdBatches: TrackingID[][] = [];
-          const ids = Object.keys(trackingNums);
-          // Create batches of tracking IDs
-          for (let i = 0; i < ids.length; i += batchSize) {
-            const batch = ids.slice(i, i + batchSize).map((id) =>
-              TrackingID.parse(id)
-            );
-            trackingIdBatches.push(batch);
-          }
+    for (
+      const [operator, trackingNums] of Object.entries(groupedTrackingNums)
+    ) {
+      if (operator === "sfex") {
+        for (const [id, params] of Object.entries(trackingNums)) {
+          await processTrackingIds(
+            operator,
+            [TrackingID.parse(id)],
+            params as Record<string, string>,
+          );
+        }
+      } else if (operator === "fdx") {
+        const batchSize = 10;
+        const trackingIdBatches: TrackingID[][] = [];
+        const ids = Object.keys(trackingNums);
+        // Create batches of tracking IDs
+        for (let i = 0; i < ids.length; i += batchSize) {
+          const batch = ids.slice(i, i + batchSize).map((id) =>
+            TrackingID.parse(id)
+          );
+          trackingIdBatches.push(batch);
+        }
 
-          // const x = trackingIdBatches[0];
-          // console.log(x);
-          for (let idx = 0; idx < trackingIdBatches.length; idx++) {
-            await processTrackingIds(
-              sql,
-              operator,
-              trackingIdBatches[idx],
-              {},
-            );
-          }
+        for (let idx = 0; idx < trackingIdBatches.length; idx++) {
+          await processTrackingIds(operator, trackingIdBatches[idx], {});
         }
       }
-
-      return true;
-    });
+    }
   } catch (err) {
     // ignore the UserError
     if (err instanceof AppError) {
-      if(err.getHttpStatusCode()>500) {
+      if (err.getHttpStatusCode() > 500) {
         logger.error(`SyncRoutes: ${err.getMessage()}`);
       }
     } else {
