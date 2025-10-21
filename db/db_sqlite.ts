@@ -85,12 +85,6 @@ export function insertToken(db: Database, id: string, userId: string): void {
     INSERT OR IGNORE INTO tokens (id, user_id)
     VALUES ('${id}', '${userId}')
   `);
-
-  if (db.changes > 0) {
-    logger.info(`Token inserted successfully: id=${id}, user_id=${userId}`);
-  } else {
-    logger.info(`Token with id=${id} already exists, no changes made.`);
-  }
 }
 
 export class SQLiteWrapper implements DatabaseWrapper {
