@@ -35,16 +35,16 @@ async function main(): Promise<void> {
 
   /**
    * Starts a scheduler that periodically synchronizes tracking routes.
-   * The task runs every 60 seconds using a cron job.
+   * The task runs every N minutes using a cron job.
    */
   const intervalStr = Deno.env.get("APP_PULL_INTERVAL");
-  const interval = intervalStr ? parseInt(intervalStr, 10) : 5;
+  const parsed = Number.parseInt(intervalStr ?? "", 10);
+  const interval = Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
   Deno.cron("Sync routes", { minute: { every: interval } }, () => {
     syncRoutes();
   }).then((_r) => {
-    logger.info("The scheduler started.");
+    logger.info(`Scheduler started: every ${interval} minute(s).`);
   });
-
 }
 
 // Execute the main function and handle any uncaught errors
