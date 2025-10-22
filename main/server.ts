@@ -360,12 +360,12 @@ async function getStatus(
 
 /**
  * Parses the URL from the request to extract tracking information and query parameters.
+ * It validates the presence of required parameters for specific operators, such as 'phonenum' for 'sfex'.
  *
  * @param req - The Hono request object containing the URL and parameters.
- * @returns A tuple containing:
- *   - A string representing an error code (empty if no error).
- *   - A TrackingID object (undefined if parsing fails).
- *   - A Record of additional query parameters (undefined if parsing fails).
+ * @returns A tuple containing the parsed `TrackingID` object and a record of extracted query parameters.
+ * @throws {AppError} Throws an `AppError` if the tracking ID format is invalid or if required
+ *   parameters for a specific operator are missing (e.g., 'phonenum' for 'sfex').
  */
 function parseURL(
   req: HonoRequest,
