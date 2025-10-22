@@ -17,6 +17,7 @@ let db: Database | undefined;
 let sql: ReturnType<typeof postgres> | undefined;
 import { initDatabase, insertToken } from "./db_sqlite.ts";
 import { logger } from "../tools/logger.ts";
+import { join } from '@std/path';
 
 export async function initConnection() {
   const dbType = Deno.env.get("DB_TYPE") || "sqlite";
@@ -24,7 +25,8 @@ export async function initConnection() {
     await initPgConnection();
     dbClient = new PostgresWrapper(sql!);
   } else {
-    db = new Database("whereis.db");
+    const volume_path = '../data';
+    db = new Database(join(volume_path, 'whereis.db'));
     initDatabase(db);
     insertToken(db, "eagle1", "test_user");
     dbClient = new SQLiteWrapper(db!);
