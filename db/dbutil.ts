@@ -88,6 +88,5 @@ export async function initPgConnection() {
   }
 }
 
-// export { db, sql };
 export { dbClient };
 
