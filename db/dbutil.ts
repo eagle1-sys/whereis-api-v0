@@ -83,7 +83,7 @@ export async function initPgConnection() {
     } else {
       logger.error("Error initializing database connection pool:", err);
     }
-    throw new Error("Failed to initialize database connection pool");
+    throw new Error("Failed to initialize database connection pool", { cause: err });
   }
 }
 
