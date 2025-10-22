@@ -36,14 +36,15 @@ export async function initConnection() {
 
 export async function initPgConnection() {
   const dbHost = Deno.env.get("DB_HOST");
+  const dbPort = Number(Deno.env.get("DB_PORT"))
   if (!dbHost) {
     throw new Error("DB_HOST environment variable is not set.");
   }
 
   try {
     sql = postgres({
-      host: Deno.env.get("DB_HOST"),
-      port: Number(Deno.env.get("DB_PORT")),
+      host: dbHost,
+      port: dbPort,
       database: Deno.env.get("DB_NAME"),
       username: Deno.env.get("DB_USER"),
       password: Deno.env.get("DB_PASSWORD"),
@@ -54,17 +55,13 @@ export async function initPgConnection() {
     });
 
     logger.info(
-      `Trying to init DB connection pool to ${Deno.env.get("DB_HOST")}:${
-        Deno.env.get("DB_PORT")
-      }.`,
+      `Trying to init DB connection pool to ${dbHost}:${dbPort}.`,
     );
     // Test the connection by executing a simple query
     const testResult = await sql`SELECT 1 as connection_test`;
     if (testResult[0].connection_test === 1) {
       logger.info(
-        `DB connection pool to ${Deno.env.get("DB_HOST")}:${
-          Deno.env.get("DB_PORT")
-        } initialized successfully.`,
+        `DB connection pool to ${dbHost}:${dbPort} initialized successfully.`,
       );
     }
   } catch (err) {
