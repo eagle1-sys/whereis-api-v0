@@ -116,6 +116,8 @@ export async function syncRoutes() {
         for (let idx = 0; idx < trackingIdBatches.length; idx++) {
           await processTrackingIds(operator, trackingIdBatches[idx], {});
         }
+      } else {
+        logger.warn(`syncRoutes: unsupported operator '${operator}', skipping`);
       }
     }
   } catch (err) {
