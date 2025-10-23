@@ -81,15 +81,17 @@ export class PostgresWrapper implements DatabaseWrapper {
    * @param entity - The Entity object to be inserted into the database.
    *                 It should contain all necessary properties such as uuid, id, type, creation time, completion status, extra data, and parameters.
    *
+   * @param sql
    * @returns A Promise that resolves to:
    *          - 1 if the insertion was successful (note: this doesn't necessarily mean the entity was inserted, just that the operation completed)
    *          - undefined if the operation failed or no insertion occurred
    *
    * @throws Will throw an error if the database operation fails.
    */
-  async insertEntity(entity: Entity): Promise<number | undefined> {
+  async insertEntity(entity: Entity, sql?: ReturnType<typeof postgres>): Promise<number | undefined> {
     let inserted = 0;
-    await this.sql.begin(async (tx: ReturnType<typeof postgres>) => {
+    const sqlTx = sql ?? this.sql;
+    await sqlTx.begin(async (tx: ReturnType<typeof postgres>) => {
       const result = await tx`
         INSERT INTO entities (uuid, id, type, creation_time, completed, extra, params)
         VALUES (${entity.uuid},
@@ -102,7 +104,7 @@ export class PostgresWrapper implements DatabaseWrapper {
 
       inserted = result.count ?? 0;
       if (inserted == 1 && entity.events != undefined) {
-        await this.insertEvents(entity.events, DataUpdateMethod.getDisplayText("manual-pull"));
+        await this.insertEvents(tx, entity.events, DataUpdateMethod.getDisplayText("manual-pull"));
       }
     });
 
@@ -141,14 +143,14 @@ export class PostgresWrapper implements DatabaseWrapper {
         const events: Event[] = entity.events.filter((event) =>
             eventIdsNew.includes(event.eventId)
         );
-        await this.insertEvents(events, updateMethod);
+        await this.insertEvents(tx, events, updateMethod);
       }
 
       // step 3: remove events that are not in the updated entity
       if (eventIdsToBeRemoved.length > 0) {
         for (const eventId of eventIdsToBeRemoved) {
           logger.info(`${updateMethod}: Delete exist event with ID ${eventId}`);
-          await this.deleteEvent(eventId);
+          await this.deleteEvent(tx, eventId);
         }
       }
     });
@@ -163,20 +165,21 @@ export class PostgresWrapper implements DatabaseWrapper {
    * 1. Deletes all events associated with the given tracking ID.
    * 2. Deletes the entity with the given tracking ID.
    *
+   * @param tx
    * @param trackingID - The unique identifier for the entity to be deleted.
    *                     It contains the operator code and tracking number.
    *
    * @returns A Promise that resolves to the total number of rows deleted from both
    *          the events and entities tables. If no rows were deleted, it may return undefined.
    */
-  async deleteEntity(trackingID: TrackingID): Promise<number | undefined> {
+  async deleteEntity(tx: ReturnType<typeof postgres>, trackingID: TrackingID): Promise<number | undefined> {
     // delete events
-    const result1 = await this.sql`
+    const result1 = await tx`
       DELETE FROM events
       WHERE operator_code = ${trackingID.operator} AND tracking_num = ${trackingID.trackingNum}
     `;
 
-    const result2 = await this.sql`
+    const result2 = await tx`
       DELETE
       FROM entities
       WHERE id = ${trackingID.toString()}
@@ -196,9 +199,9 @@ export class PostgresWrapper implements DatabaseWrapper {
    * @throws Will throw an error if either the delete or insert operation fails.
    */
   async refreshEntity(trackingId: TrackingID, entity: Entity): Promise<boolean> {
-    await this.sql.begin(async (_sql: ReturnType<typeof postgres>) => {
+    await this.sql.begin(async (tx: ReturnType<typeof postgres>) => {
       // Delete and insert the entity to ensure the latest data
-      await this.deleteEntity(trackingId);
+      await this.deleteEntity(tx, trackingId);
       await this.insertEntity(entity);
     });
     return true;
@@ -261,6 +264,7 @@ export class PostgresWrapper implements DatabaseWrapper {
    * This function attempts to insert each event in the provided array into the database.
    * It handles potential errors for each insertion individually and logs the results.
    *
+   * @param tx
    * @param events - An array of Event objects to be inserted into the database.
    * @param updateMethod - A string describing the method of update (e.g., "manual-pull", "auto-pull").
    *                       This is used for logging purposes.
@@ -270,7 +274,7 @@ export class PostgresWrapper implements DatabaseWrapper {
    *
    * @throws Will throw an Error if an event object is invalid (i.e., missing eventId).
    */
-  async insertEvents(events: Event[], updateMethod: string): Promise<number | undefined> {
+  async insertEvents(tx: ReturnType<typeof postgres>, events: Event[], updateMethod: string): Promise<number | undefined> {
     let insertedNum = 0;
     for (const event of events) {
       // Validate input
@@ -284,7 +288,7 @@ export class PostgresWrapper implements DatabaseWrapper {
 
       try {
         // SQL statement for inserting
-        const result = await this.sql`
+        const result = await tx`
         INSERT INTO events (event_id, status, what_, when_, where_,
                             whom_, notes, operator_code, tracking_num, data_provider,
                             exception_code, exception_desc, notification_code, notification_desc, extra,
@@ -299,9 +303,9 @@ export class PostgresWrapper implements DatabaseWrapper {
                 ${event.operatorCode ?? ""},
                 ${event.trackingNum ?? ""},
                 ${event.dataProvider ?? ""},
-                ${event.exceptionCode || null},
+                ${event.exceptionCode ?? null},
                 ${event.exceptionDesc || null},
-                ${event.notificationCode || null},
+                ${event.notificationCode ?? null},
                 ${event.notificationDesc || null},
                 ${this.sql.json(ensureJSONSafe(event.extra ?? {}))},
                 ${this.sql.json(ensureJSONSafe(event.sourceData ?? {}))}
@@ -323,15 +327,16 @@ export class PostgresWrapper implements DatabaseWrapper {
   /**
    * Deletes a single event from the database based on its event ID.
    *
+   * @param tx
    * @param eventID - The unique identifier of the event to be deleted.
    * @returns A Promise that resolves to:
    *          - The number of rows affected by the delete operation (typically 1 if successful).
    *          - undefined if no rows were affected or if the operation failed.
    * @throws Will throw an error if the database operation fails.
    */
-  async deleteEvent(eventID: string): Promise<number | undefined> {
+  async deleteEvent(tx: ReturnType<typeof postgres>, eventID: string): Promise<number | undefined> {
     // delete events
-    const result = await this.sql`DELETE FROM events WHERE event_id = ${eventID}`;
+    const result = await tx`DELETE FROM events WHERE event_id = ${eventID}`;
     return result.count;
   }
 

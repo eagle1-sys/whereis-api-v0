@@ -10,7 +10,7 @@
  *  @copyright (c) 2025, the Eagle1 authors
  *  @license BSD 3-Clause License
  */
-import { Entity, Event, TrackingID } from "../main/model.ts";
+import { Entity, TrackingID } from "../main/model.ts";
 
 export interface DatabaseWrapper {
 
@@ -24,22 +24,11 @@ export interface DatabaseWrapper {
     eventIdsToBeRemoved: string[],
   ): Promise<boolean>;
 
-  deleteEntity(trackingID: TrackingID): Promise<number | undefined>;
-
   refreshEntity(trackingId: TrackingID, entity: Entity): Promise<boolean>;
 
-  queryEntity(trackingID: TrackingID): Promise<Entity | undefined>;
+  queryEntity(trackingId: TrackingID): Promise<Entity | undefined>;
 
-  insertEvents(
-    events: Event[],
-    updateMethod: string,
-  ): Promise<number | undefined>;
-
-  deleteEvent(eventID: string): Promise<number | undefined>;
-
-  queryEvents(trackingID: TrackingID): Promise<Event[]>;
-
-  queryEventIds(trackingID: TrackingID): Promise<string[]>;
+  queryEventIds(trackingId: TrackingID): Promise<string[]>;
 
   isTokenValid(token: string): Promise<boolean>;
 

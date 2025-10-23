@@ -28,9 +28,16 @@ export async function initConnection() {
     const volume_path = '../data';
     db = new Database(join(volume_path, 'whereis.db'));
     initDatabase(db);
-    insertToken(db, "eagle1", "test_user");
+    // insert initial tokens
+    const initialTokens = Deno.env.get("INITIAL_TOKENS") || "eagle1-test_user";
+    const tokenPairs = initialTokens.split(',');
+    for (const pair of tokenPairs) {
+      const [tokenId, tokenUserId] = pair.split('@');
+      if (tokenId && tokenUserId) {
+        insertToken(db, tokenId, tokenUserId);
+      }
+    }
     dbClient = new SQLiteWrapper(db!);
-
   }
 }
 
@@ -54,9 +61,6 @@ export async function initPgConnection() {
       connect_timeout: 30, // Connect timeout in seconds
     });
 
-    logger.info(
-      `Trying to init DB connection pool to ${dbHost}:${dbPort}.`,
-    );
     // Test the connection by executing a simple query
     const testResult = await sql`SELECT 1 as connection_test`;
     if (testResult[0].connection_test === 1) {
