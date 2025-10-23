@@ -57,12 +57,10 @@ async function processTrackingIds(
     const eventIdsInDb: string[] = await dbClient.queryEventIds(
       TrackingID.parse(entity.id),
     );
-    const eventIdsNew = eventIdsFresh.filter((item) =>
-      !eventIdsInDb.includes(item)
-    );
-    const eventIdsToBeRemoved = eventIdsInDb.filter((item) =>
-      !eventIdsFresh.includes(item)
-    );
+    const dbSet = new Set(eventIdsInDb);
+    const freshSet = new Set(eventIdsFresh);
+    const eventIdsNew = eventIdsFresh.filter((id) => !dbSet.has(id));
+    const eventIdsToBeRemoved = eventIdsInDb.filter((id) => !freshSet.has(id));
     if (eventIdsNew.length === 0 && eventIdsToBeRemoved.length === 0) {
       dataChanged = false; // no change in data
     }
