@@ -81,10 +81,15 @@ export function initDatabase(db: Database): void {
  * @returns void - This function doesn't return a value, but logs the result of the operation.
  */
 export function insertToken(db: Database, id: string, userId: string): void {
-  db.exec(`
-    INSERT OR IGNORE INTO tokens (id, user_id)
-    VALUES ('${id}', '${userId}')
-  `);
+  const stmt = db.prepare(
+      `INSERT
+      OR IGNORE INTO tokens (id, user_id) VALUES (?, ?)`,
+  );
+  try {
+    stmt.run(id, userId);
+  } finally {
+    stmt.finalize();
+  }
 }
 
 export class SQLiteWrapper implements DatabaseWrapper {
@@ -100,13 +105,14 @@ export class SQLiteWrapper implements DatabaseWrapper {
    *
    * @returns A Promise that resolves to 1 if the connection is successful, 0 otherwise.
    */
-   ping(): Promise<number> {
+  ping(): Promise<boolean> {
     return new Promise((resolve, _reject) => {
-      const testResult = this.db.prepare('SELECT 1 as connection_test').get() as { connection_test: number };
-      if (testResult && testResult.connection_test === 1) {
-        resolve(1);
-      } else {
-        resolve(0);
+      const stmt = this.db.prepare('SELECT 1 as connection_test');
+      try {
+        const testResult = stmt.get() as { connection_test: number };
+        resolve(testResult && testResult.connection_test === 1);
+      } finally {
+        stmt.finalize();
       }
     });
   }
@@ -121,22 +127,12 @@ export class SQLiteWrapper implements DatabaseWrapper {
     const updateMethod = DataUpdateMethod.getDisplayText("manual-pull");
     return await new Promise((resolve, _reject) => {
       const transaction = this.db.transaction(() => {
-        this.db.exec(`
-        INSERT INTO entities (uuid, id, type, creation_time, completed, extra, params)
-        VALUES (
-          '${entity.uuid}',
-          '${entity.id}',
-          '${entity.type}',
-          '${entity.getCreationTime()}',
-          ${entity.isCompleted() ? 1 : 0},
-          '${JSON.stringify(entity.extra)}',
-          '${JSON.stringify(entity.params)}'
-        )
-      `);
+        // insert the entity record ONLY
+        const changes = this.insertEntityRecord(this.db, entity);
 
-        const changes = this.db.changes;
+        // insert the events if the entity is completed
         if (changes === 1 && entity.events !== undefined) {
-          this.insertEvents(entity.events, updateMethod);
+          this.insertEvents(this.db, entity.events, updateMethod);
         }
         return changes;
       });
@@ -159,12 +155,18 @@ export class SQLiteWrapper implements DatabaseWrapper {
    * @returns A Promise that resolves to true if the update was successful.
    */
   async updateEntity(entity: Entity, eventIdsNew: string[],eventIdsToBeRemoved: string[]): Promise<boolean> {
+    const updateMethod = DataUpdateMethod.getDisplayText("auto-pull");
+
     return await new Promise((resolve, _reject) => {
-      const updateMethod = DataUpdateMethod.getDisplayText("auto-pull");
       const transaction = this.db.transaction(() => {
         // step 1: update the entity record ONLY when the entity is completed
         if (entity.isCompleted()) {
-          this.db.exec(`UPDATE entities SET completed = 1 WHERE id = '${entity.id}'`);
+          const stmt = this.db.prepare(`UPDATE entities SET completed = 1 WHERE id = ?`);
+          try {
+            stmt.run(entity.id);
+          } finally {
+            stmt.finalize();
+          }
         }
 
         // step 2: insert new events
@@ -173,14 +175,21 @@ export class SQLiteWrapper implements DatabaseWrapper {
               eventIdsNew.includes(event.eventId)
           );
 
-          this.insertEvents(events, updateMethod);
+          this.insertEvents(this.db, events, updateMethod);
         }
 
         // step 3: remove events that are not in the updated entity
         if (eventIdsToBeRemoved.length > 0) {
-          for (const eventId of eventIdsToBeRemoved) {
-            logger.info(`${updateMethod}: Delete exist event with ID ${eventId}`);
-            this.deleteEvent(eventId);
+          const stmt = this.db.prepare(`DELETE
+                                    FROM events
+                                    WHERE event_id = ?`);
+          try {
+            for (const eventId of eventIdsToBeRemoved) {
+              logger.info(`${updateMethod}: Delete exist event with ID ${eventId}`);
+              stmt.run(eventId);
+            }
+          } finally {
+            stmt.finalize();
           }
         }
         return true;
@@ -198,44 +207,6 @@ export class SQLiteWrapper implements DatabaseWrapper {
   }
 
   /**
-   * Deletes an entity and its associated events from the database.
-   *
-   * @param trackingID - The TrackingID of the entity to be deleted.
-   * @returns A Promise that resolves to the total number of changes made in the database, or undefined if no changes were made.
-   */
-  async deleteEntity(trackingID: TrackingID): Promise<number | undefined> {
-    return await new Promise((resolve, _reject) => {
-      const transaction = this.db.transaction(() => {
-        let totalChanges = 0;
-
-        // Delete events
-        this.db.exec(`
-      DELETE FROM events
-      WHERE operator_code = '${trackingID.operator}'
-        AND tracking_num = '${trackingID.trackingNum}'
-    `);
-        totalChanges += this.db.changes;
-
-        // Delete entity
-        this.db.exec(`
-      DELETE FROM entities
-      WHERE id = '${trackingID.toString()}'
-    `);
-        totalChanges += this.db.changes;
-
-        return totalChanges;
-      });
-
-      try {
-        const totalChanges = transaction();
-        resolve(totalChanges);
-      } catch (_err) {
-        resolve(0);
-      }
-    });
-  }
-
-  /**
    * Refreshes an entity in the database by deleting and reinserting it.
    *
    * @param trackingId - The TrackingID of the entity to be refreshed.
@@ -243,15 +214,26 @@ export class SQLiteWrapper implements DatabaseWrapper {
    * @returns A Promise that resolves to true if the refresh was successful.
    */
   async refreshEntity(trackingId: TrackingID, entity: Entity): Promise<boolean> {
-    return await new Promise((resolve, _reject) => {
-      this.db.transaction(() => {
-        // Delete and insert the entity to ensure the latest data
-        this.deleteEntity(trackingId).then(()=>{
-          this.insertEntity(entity);
-        });
-      })();
+    const updateMethod = DataUpdateMethod.getDisplayText("manual-pull");
 
-      resolve(true);
+    return await new Promise((resolve, _reject) => {
+      const tx = this.db.transaction(() => {
+        this.deleteEntityAndEvents(this.db, trackingId);
+
+        // insert the entity record ONLY
+        const changes = this.insertEntityRecord(this.db, entity);
+        // insert the events if the entity is completed
+        if (changes === 1 && entity.events !== undefined) {
+          this.insertEvents(this.db, entity.events, updateMethod);
+        }
+      });
+
+      try {
+        tx();
+        resolve(true);
+      } catch {
+        resolve(false);
+      }
     });
   }
 
@@ -262,54 +244,122 @@ export class SQLiteWrapper implements DatabaseWrapper {
    * @returns A Promise that resolves to the Entity object if found, or undefined if not found.
    */
   async queryEntity(trackingID: TrackingID): Promise<Entity | undefined> {
-    let entity: Entity | undefined;
-    const stmt = this.db.prepare(`
-    SELECT uuid, id, type, completed, extra, params, creation_time
-    FROM entities
-    WHERE id = ?
+    const entity = this.queryEntityRecord(trackingID);
+
+    if(entity!==undefined) {
+      // Query events for this entity
+      entity.events  = await this.queryEvents(trackingID);
+    }
+
+    return entity;
+  }
+
+  /**
+   * Queries the database for event IDs associated with a given tracking ID.
+   *
+   * @param trackingID - The TrackingID used to query associated event IDs.
+   * @returns A Promise that resolves to an array of event ID strings.
+   */
+  async queryEventIds(trackingID: TrackingID): Promise<string[]> {
+    return await new Promise((resolve, _reject) => {
+      const stmt = this.db.prepare(`
+    SELECT event_id
+    FROM events
+    WHERE operator_code = ? AND tracking_num = ?
   `);
 
-    try {
-      const row = stmt.get(trackingID.toString()) as {
-        uuid: string;
-        id: string;
-        type: string;
-        completed: number;
-        extra: string;
-        params: string;
-        creation_time: string;
-      } | undefined;
-
-      if (row) {
-        entity = new Entity();
-        entity.uuid = row.uuid;
-        entity.id = row.id;
-        entity.type = row.type;
-        entity.completed = Boolean(row.completed);
-        entity.extra = JSON.parse(row.extra);
-        entity.params = JSON.parse(row.params);
-        entity.creationTime = row.creation_time;
-        // Query events for this entity
-        entity.events  = await this.queryEvents(trackingID);
+      try {
+        const rows = stmt.all(trackingID.operator, trackingID.trackingNum);
+        const eventIds = rows.map((row) => row.event_id as string);
+        resolve(eventIds);
+      } finally {
+        stmt.finalize();
       }
+    });
+  }
+
+  /**
+   * Checks if a given token is valid by querying the database.
+   *
+   * @param token - The token string to be validated.
+   * @returns A Promise that resolves to true if the token is valid, false otherwise.
+   */
+  async isTokenValid(token: string): Promise<boolean> {
+    return await new Promise((resolve, _reject) => {
+      const stmt = this.db.prepare(`SELECT id FROM tokens WHERE id = ?`);
+      try {
+        const row = stmt.get(token);
+        resolve(row !== undefined) ;
+      } finally {
+        stmt.finalize();
+      }
+    });
+  }
+
+
+  /**
+   * Retrieves tracking numbers and their associated parameters for entities that are still in processing.
+   *
+   * @returns A Promise that resolves to a Record object where keys are tracking numbers and values are their associated parameters.
+   */
+  async getInProcessingTrackingNums(): Promise<Record<string, Record<string, string>>> {
+    return await new Promise((resolve, _reject) => {
+      const trackingNums: Record<string, Record<string, string>> = {};
+      const stmt = this.db.prepare(`SELECT id, params FROM entities WHERE completed = 0`);
+      try {
+        const rows = stmt.all();
+        for (const row of rows) {
+          trackingNums[row.id as string] = JSON.parse(row.params as string) as Record<string, string>;
+        }
+      } finally {
+        stmt.finalize();
+      }
+
+      resolve(trackingNums) ;
+    });
+  }
+
+  /**
+   * Inserts a single entity record into the database.
+   *
+   * @param db
+   * @param entity - The Entity object to be inserted.
+   * @returns The number of database rows changed by the insert operation.
+   */
+  private insertEntityRecord(db: Database, entity: Entity): number {
+    const insertEntityStmt = db.prepare(
+        `INSERT INTO entities (uuid, id, type, creation_time, completed, extra, params)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    );
+    try {
+      insertEntityStmt.run(
+          entity.uuid,
+          entity.id,
+          entity.type,
+          entity.getCreationTime(),
+          entity.isCompleted() ? 1 : 0,
+          JSON.stringify(entity.extra ?? {}),
+          JSON.stringify(entity.params ?? {}),
+      );
     } finally {
-      stmt.finalize();
+      insertEntityStmt.finalize();
     }
-    return entity;
+    return db.changes;
   }
 
   /**
    * Inserts multiple events into the database.
    *
+   * @param db
    * @param events - An array of Event objects to be inserted.
    * @param updateMethod - A string indicating the method of update (e.g., "manual-pull" or "auto-pull").
    * @returns A Promise that resolves to the number of changes made in the database, or undefined if no changes were made.
    */
-  async insertEvents(events: Event[], updateMethod:string): Promise<number | undefined> {
+  private async insertEvents(db: Database, events: Event[], updateMethod:string): Promise<number | undefined> {
     return await new Promise((resolve, _reject) => {
-      const transaction = this.db.transaction(() => {
+      const transaction = db.transaction(() => {
         let changes = 0;
-        const insertEventStmt = this.db.prepare(`
+        const insertEventStmt = db.prepare(`
         INSERT INTO events (event_id, status, what_, when_, where_,
                             whom_, notes, operator_code, tracking_num, data_provider,
                             exception_code, exception_desc, notification_code, notification_desc, extra,
@@ -371,16 +421,69 @@ export class SQLiteWrapper implements DatabaseWrapper {
   }
 
   /**
-   * Deletes an event from the database.
+   * Deletes an entity and its associated events from the database.
    *
-   * @param eventID - The ID of the event to be deleted.
-   * @returns A Promise that resolves to the number of changes made in the database, or undefined if no changes were made.
+   * @param db
+   * @param trackingId - The TrackingID of the entity to be deleted.
+   * @returns A boolean value indicating whether the deletion was successful (true if rows were affected, false otherwise).
    */
-  async deleteEvent(eventID: string): Promise<number | undefined> {
-    return await new Promise((resolve, _reject) => {
-      const result = this.db.exec(`DELETE FROM events WHERE event_id = ?`, eventID);
-      resolve(result);
-    });
+  private deleteEntityAndEvents(db: Database, trackingId: TrackingID): boolean {
+    const deleteEvents = db.prepare(`DELETE
+                                       FROM events
+                                       WHERE operator_code = ?
+                                         AND tracking_num = ?`);
+    const deleteEntity = db.prepare(`DELETE
+                                       FROM entities
+                                       WHERE id = ?`);
+    try {
+      deleteEvents.run(trackingId.operator, trackingId.trackingNum);
+      deleteEntity.run(trackingId.toString());
+    } finally {
+      deleteEvents.finalize();
+      deleteEntity.finalize();
+    }
+    return db.changes > 0;
+  }
+
+  /**
+   * Queries the database for a single entity record based on its tracking ID.
+   *
+   * @param trackingId - The TrackingID of the entity to be queried.
+   * @returns An Entity object if found, otherwise undefined.
+   */
+  private queryEntityRecord(trackingId: TrackingID): Entity | undefined {
+    let entity: Entity | undefined;
+    const stmt = this.db.prepare(`
+    SELECT uuid, id, type, completed, extra, params, creation_time
+    FROM entities
+    WHERE id = ?
+  `);
+
+    try {
+      const row = stmt.get(trackingId.toString()) as {
+        uuid: string;
+        id: string;
+        type: string;
+        completed: number;
+        extra: string;
+        params: string;
+        creation_time: string;
+      } | undefined;
+
+      if (row) {
+        entity = new Entity();
+        entity.uuid = row.uuid;
+        entity.id = row.id;
+        entity.type = row.type;
+        entity.completed = Boolean(row.completed);
+        entity.extra = JSON.parse(row.extra);
+        entity.params = JSON.parse(row.params);
+        entity.creationTime = row.creation_time;
+      }
+    } finally {
+      stmt.finalize();
+    }
+    return entity;
   }
 
   /**
@@ -389,7 +492,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
    * @param trackingID - The TrackingID used to query associated events.
    * @returns A Promise that resolves to an array of Event objects.
    */
-  async queryEvents(trackingID: TrackingID): Promise<Event[]> {
+  private async queryEvents(trackingID: TrackingID): Promise<Event[]> {
     return await new Promise((resolve, _reject) => {
       const stmt = this.db.prepare(`
     SELECT event_id, status, what_, whom_, when_, where_, notes,
@@ -426,70 +529,6 @@ export class SQLiteWrapper implements DatabaseWrapper {
       } finally {
         stmt.finalize();
       }
-    });
-  }
-
-  /**
-   * Queries the database for event IDs associated with a given tracking ID.
-   *
-   * @param trackingID - The TrackingID used to query associated event IDs.
-   * @returns A Promise that resolves to an array of event ID strings.
-   */
-  async queryEventIds(trackingID: TrackingID): Promise<string[]> {
-    return await new Promise((resolve, _reject) => {
-      const stmt = this.db.prepare(`
-    SELECT event_id
-    FROM events
-    WHERE operator_code = ? AND tracking_num = ?
-  `);
-
-      try {
-        const rows = stmt.all(trackingID.operator, trackingID.trackingNum);
-        const eventIds = rows.map((row) => row.event_id as string);
-        resolve(eventIds);
-      } finally {
-        stmt.finalize();
-      }
-    });
-  }
-
-  /**
-   * Checks if a given token is valid by querying the database.
-   *
-   * @param token - The token string to be validated.
-   * @returns A Promise that resolves to true if the token is valid, false otherwise.
-   */
-  async isTokenValid(token: string): Promise<boolean> {
-    return await new Promise((resolve, _reject) => {
-      const stmt = this.db.prepare(`SELECT id FROM tokens WHERE id = ?`);
-      try {
-        const row = stmt.get(token);
-        resolve(row !== undefined) ;
-      } finally {
-        stmt.finalize();
-      }
-    });
-  }
-
-  /**
-   * Retrieves tracking numbers and their associated parameters for entities that are still in processing.
-   *
-   * @returns A Promise that resolves to a Record object where keys are tracking numbers and values are their associated parameters.
-   */
-  async getInProcessingTrackingNums(): Promise<Record<string, unknown>> {
-    return await new Promise((resolve, _reject) => {
-      const trackingNums: Record<string, unknown> = {};
-      const stmt = this.db.prepare(`SELECT id, params FROM entities WHERE completed = 0`);
-      try {
-        const rows = stmt.all();
-        for (const row of rows) {
-          trackingNums[row.id as string] = JSON.parse(row.params as string);
-        }
-      } finally {
-        stmt.finalize();
-      }
-
-      resolve(trackingNums) ;
     });
   }
 

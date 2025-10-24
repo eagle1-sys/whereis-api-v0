@@ -67,9 +67,9 @@ export class PostgresWrapper implements DatabaseWrapper {
    *                            The value 1 is returned as it's the result of the test query 'SELECT 1'.
    * @throws {Error} If the database connection fails or the query execution encounters an error.
    */
-  async ping(): Promise<number> {
+  async ping(): Promise<boolean> {
     const testResult = await this.sql`SELECT 1 as connection_test`;
-    return testResult[0].connection_test;
+    return testResult[0].connection_test === 1;
   }
 
   /**
@@ -81,28 +81,17 @@ export class PostgresWrapper implements DatabaseWrapper {
    * @param entity - The Entity object to be inserted into the database.
    *                 It should contain all necessary properties such as uuid, id, type, creation time, completion status, extra data, and parameters.
    *
-   * @param sql
    * @returns A Promise that resolves to:
    *          - 1 if the insertion was successful (note: this doesn't necessarily mean the entity was inserted, just that the operation completed)
    *          - undefined if the operation failed or no insertion occurred
    *
    * @throws Will throw an error if the database operation fails.
    */
-  async insertEntity(entity: Entity, sql?: ReturnType<typeof postgres>): Promise<number | undefined> {
+  async insertEntity(entity: Entity): Promise<number | undefined> {
     let inserted = 0;
-    const sqlTx = sql ?? this.sql;
-    await sqlTx.begin(async (tx: ReturnType<typeof postgres>) => {
-      const result = await tx`
-        INSERT INTO entities (uuid, id, type, creation_time, completed, extra, params)
-        VALUES (${entity.uuid},
-                ${entity.id},
-                ${entity.type},
-                ${entity.getCreationTime()},
-                ${entity.isCompleted()},
-                ${tx.json(entity.extra)},
-                ${tx.json(entity.params)}) `;
-
-      inserted = result.count ?? 0;
+    await this.sql.begin(async (tx: ReturnType<typeof postgres>) => {
+       inserted = await this.insertEntityRecord(tx, entity);
+      // insert events
       if (inserted == 1 && entity.events != undefined) {
         await this.insertEvents(tx, entity.events, DataUpdateMethod.getDisplayText("manual-pull"));
       }
@@ -150,42 +139,12 @@ export class PostgresWrapper implements DatabaseWrapper {
       if (eventIdsToBeRemoved.length > 0) {
         for (const eventId of eventIdsToBeRemoved) {
           logger.info(`${updateMethod}: Delete exist event with ID ${eventId}`);
-          await this.deleteEvent(tx, eventId);
+          await tx`DELETE FROM events WHERE event_id = ${eventId}`;
         }
       }
     });
 
     return true;
-  }
-
-  /**
-   * Deletes an entity and its associated events from the database.
-   *
-   * This function performs two delete operations:
-   * 1. Deletes all events associated with the given tracking ID.
-   * 2. Deletes the entity with the given tracking ID.
-   *
-   * @param tx
-   * @param trackingID - The unique identifier for the entity to be deleted.
-   *                     It contains the operator code and tracking number.
-   *
-   * @returns A Promise that resolves to the total number of rows deleted from both
-   *          the events and entities tables. If no rows were deleted, it may return undefined.
-   */
-  async deleteEntity(tx: ReturnType<typeof postgres>, trackingID: TrackingID): Promise<number | undefined> {
-    // delete events
-    const result1 = await tx`
-      DELETE FROM events
-      WHERE operator_code = ${trackingID.operator} AND tracking_num = ${trackingID.trackingNum}
-    `;
-
-    const result2 = await tx`
-      DELETE
-      FROM entities
-      WHERE id = ${trackingID.toString()}
-    `;
-
-    return result1.count + result2.count;
   }
 
   /**
@@ -200,9 +159,14 @@ export class PostgresWrapper implements DatabaseWrapper {
    */
   async refreshEntity(trackingId: TrackingID, entity: Entity): Promise<boolean> {
     await this.sql.begin(async (tx: ReturnType<typeof postgres>) => {
-      // Delete and insert the entity to ensure the latest data
-      await this.deleteEntity(tx, trackingId);
-      await this.insertEntity(entity);
+      // delete entity and events
+      await this.deleteEntityAndEvents(tx, trackingId);
+
+      // insert new entity and events
+      const inserted = await this.insertEntityRecord(tx, entity);
+      if (inserted == 1 && entity.events != undefined) {
+        await this.insertEvents(tx, entity.events, DataUpdateMethod.getDisplayText("manual-pull"));
+      }
     });
     return true;
   }
@@ -221,185 +185,17 @@ export class PostgresWrapper implements DatabaseWrapper {
    *          - undefined if the entity is not found or has no associated events.
    */
   async queryEntity(trackingID: TrackingID): Promise<Entity | undefined> {
-    const rows = await this.sql`
-        SELECT uuid,
-               id,
-               type,
-               completed,
-               extra,
-               params,
-               creation_time
-        FROM entities
-        WHERE id = ${trackingID.toString()};
-    `;
-
-    let entity: Entity | undefined;
-    let events: Event[];
-    if (rows.length == 1) {
+    const entity = await this.queryEntityRecord(trackingID);
+    if (entity !== undefined) {
       // query events from database
-      events = await this.queryEvents(trackingID);
+      const events = await this.queryEvents(trackingID);
       if (events.length === 0) {
         return undefined;
       }
 
-      // create entity object
-      entity = new Entity();
-      const row = rows[0];
-      entity.uuid = row.uuid;
-      entity.id = row.id;
-      entity.type = row.type;
-      entity.completed = row.completed;
-      entity.extra = row.extra as Record<string, string>;
-      entity.params = row.params as Record<string, string>;
-      entity.creationTime = row.creation_time as string;
       entity.events = events;
     }
-
     return entity;
-  }
-
-  /**
-   * Inserts multiple events into the database.
-   *
-   * This function attempts to insert each event in the provided array into the database.
-   * It handles potential errors for each insertion individually and logs the results.
-   *
-   * @param tx
-   * @param events - An array of Event objects to be inserted into the database.
-   * @param updateMethod - A string describing the method of update (e.g., "manual-pull", "auto-pull").
-   *                       This is used for logging purposes.
-   *
-   * @returns A Promise that resolves to the number of successfully inserted events.
-   *          If no events were inserted successfully, it returns undefined.
-   *
-   * @throws Will throw an Error if an event object is invalid (i.e., missing eventId).
-   */
-  async insertEvents(tx: ReturnType<typeof postgres>, events: Event[], updateMethod: string): Promise<number | undefined> {
-    let insertedNum = 0;
-    for (const event of events) {
-      // Validate input
-      if (!event || !event.eventId) {
-        throw new Error("Invalid event object: eventId is required");
-      }
-
-      logger.info(
-          `${updateMethod}: Insert new event with ID ${event.eventId}`,
-      );
-
-      try {
-        // SQL statement for inserting
-        const result = await tx`
-        INSERT INTO events (event_id, status, what_, when_, where_,
-                            whom_, notes, operator_code, tracking_num, data_provider,
-                            exception_code, exception_desc, notification_code, notification_desc, extra,
-                            source_data)
-        VALUES (${event.eventId},
-                ${event.status},
-                ${event.what ?? ""},
-                ${event.when ?? ""},
-                ${event.where ?? ""},
-                ${event.whom ?? ""},
-                ${event.notes ?? ""},
-                ${event.operatorCode ?? ""},
-                ${event.trackingNum ?? ""},
-                ${event.dataProvider ?? ""},
-                ${event.exceptionCode ?? null},
-                ${event.exceptionDesc || null},
-                ${event.notificationCode ?? null},
-                ${event.notificationDesc || null},
-                ${this.sql.json(ensureJSONSafe(event.extra ?? {}))},
-                ${this.sql.json(ensureJSONSafe(event.sourceData ?? {}))}
-               ) ON CONFLICT(event_id) DO NOTHING RETURNING event_id;
-        `;
-
-        if (result.count === 0) {
-          // log the info if no event_id was inserted
-          logger.info(`Event with ID ${event.eventId} could not be inserted.`);
-        }
-        insertedNum = insertedNum + result.count;
-      } catch (err) {
-        logger.error(`Failed to insert event with ID ${event.eventId}:`, err);
-      }
-    }
-    return insertedNum;
-  }
-
-  /**
-   * Deletes a single event from the database based on its event ID.
-   *
-   * @param tx
-   * @param eventID - The unique identifier of the event to be deleted.
-   * @returns A Promise that resolves to:
-   *          - The number of rows affected by the delete operation (typically 1 if successful).
-   *          - undefined if no rows were affected or if the operation failed.
-   * @throws Will throw an error if the database operation fails.
-   */
-  async deleteEvent(tx: ReturnType<typeof postgres>, eventID: string): Promise<number | undefined> {
-    // delete events
-    const result = await tx`DELETE FROM events WHERE event_id = ${eventID}`;
-    return result.count;
-  }
-
-  /**
-   * Queries and retrieves all events associated with a specific tracking ID from the database.
-   *
-   * This function performs a SQL query to fetch all event details for a given tracking ID,
-   * constructs Event objects from the retrieved data, and returns them as an array.
-   *
-   * @param trackingID - An object of type TrackingID containing the operator code and tracking number
-   *                     used to identify the relevant events in the database.
-   *
-   * @returns A Promise that resolves to an array of Event objects. Each Event object contains
-   *          detailed information about a specific event associated with the given tracking ID.
-   *          If no events are found, an empty array is returned.
-   */
-  async queryEvents(trackingID: TrackingID): Promise<Event[]> {
-    const events: Event[] = [];
-    const rows = await this.sql`
-        SELECT event_id,
-               status,
-               what_,
-               whom_,
-               when_,
-               where_,
-               notes,
-               operator_code,
-               tracking_num,
-               data_provider,
-               exception_code,
-               exception_desc,
-               notification_code,
-               notification_desc,
-               extra,
-               source_data
-        FROM events
-        WHERE operator_code = ${trackingID.operator}
-          AND tracking_num = ${trackingID.trackingNum}
-        ORDER BY event_id ASC;
-    `;
-
-    for (const row of rows) {
-      const event = new Event();
-      event.eventId = row.event_id as string;
-      event.status = row.status as number;
-      event.what = row.what_ as string;
-      event.whom = row.whom_ as string;
-      event.when = row.when_ as string;
-      event.where = row.where_ as string;
-      event.notes = row.notes as string;
-      event.operatorCode = row.operator_code as string;
-      event.trackingNum = row.tracking_num as string;
-      event.dataProvider = row.data_provider as string;
-      event.exceptionCode = row.exception_code as number;
-      event.exceptionDesc = row.exception_desc as string;
-      event.notificationCode = row.notification_code as number;
-      event.notificationDesc = row.notification_desc as string;
-      event.extra = row.extra as Record<string, string>;
-      event.sourceData = row.source_data as Record<string, string>;
-      events.push(event);
-    }
-
-    return events;
   }
 
   /**
@@ -463,8 +259,8 @@ export class PostgresWrapper implements DatabaseWrapper {
    *          - The values are the corresponding entity parameters (as unknown, but typically Record<string, string>)
    * @throws Will throw an error if the database query fails
    */
-  async getInProcessingTrackingNums(): Promise<Record<string, unknown>> {
-    const trackingNums: Record<string, unknown> = {};
+  async getInProcessingTrackingNums(): Promise<Record<string, Record<string, string>>> {
+    const trackingNums: Record<string, Record<string, string>> = {};
     const rows = await this.sql`SELECT id, params FROM entities WHERE completed = false;`;
 
     for (const row of rows) {
@@ -474,6 +270,213 @@ export class PostgresWrapper implements DatabaseWrapper {
     return trackingNums;
   }
 
+
+  /**
+   * Inserts a single entity record into the database within a transaction.
+   *
+   * @param tx - The database transaction object provided by the 'postgres' library.
+   * @param entity - The Entity object containing the data to be inserted into the 'entities' table.
+   * @returns A Promise that resolves to the number of inserted rows (1 on success, 0 otherwise).
+   */
+  private async insertEntityRecord(tx: ReturnType<typeof postgres>, entity: Entity): Promise<number> {
+    const result = await tx`
+        INSERT INTO entities (uuid, id, type, creation_time, completed, extra, params)
+        VALUES (${entity.uuid},
+                ${entity.id},
+                ${entity.type},
+                ${entity.getCreationTime()},
+                ${entity.isCompleted()},
+                ${tx.json(ensureJSONSafe(entity.extra ?? {}))},
+                ${tx.json(ensureJSONSafe(entity.params ?? {}))}) `;
+
+    return result.count?? 0;
+  }
+
+  /**
+   * Inserts multiple events into the database.
+   *
+   * This function attempts to insert each event in the provided array into the database.
+   * It handles potential errors for each insertion individually and logs the results.
+   *
+   * @param tx
+   * @param events - An array of Event objects to be inserted into the database.
+   * @param updateMethod - A string describing the method of update (e.g., "manual-pull", "auto-pull").
+   *                       This is used for logging purposes.
+   *
+   * @returns A Promise that resolves to the number of successfully inserted events.
+   *          If no events were inserted successfully, it returns undefined.
+   *
+   * @throws Will throw an Error if an event object is invalid (i.e., missing eventId).
+   */
+  private async insertEvents(tx: ReturnType<typeof postgres>, events: Event[], updateMethod: string): Promise<number | undefined> {
+    let insertedNum = 0;
+    for (const event of events) {
+      // Validate input
+      if (!event || !event.eventId) {
+        throw new Error("Invalid event object: eventId is required");
+      }
+
+      logger.info(
+          `${updateMethod}: Insert new event with ID ${event.eventId}`,
+      );
+
+      try {
+        // SQL statement for inserting
+        const result = await tx`
+        INSERT INTO events (event_id, status, what_, when_, where_,
+                            whom_, notes, operator_code, tracking_num, data_provider,
+                            exception_code, exception_desc, notification_code, notification_desc, extra,
+                            source_data)
+        VALUES (${event.eventId},
+                ${event.status},
+                ${event.what ?? ""},
+                ${event.when ?? ""},
+                ${event.where ?? ""},
+                ${event.whom ?? ""},
+                ${event.notes ?? ""},
+                ${event.operatorCode ?? ""},
+                ${event.trackingNum ?? ""},
+                ${event.dataProvider ?? ""},
+                ${event.exceptionCode ?? null},
+                ${event.exceptionDesc || null},
+                ${event.notificationCode ?? null},
+                ${event.notificationDesc || null},
+                ${tx.json(ensureJSONSafe(event.extra ?? {}))},
+                ${tx.json(ensureJSONSafe(event.sourceData ?? {}))}
+               ) ON CONFLICT(event_id) DO NOTHING RETURNING event_id;
+        `;
+
+        if (result.count === 0) {
+          // log the info if no event_id was inserted
+          logger.info(`Event with ID ${event.eventId} could not be inserted.`);
+        }
+        insertedNum = insertedNum + result.count;
+      } catch (err) {
+        logger.error(`Failed to insert event with ID ${event.eventId}:`, err);
+      }
+    }
+    return insertedNum;
+  }
+
+  /**
+   * Deletes an entity and its associated events from the database within a transaction.
+   *
+   * This function first deletes all events linked to the given tracking ID and then deletes the
+   * entity record itself. Both operations are performed as part of the provided transaction
+   * to ensure atomicity.
+   *
+   * @param tx - The database transaction object to ensure atomic deletion.
+   * @param trackingId - The unique identifier for the entity and its events to be deleted.
+   * @returns A Promise that resolves to true upon successful completion of the delete operations.
+   *          Failures will result in a thrown error, which will be handled by the calling transaction block.
+   */
+  private async deleteEntityAndEvents(tx: ReturnType<typeof postgres>, trackingId: TrackingID): Promise<boolean> {
+    // delete events
+    await tx`
+      DELETE
+      FROM events
+      WHERE operator_code = ${trackingId.operator}
+        AND tracking_num = ${trackingId.trackingNum}
+    `;
+
+    await tx`
+      DELETE
+      FROM entities
+      WHERE id = ${trackingId.toString()}
+    `;
+    return true;
+  }
+
+  private async queryEntityRecord(trackingID: TrackingID): Promise<Entity | undefined> {
+    const rows = await this.sql`
+        SELECT uuid,
+               id,
+               type,
+               completed,
+               extra,
+               params,
+               creation_time
+        FROM entities
+        WHERE id = ${trackingID.toString()};
+    `;
+
+    let entity: Entity | undefined;
+    if (rows.length == 1) {
+      // create entity object
+      entity = new Entity();
+      const row = rows[0];
+      entity.uuid = row.uuid;
+      entity.id = row.id;
+      entity.type = row.type;
+      entity.completed = row.completed;
+      entity.extra = row.extra as Record<string, string>;
+      entity.params = row.params as Record<string, string>;
+      entity.creationTime = row.creation_time as string;
+    }
+
+    return entity;
+  }
+
+  /**
+   * Queries and retrieves all events associated with a specific tracking ID from the database.
+   *
+   * This function performs a SQL query to fetch all event details for a given tracking ID,
+   * constructs Event objects from the retrieved data, and returns them as an array.
+   *
+   * @param trackingID - An object of type TrackingID containing the operator code and tracking number
+   *                     used to identify the relevant events in the database.
+   *
+   * @returns A Promise that resolves to an array of Event objects. Each Event object contains
+   *          detailed information about a specific event associated with the given tracking ID.
+   *          If no events are found, an empty array is returned.
+   */
+  private async queryEvents(trackingID: TrackingID): Promise<Event[]> {
+    const events: Event[] = [];
+    const rows = await this.sql`
+        SELECT event_id,
+               status,
+               what_,
+               whom_,
+               when_,
+               where_,
+               notes,
+               operator_code,
+               tracking_num,
+               data_provider,
+               exception_code,
+               exception_desc,
+               notification_code,
+               notification_desc,
+               extra,
+               source_data
+        FROM events
+        WHERE operator_code = ${trackingID.operator}
+          AND tracking_num = ${trackingID.trackingNum}
+        ORDER BY event_id ASC;
+    `;
+
+    for (const row of rows) {
+      const event = new Event();
+      event.eventId = row.event_id as string;
+      event.status = row.status as number;
+      event.what = row.what_ as string;
+      event.whom = row.whom_ as string;
+      event.when = row.when_ as string;
+      event.where = row.where_ as string;
+      event.notes = row.notes as string;
+      event.operatorCode = row.operator_code as string;
+      event.trackingNum = row.tracking_num as string;
+      event.dataProvider = row.data_provider as string;
+      event.exceptionCode = row.exception_code as number;
+      event.exceptionDesc = row.exception_desc as string;
+      event.notificationCode = row.notification_code as number;
+      event.notificationDesc = row.notification_desc as string;
+      event.extra = row.extra as Record<string, string>;
+      event.sourceData = row.source_data as Record<string, string>;
+      events.push(event);
+    }
+
+    return events;
+  }
+
 }
-
-

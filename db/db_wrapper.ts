@@ -14,7 +14,7 @@ import { Entity, TrackingID } from "../main/model.ts";
 
 export interface DatabaseWrapper {
 
-  ping(): Promise<number>;
+  ping(): Promise<boolean>;
 
   insertEntity(entity: Entity): Promise<number | undefined>;
 

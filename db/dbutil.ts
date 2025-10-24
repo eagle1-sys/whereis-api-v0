@@ -13,8 +13,6 @@ import { PostgresWrapper } from "./db_postgres.ts";
 
 let dbClient: DatabaseWrapper;
 
-let db: Database | undefined;
-let sql: ReturnType<typeof postgres> | undefined;
 import { initDatabase, insertToken } from "./db_sqlite.ts";
 import { logger } from "../tools/logger.ts";
 import { join } from '@std/path';
@@ -22,14 +20,14 @@ import { join } from '@std/path';
 export async function initConnection() {
   const dbType = Deno.env.get("DB_TYPE") || "sqlite";
   if (dbType === "postgres") {
-    await initPgConnection();
+    const sql: ReturnType<typeof postgres> = await initPgConnection();
     dbClient = new PostgresWrapper(sql!);
   } else {
-    const volume_path = '../data';
-    db = new Database(join(volume_path, 'whereis.db'));
+    const volume_path = Deno.env.get("DB_FILE_DIR") ?? "../data";
+    const db : Database = new Database(join(volume_path, 'whereis.db'));
     initDatabase(db);
     // insert initial tokens
-    const initialTokens = Deno.env.get("INITIAL_TOKENS") || "eagle1-test_user";
+    const initialTokens = Deno.env.get("INITIAL_TOKENS") || "eagle1@test_user";
     const tokenPairs = initialTokens.split(',');
     for (const pair of tokenPairs) {
       const [tokenId, tokenUserId] = pair.split('@');
@@ -41,9 +39,10 @@ export async function initConnection() {
   }
 }
 
-export async function initPgConnection() {
+async function initPgConnection() : Promise<ReturnType<typeof postgres>> {
+  let sql: ReturnType<typeof postgres>
   const dbHost = Deno.env.get("DB_HOST");
-  const dbPort = Number(Deno.env.get("DB_PORT"))
+  const dbPort = Number(Deno.env.get("DB_PORT") ?? "5432")
   if (!dbHost) {
     throw new Error("DB_HOST environment variable is not set.");
   }
@@ -68,6 +67,8 @@ export async function initPgConnection() {
         `DB connection pool to ${dbHost}:${dbPort} initialized successfully.`,
       );
     }
+
+    return sql;
   } catch (err) {
     if (err instanceof Error) {
       const errorMessage = err.message;
