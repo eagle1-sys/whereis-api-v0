@@ -230,10 +230,10 @@ app.get("/web-health", (c: Context) => {
 app.get("/app-health", async (c: Context) => {
   // Test the connection by executing a simple query
   const testResult = await dbClient.ping();
-  if (testResult === 1) {
-    return c.html("UP");
+  if (testResult) {
+    return c.text("UP", 200);
   }
-  return c.html("Failed");
+  return c.text("DOWN", 503);
 });
 
 // error handling
