@@ -171,7 +171,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
 
         // step 2: insert new events
         if (eventIdsNew.length > 0) {
-          const events: Event[] = entity.events.filter((event) =>
+          const events: Event[] = (entity.events ?? []).filter((event) =>
               eventIdsNew.includes(event.eventId)
           );
 
