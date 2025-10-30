@@ -246,9 +246,12 @@ export class SQLiteWrapper implements DatabaseWrapper {
   async queryEntity(trackingID: TrackingID): Promise<Entity | undefined> {
     const entity = this.queryEntityRecord(trackingID);
 
-    if(entity!==undefined) {
+    if (entity !== undefined) {
       // Query events for this entity
-      entity.events  = await this.queryEvents(trackingID);
+      entity.events = await this.queryEvents(trackingID);
+      if (entity.events.length === 0) {
+        return undefined;
+      }
     }
 
     return entity;
