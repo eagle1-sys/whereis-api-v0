@@ -32,6 +32,6 @@ export interface DatabaseWrapper {
 
   isTokenValid(token: string): Promise<boolean>;
 
-  getInProcessingTrackingNums(): Promise<Record<string, unknown>>;
+  getInProcessingTrackingNums(): Promise<Record<string, Record<string, string>>>;
 
 }
