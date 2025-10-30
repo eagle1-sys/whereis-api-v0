@@ -25,7 +25,7 @@ CMD
 USER deno
 
 # Run the app with specified permissions
-CMD ["serve", "--parallel", "--port", "8037", "--allow-net", "--allow-env", "--allow-read", "main/main.ts"]
+CMD ["serve", "--parallel", "--port", "8037", "--allow-net", "--allow-env", "--allow-read", "--allow-write", "--allow-ffi", "main/main.ts"]
 
 # Set up health check to monitor the service process
 HEALTHCHECK --start-period=20s --start-interval=2s --interval=5s --timeout=1s --retries=3 \

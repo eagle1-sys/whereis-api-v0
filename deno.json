@@ -15,7 +15,8 @@
     "@std/encoding": "jsr:@std/encoding",
     "hono": "jsr:@hono/hono@^4",
     "postgresjs": "https://deno.land/x/postgresjs/mod.js",
-    "@cross/log": "jsr:@cross/log"
+    "@cross/log": "jsr:@cross/log",
+    "sqlite": "jsr:@db/sqlite"
   },
   "nodeModulesDir": "none"
 }
