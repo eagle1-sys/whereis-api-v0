@@ -201,8 +201,6 @@ export class SQLiteWrapper implements DatabaseWrapper {
       } catch (_err) {
         resolve(false);
       }
-
-      resolve(true) ;
     });
   }
 
