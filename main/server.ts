@@ -350,11 +350,8 @@ async function getStatus(
     throw new AppError("404-01", `404AB: Received empty data from source ${trackingID.operator}`); // Not found in data provider
   }
 
-  try {
-    await dbClient.insertEntity(result[0] as Entity);
-  } catch (error) {
-    throw error;
-  }
+  await dbClient.insertEntity(result[0] as Entity);
+
   return (result[0] as Entity).getLastStatus();
 }
 
