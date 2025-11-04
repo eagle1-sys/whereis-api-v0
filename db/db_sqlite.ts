@@ -14,84 +14,6 @@ import { logger } from "../tools/logger.ts";
 import { DatabaseWrapper } from "./db_wrapper.ts";
 import { DataUpdateMethod, Entity, Event, TrackingID } from "../main/model.ts";
 
-/**
- * Initializes the SQLite database by creating necessary tables and indexes.
- *
- * This function sets up the database schema for the Whereis API, creating tables
- * for entities, events, and tokens if they don't already exist. It also creates
- * indexes to optimize query performance.
- *
- * @param db - The SQLite Database instance to initialize.
- * @returns void - This function doesn't return a value.
- */
-export function initDatabase(db: Database): void {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS entities (
-        uuid          TEXT NOT NULL PRIMARY KEY,
-        id            TEXT NOT NULL,
-        type          TEXT,
-        extra         TEXT,
-        completed     INTEGER,
-        params        TEXT,
-        creation_time TEXT
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_entities_id ON entities (id);
-
-    CREATE TABLE IF NOT EXISTS events (
-        event_id          TEXT NOT NULL PRIMARY KEY,
-        status            INTEGER,
-        what_             TEXT,
-        whom_             TEXT,
-        when_             TEXT,
-        where_            TEXT,
-        notes             TEXT,
-        operator_code     TEXT,
-        tracking_num      TEXT,
-        data_provider     TEXT,
-        exception_code    INTEGER,
-        exception_desc    TEXT,
-        notification_code INTEGER,
-        notification_desc TEXT,
-        extra             TEXT,
-        source_data       TEXT
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_events_operator ON events (operator_code);
-
-    CREATE INDEX IF NOT EXISTS idx_events_tracking_num ON events (tracking_num);
-
-    CREATE TABLE IF NOT EXISTS tokens (
-        id      TEXT NOT NULL PRIMARY KEY,
-        user_id TEXT
-    );
-  `);
-}
-
-/**
- * Inserts a new token into the database or ignores if it already exists.
- *
- * This function attempts to insert a new token with the given id and userId into the tokens table.
- * If a token with the same id already exists, the insertion is ignored.
- *
- * @param db - The SQLite Database instance to perform the insertion on.
- * @param id - The unique identifier for the token.
- * @param userId - The user identifier associated with the token.
- *
- * @returns void - This function doesn't return a value, but logs the result of the operation.
- */
-export function insertToken(db: Database, id: string, userId: string): void {
-  const stmt = db.prepare(
-      `INSERT
-      OR IGNORE INTO tokens (id, user_id) VALUES (?, ?)`,
-  );
-  try {
-    stmt.run(id, userId);
-  } finally {
-    stmt.finalize();
-  }
-}
-
 export class SQLiteWrapper implements DatabaseWrapper {
 
   private readonly db: Database;
@@ -111,6 +33,30 @@ export class SQLiteWrapper implements DatabaseWrapper {
       try {
         const testResult = stmt.get() as { connection_test: number };
         resolve(testResult && testResult.connection_test === 1);
+      } finally {
+        stmt.finalize();
+      }
+    });
+  }
+
+  /**
+   * This function attempts to insert a new API key and userId into the tokens table.
+   * If a token with the same id already exists, the insertion is ignored.
+   *
+   * @param apikey - The unique API key.
+   * @param userId - The user identifier associated with the API key.
+   *
+   * @returns void - This function doesn't return a value, but logs the result of the operation.
+   */
+  insertToken(apikey: string, userId: string): Promise<boolean> {
+    return new Promise((resolve, _reject) => {
+      const stmt = this.db.prepare(
+          `INSERT
+      OR IGNORE INTO tokens (id, user_id) VALUES (?, ?)`,
+      );
+      try {
+        stmt.run(apikey, userId);
+        resolve(this.db.changes===1);
       } finally {
         stmt.finalize();
       }
@@ -368,45 +314,49 @@ export class SQLiteWrapper implements DatabaseWrapper {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
-        for (const event of events) {
-          // Validate input
-          if (!event || !event.eventId) {
-            throw new Error("Invalid event object: eventId is required");
-          }
+        try {
+          for (const event of events) {
+            // Validate input
+            if (!event || !event.eventId) {
+              throw new Error("Invalid event object: eventId is required");
+            }
 
-          logger.info(
-              `${updateMethod}: Insert new event with ID ${event.eventId}`,
-          );
-
-          try {
-            const result = insertEventStmt.run(
-                event.eventId,
-                event.status,
-                event.what ?? "",
-                event.when ?? "",
-                event.where ?? "",
-                event.whom ?? "",
-                event.notes ?? "",
-                event.operatorCode ?? "",
-                event.trackingNum ?? "",
-                event.dataProvider ?? "",
-                event.exceptionCode || null,
-                event.exceptionDesc || null,
-                event.notificationCode || null,
-                event.notificationDesc || null,
-                JSON.stringify(event.extra ?? {}),
-                JSON.stringify(event.sourceData ?? {}),
+            logger.info(
+                `${updateMethod}: Insert new event with ID ${event.eventId}`,
             );
 
-            changes = changes + result;
-            if (result !== 1) {
-              // log the info if no event_id was inserted
-              logger.info(`Event with ID ${event.eventId} could not be inserted. `);
-            }
-          } catch (err) {
-            logger.error(`Failed to insert event with ID ${event.eventId}:`, err);
-          }
+            try {
+              const result = insertEventStmt.run(
+                  event.eventId,
+                  event.status,
+                  event.what ?? "",
+                  event.when ?? "",
+                  event.where ?? "",
+                  event.whom ?? "",
+                  event.notes ?? "",
+                  event.operatorCode ?? "",
+                  event.trackingNum ?? "",
+                  event.dataProvider ?? "",
+                  event.exceptionCode || null,
+                  event.exceptionDesc || null,
+                  event.notificationCode || null,
+                  event.notificationDesc || null,
+                  JSON.stringify(event.extra ?? {}),
+                  JSON.stringify(event.sourceData ?? {}),
+              );
 
+              changes = changes + result;
+              if (result !== 1) {
+                // log the info if no event_id was inserted
+                logger.info(`Event with ID ${event.eventId} could not be inserted. `);
+              }
+            } catch (err) {
+              logger.error(`Failed to insert event with ID ${event.eventId}:`, err);
+            }
+
+          }
+        } finally {
+          insertEventStmt.finalize();
         }
 
         return changes;

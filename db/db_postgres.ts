@@ -72,6 +72,15 @@ export class PostgresWrapper implements DatabaseWrapper {
     return testResult[0].connection_test === 1;
   }
 
+  async insertToken(apikey: string, userId: string): Promise<boolean> {
+    const result = await this.sql`
+      INSERT INTO tokens (id, user_id)
+      VALUES (${apikey},
+              ${userId}) ON CONFLICT(id) DO NOTHING RETURNING 0`;
+
+    return (result.count ?? 0) > 0;
+  }
+
   /**
    * Inserts a new entity into the database.
    *

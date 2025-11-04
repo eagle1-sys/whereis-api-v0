@@ -16,6 +16,8 @@ export interface DatabaseWrapper {
 
   ping(): Promise<boolean>;
 
+  insertToken(apikey: string, userId: string): Promise<boolean>;
+
   insertEntity(entity: Entity): Promise<number | undefined>;
 
   updateEntity(

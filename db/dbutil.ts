@@ -13,7 +13,6 @@ import { PostgresWrapper } from "./db_postgres.ts";
 
 let dbClient: DatabaseWrapper;
 
-import { initDatabase, insertToken } from "./db_sqlite.ts";
 import { logger } from "../tools/logger.ts";
 import { join } from '@std/path';
 
@@ -24,17 +23,7 @@ export async function initConnection() {
     dbClient = new PostgresWrapper(sql!);
   } else {
     const volume_path = Deno.env.get("DB_FILE_DIR") ?? "../data";
-    const db : Database = new Database(join(volume_path, 'whereis.db'));
-    initDatabase(db);
-    // insert initial tokens
-    const initialTokens = Deno.env.get("INITIAL_TOKENS") || "eagle1@test_user";
-    const tokenPairs = initialTokens.split(',');
-    for (const pair of tokenPairs) {
-      const [tokenId, tokenUserId] = pair.split('@');
-      if (tokenId && tokenUserId) {
-        insertToken(db, tokenId, tokenUserId);
-      }
-    }
+    const db : Database = new Database(join(volume_path, 'whereis.sqlite'));
     dbClient = new SQLiteWrapper(db!);
   }
 }
