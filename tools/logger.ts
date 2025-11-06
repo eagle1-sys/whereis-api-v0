@@ -16,7 +16,7 @@ function getLogLevel(): Severity {
   const env = Deno.env.get("APP_ENV") || "dev";
   switch (env) {
     case "prod":
-      return Severity.Warn;
+      return Severity.Info;
     case "qa":
       return Severity.Info;
     case "dev":
