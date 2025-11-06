@@ -19,17 +19,21 @@ async function main(): Promise<void> {
     await initConnection();
 
     // step 3: generate API key
-    let { user = "formal_user", key="" } = parseArgs(Deno.args);
-    if(key === "" || key===undefined) {
+    let {user = "formal_user", key = ""} = parseArgs(Deno.args);
+    if (key === "" || key === undefined) {
         key = generateApiKey();
     }
 
-    // step 3: write API key to the database
-    await dbClient.insertToken(key, user);
-
-    // step 4: output the API key to the console or log
     const logger = getLogger();
-    logger.info(`API key ${key} has been saved to the database.`);
+    // step 3: write API key to the database
+    const inserted = await dbClient.insertToken(key, user);
+    if (!inserted) {
+        logger.warn(`Token ${key} already exists or could not be inserted.`);
+        return;
+    } else {
+        // output the API key to the console or log
+        logger.info(`API key ${key} has been saved to the database.`);
+    }
 }
 
 function parseArgs(args: string[]) {
@@ -44,8 +48,7 @@ function parseArgs(args: string[]) {
 }
 
 /**
- * Generates a unique, URL-safe API key with a given length (excluding 'sk-' prefix).
- * Uses an in-memory set for collision checking (replace with a database in production).
+ * Generates a unique, URL-safe API key with a given length.
  */
 function generateApiKey(length: number = 48): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
