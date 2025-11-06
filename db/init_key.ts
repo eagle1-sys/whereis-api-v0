@@ -20,7 +20,7 @@ async function main(): Promise<void> {
 
     // step 3: generate API key
     let {user = "formal_user", key = ""} = parseArgs(Deno.args);
-    if (key === "" || key === undefined) {
+    if (!key) {
         key = generateApiKey();
     }
 
