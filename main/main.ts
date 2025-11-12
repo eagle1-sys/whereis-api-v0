@@ -1,61 +1,41 @@
 /**
  * @file main.ts
- * @description This module serves as the entry point for the application, handling environment loading,
- * metadata initialization, database setup, scheduling, and server startup.
+ * @description This module serves as the orchestrator entry point for the Eagle1 Whereis API application.
+ * It spawns two parallel processes: an API server (api.ts) and a background scheduler (schedule.ts),
+ * managing their lifecycle and handling graceful shutdown on SIGINT/SIGTERM signals.
+ *
+ * The API server runs with parallel request handling enabled, while the scheduler
+ * runs independently to handle periodic tasks such as auto-pulling tracking data from logistics providers.
+ *
+ * This architecture allows the application to handle both real-time API requests and background
+ * data synchronization tasks concurrently, with proper signal handling for clean shutdowns.
  *
  * @copyright (c) 2025, the Eagle1 authors
  * @license BSD 3-Clause License
  */
-import { app } from "./server.ts";
-import { syncRoutes } from "./schedule.ts";
-import {initializeOperatorStatus, loadEnv, loadMetaData} from "./app.ts";
-import {initConnection} from "../db/dbutil.ts";
-import { getLogger  } from "../tools/logger.ts";
 
+// Get port from environment variable, fallback to 8080
+const port = Deno.env.get("PORT") || "8080";
 
-/**
- * Main entry point of the application.
- * Orchestrates the initialization of environment variables, metadata, database connections,
- * task scheduler, and starts the server.
- * @async
- * @returns {Promise<void>} A promise that resolves when the application is fully started.
- * @throws {Error} If any step in the initialization process fails.
- */
-async function main(): Promise<void> {
-  await loadEnv(); // load environment variable first
+const apiCmd = new Deno.Command(Deno.execPath(), {
+  args: ["serve", "--parallel", "--port", port, "--allow-net", "--allow-env", "--allow-read","--allow-write", "--allow-ffi", "main/api.ts"],
+  stdout: "inherit",
+  stderr: "inherit",
+}).spawn();
 
-  // Initialize logger after environment is loaded
-  const logger = getLogger();
-  logger.info(`Starting application in ${Deno.env.get("APP_ENV")} mode`);
+const schedulerCmd = new Deno.Command(Deno.execPath(), {
+  args: ["run", "--allow-env", "--allow-read", "--allow-net", "--allow-ffi", "main/schedule.ts"],
+  stdout: "inherit",
+  stderr: "inherit",
+}).spawn();
 
-  await loadMetaData(); // load file system data
-  await initConnection();
+// Graceful shutdown: forward SIGINT / SIGTERM to children
+Deno.addSignalListener("SIGINT", shutdown);
+Deno.addSignalListener("SIGTERM", shutdown);
 
-  initializeOperatorStatus(); // initialize operator status
-
-  /**
-   * Starts a scheduler that periodically synchronizes tracking routes.
-   * The task runs every N minutes using a cron job.
-   */
-  const intervalStr = Deno.env.get("APP_PULL_INTERVAL");
-  const parsed = Number.parseInt(intervalStr ?? "", 10);
-  const interval = Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
-  Deno.cron("Sync routes", { minute: { every: interval } }, () => {
-    syncRoutes();
-  }).then((_r) => {
-    logger.info(`Scheduler started: every ${interval} minute(s).`);
-  });
+function shutdown() {
+  console.log("\nShutting down…");
+  apiCmd.kill("SIGTERM");
+  schedulerCmd.kill("SIGTERM");
+  Deno.exit(0);
 }
-
-// Execute the main function and handle any uncaught errors
-main().catch((err) => {
-  const logger = getLogger();
-  logger.error("Failed to start application:", err);
-  Deno.exit(1);
-});
-
-
-// Export the fetch handler for deno serve
-export default {
-  fetch: app.fetch,
-} satisfies Deno.ServeDefaultExport;

@@ -8,10 +8,11 @@
  * @copyright (c) 2025, the Eagle1 authors
  * @license BSD 3-Clause License
  */
-import { dbClient } from "../db/dbutil.ts";
-import { logger } from "../tools/logger.ts";
+import {dbClient, initConnection} from "../db/dbutil.ts";
+import {getLogger} from "../tools/logger.ts";
 import { requestWhereIs } from "./gateway.ts";
 import { AppError, Entity, TrackingID } from "./model.ts";
+import {initializeOperatorStatus, loadEnv, loadMetaData} from "./app.ts";
 
 /**
  * Groups tracking numbers by operator.
@@ -141,3 +142,27 @@ export async function syncRoutes() {
     }
   }
 }
+
+
+await loadEnv(); // load environment variable first
+
+// Initialize logger after environment is loaded
+const logger = getLogger();
+logger.info(`Starting application in ${Deno.env.get("APP_ENV")} mode`);
+
+await loadMetaData(); // load file system data
+await initConnection();
+
+initializeOperatorStatus(); // initialize operator status
+/**
+ * Starts a scheduler that periodically synchronizes tracking routes.
+ * The task runs every N minutes using a cron job.
+ */
+const intervalStr = Deno.env.get("APP_PULL_INTERVAL");
+const parsed = Number.parseInt(intervalStr ?? "", 10);
+const interval = Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
+Deno.cron("Sync routes", { minute: { every: interval } }, () => {
+  syncRoutes();
+}).then((_r) => {
+  logger.info(`Scheduler started: every ${interval} minute(s).`);
+});
