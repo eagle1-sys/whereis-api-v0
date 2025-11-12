@@ -131,7 +131,7 @@ async function assertResponse(
       const eventStatus = responseJSON.status;
       assert(
           eventStatus === output.status,
-          `Expected status ${output.status} , but got ${eventStatus}`,
+          `Expected status ${output.status} , but got ${responseJSON}`,
       );
       break;
     }
