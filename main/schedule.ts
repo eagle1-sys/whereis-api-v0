@@ -8,11 +8,12 @@
  * @copyright (c) 2025, the Eagle1 authors
  * @license BSD 3-Clause License
  */
-import {dbClient, initConnection} from "../db/dbutil.ts";
-import {getLogger} from "../tools/logger.ts";
+import { dbClient, initConnection } from "../db/dbutil.ts";
+import { getLogger } from "../tools/logger.ts";
+import { Github } from "../tools/github.ts";
 import { requestWhereIs } from "./gateway.ts";
 import { AppError, Entity, TrackingID } from "./model.ts";
-import {initializeOperatorStatus, loadEnv, loadMetaData} from "./app.ts";
+import { initializeOperatorStatus, loadEnv, loadMetaData } from "./app.ts";
 
 /**
  * Groups tracking numbers by operator.
@@ -81,7 +82,7 @@ async function processTrackingIds(
  * @async
  * @throws {Error} If an error occurs during database operations or external requests.
  */
-export async function syncRoutes() {
+async function syncRoutes() {
   let inProcessTrackingNums: Record<string, unknown>;
   try {
     inProcessTrackingNums = await dbClient.getInProcessingTrackingNums();
@@ -122,27 +123,46 @@ export async function syncRoutes() {
       }
     }
   } catch (err) {
-    // ignore the UserError
-    if (err instanceof AppError) {
-      if (err.getHttpStatusCode() >= 500) {
-        logger.error(`SyncRoutes: ${err.getMessage()}`);
-      }
-    } else {
-      if (err instanceof Error) {
-        logger.error(`SyncRoutes: ${err.message}`);
-        if (err.stack) {
-          logger.error(`Stack trace: ${err.stack}`);
-        }
-        if (err.cause) {
-          logger.error(`Caused by: ${err.cause}`);
-        }
-      } else {
-        logger.error(`Unknown error in syncRoutes: ${String(err)}`);
-      }
-    }
+    errorHandline(err, 'syncRoutes');
   }
 }
 
+async function pushActiveTrackingNo(github: Github): Promise<void> {
+  let activeTrackingNo: number = 0;
+  try {
+    const inProcessTrackingNums: Record<string, unknown> = await dbClient
+      .getInProcessingTrackingNums();
+    activeTrackingNo = Object.keys(inProcessTrackingNums).length;
+  } catch (err) {
+    errorHandline(err, 'pushActiveTrackingNo');
+  }
+
+  const comment = `**Auto-update @ ${
+      new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC')
+  }**\n\nActive tracking numbers: ${activeTrackingNo}`;
+  await github.putComment(comment);
+}
+
+function errorHandline(err: unknown, context: string) {
+  // ignore the UserError
+  if (err instanceof AppError) {
+    if (err.getHttpStatusCode() >= 500) {
+      logger.error(`${context}: ${err.getMessage()}`);
+    }
+  } else {
+    if (err instanceof Error) {
+      logger.error(`${context}: ${err.message}`);
+      if (err.stack) {
+        logger.error(`Stack trace: ${err.stack}`);
+      }
+      if (err.cause) {
+        logger.error(`Caused by: ${err.cause}`);
+      }
+    } else {
+      logger.error(`Unknown error in ${context}: ${String(err)}`);
+    }
+  }
+}
 
 await loadEnv(); // load environment variable first
 
@@ -154,6 +174,8 @@ await loadMetaData(); // load file system data
 await initConnection();
 
 initializeOperatorStatus(); // initialize operator status
+
+
 /**
  * Starts a scheduler that periodically synchronizes tracking routes.
  * The task runs every N minutes using a cron job.
@@ -166,3 +188,25 @@ Deno.cron("Sync routes", { minute: { every: interval } }, () => {
 }).then((_r) => {
   logger.info(`Scheduler started: every ${interval} minute(s).`);
 });
+
+/**
+ * Starts a daily scheduler that records active tracking numbers.
+ * The task runs at 02:00 system local time and pushes the count to GitHub.
+ * If GitHub instance initialization fails, the error is logged and the scheduler is not started.
+ */
+try {
+  const github = Github.getInstance();
+  Deno.cron("Record active tracking NO", {hour: 12, minute: 45}, () => {
+    pushActiveTrackingNo(github);
+  }).then((_r) => {
+    logger.info(`Scheduler started: daily at 02:00 for recording active tracking numbers.`);
+  });
+} catch (err) {
+  if (err instanceof Error) {
+    logger.error(`${err.message}`);
+  } else {
+    logger.error(`Unknown error: ${String(err)}`);
+  }
+}
+
+
