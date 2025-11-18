@@ -47,7 +47,7 @@ export class Github {
    * GitHub API credentials and repository configuration.
    * 
    * @throws {Error} Throws an error if required environment variables are not set
-   * (GITHUB_TOKEN, REPOSITORY_ID, CATEGORY_ID, OWNER, or REPO).
+   * (GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO_ID, GITHUB_REPO_NAME or GITHUB_CATEGORY_ID).
    */
   public static getInstance(): Github {
     if (!Github.instance) {
@@ -156,9 +156,28 @@ export class Github {
       throw new Error(`GraphQL search failed: ${err}`);
     }
 
-    const { data } = await res.json();
+    const responseJson = await res.json();
 
-    const nodes = data?.repository?.discussions?.nodes || [];
+    // Check for GraphQL errors (auth, rate limit, etc.)
+    if (responseJson.errors && Array.isArray(responseJson.errors) && responseJson.errors.length > 0) {
+      const errorMessages = responseJson.errors.map((e: { message: string }) => e.message).join("; ");
+      throw new Error(`GraphQL search returned errors: ${errorMessages}`);
+    }
+
+    // Validate data structure
+    if (!responseJson.data) {
+      throw new Error("GraphQL search returned no data (possible authentication or permission issue)");
+    }
+
+    if (!responseJson.data.repository) {
+      throw new Error(`Repository not found or not accessible: ${this.GITHUB_OWNER}/${this.GITHUB_REPO_NAME}`);
+    }
+
+    if (!responseJson.data.repository.discussions) {
+      throw new Error("Discussions data is missing from repository response");
+    }
+
+    const nodes = responseJson.data.repository.discussions.nodes || [];
     const discussion = nodes.find((d: { id: string; number: number; title: string; url: string }) => d.title === title);
 
     if (discussion) {
@@ -231,8 +250,28 @@ export class Github {
       throw new Error(`Create failed: ${err}`);
     }
 
-    const { data } = await res.json();
-    const discussion = data.createDiscussion.discussion;
+    const responseJson = await res.json();
+
+    // Check for GraphQL errors
+    if (responseJson.errors && Array.isArray(responseJson.errors) && responseJson.errors.length > 0) {
+      const errorMessages = responseJson.errors.map((e: { message: string }) => e.message).join("; ");
+      throw new Error(`Create discussion returned errors: ${errorMessages}`);
+    }
+
+    // Validate data structure
+    if (!responseJson.data) {
+      throw new Error(`Create discussion returned no data. Response: ${JSON.stringify(responseJson)}`);
+    }
+
+    if (!responseJson.data.createDiscussion) {
+      throw new Error(`Create discussion mutation failed. Response: ${JSON.stringify(responseJson)}`);
+    }
+
+    if (!responseJson.data.createDiscussion.discussion) {
+      throw new Error(`Discussion object missing from response. Response: ${JSON.stringify(responseJson)}`);
+    }
+
+    const discussion = responseJson.data.createDiscussion.discussion;
     return {
       id: discussion.id,
       number: discussion.number,
@@ -289,6 +328,33 @@ export class Github {
     if (!res.ok) {
       const err = await res.text();
       throw new Error(`Add comment failed: ${err}`);
+    }
+
+    const responseJson = await res.json();
+
+    // Check for GraphQL errors
+    if (responseJson.errors && Array.isArray(responseJson.errors) && responseJson.errors.length > 0) {
+      const errorMessages = responseJson.errors.map((e: { message: string }) => e.message).join("; ");
+      throw new Error(`Add comment returned errors: ${errorMessages}`);
+    }
+
+    // Validate data structure
+    if (!responseJson.data) {
+      throw new Error(`Add comment returned no data. Response: ${JSON.stringify(responseJson)}`);
+    }
+
+    if (!responseJson.data.addDiscussionComment) {
+      throw new Error(`Add comment mutation failed. Response: ${JSON.stringify(responseJson)}`);
+    }
+
+    if (!responseJson.data.addDiscussionComment.comment) {
+      throw new Error(`Comment object missing from response. Response: ${JSON.stringify(responseJson)}`);
+    }
+
+    const comment = responseJson.data.addDiscussionComment.comment;
+    // Validate required fields
+    if (!comment.id || !comment.url) {
+      throw new Error(`Comment missing required fields. Response: ${JSON.stringify(comment)}`);
     }
 
   }
