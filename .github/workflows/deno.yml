@@ -6,19 +6,33 @@
 # This workflow will install Deno then run `deno lint` and `deno test`.
 # For more information see: https://github.com/denoland/setup-deno
 
-name: Deno
+name: Deploy and Test
 
 on:
   push:
-    branches: ["main", "develop"]
+    branches: ["ci/cd"]
 
 permissions:
   contents: read
 
 jobs:
-  test:
+  deploy:
+    name: Deploy to Fly.io
     runs-on: ubuntu-latest
+    concurrency: deploy-group
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
 
+      - name: Deploy app
+        run: flyctl deploy --remote-only -a whereis-api-v0
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_PROD }}
+
+  test:
+    name: Run Deno tests
+    runs-on: ubuntu-latest
+    needs: deploy
     steps:
       - name: Setup repo
         uses: actions/checkout@v4
@@ -31,18 +45,13 @@ jobs:
       - name: Run linter
         run: deno lint
 
-      - name: Run check
+      - name: Run type check
         run: deno check .
 
       - name: Set env vars for main branch
-        if: github.ref_name == 'main'
+        if: github.ref_name == 'ci/cd'
         run: |
-          echo "WHEREIS_API_URL=https://whereis-api-v0.fly.dev" >> $GITHUB_ENV   
-
-      - name: Set env vars for develop branch
-        if: github.ref_name == 'develop'
-        run: |
-          echo "WHEREIS_API_URL=https://whereis-api-v0-test.fly.dev" >> $GITHUB_ENV    
+          echo "WHEREIS_API_URL=https://whereis-api-v0.fly.dev" >> $GITHUB_ENV
 
       - name: Run tests
         env:
