@@ -10,7 +10,7 @@ name: Deploy and Test
 
 on:
   push:
-    branches: ["ci/cd"]
+    branches: ["fly-deploy"]
 
 permissions:
   contents: read
@@ -49,7 +49,7 @@ jobs:
         run: deno check .
 
       - name: Set env vars for main branch
-        if: github.ref_name == 'ci/cd'
+        if: github.ref_name == 'fly-deploy'
         run: |
           echo "WHEREIS_API_URL=https://whereis-api-v0.fly.dev" >> $GITHUB_ENV
 
