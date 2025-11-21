@@ -24,7 +24,7 @@ const apiCmd = new Deno.Command(Deno.execPath(), {
 }).spawn();
 
 const schedulerCmd = new Deno.Command(Deno.execPath(), {
-  args: ["run", "--allow-env", "--allow-read", "--allow-net", "--allow-ffi", "main/schedule.ts"],
+  args: ["run", "--allow-env", "--allow-read", "--allow-net", "--allow-write", "--allow-ffi", "main/schedule.ts"],
   stdout: "inherit",
   stderr: "inherit",
 }).spawn();
