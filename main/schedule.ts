@@ -159,18 +159,19 @@ async function syncRoutes() {
  */
 async function pushActiveTrackingNo(github: Github): Promise<void> {
   try {
-    const inProcessTrackingNums: Record<string, unknown> = await dbClient
-      .getInProcessingTrackingNums();
+    const inProcessTrackingNums: Record<string, unknown> = await dbClient.getInProcessingTrackingNums();
     const activeTrackingNo = Object.keys(inProcessTrackingNums).length;
 
-    const comment = `**Auto-update @ ${
-        new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC')
-    }**\n\nActive tracking numbers: ${activeTrackingNo}`;
+    if (activeTrackingNo > 0) {
+      const comment = `**Auto-update @ ${
+          new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC')
+      }**\n\nActive tracking numbers: ${activeTrackingNo}`;
 
-    try {
-      await github.putComment(comment);
-    } catch (githubErr) {
-      handleError(githubErr, 'pushActiveTrackingNo');
+      try {
+        await github.putComment(comment);
+      } catch (githubErr) {
+        handleError(githubErr, 'pushActiveTrackingNo');
+      }
     }
   } catch (dbErr) {
     handleError(dbErr, 'pushActiveTrackingNo');
