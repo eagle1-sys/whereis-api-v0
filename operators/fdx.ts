@@ -232,11 +232,13 @@ export class Fdx {
   /**
    * Retrieves the current location and tracking details for a given tracking number.
    * @param {TrackingID} trackingIds - The tracking ID(s) defined by eagle1.
+   * @param _extraParams
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Promise<Entity | undefined>} A promise resolving to the tracking entity or undefined if not found.
    */
   static async whereIs(
     trackingIds: TrackingID[],
+    _extraParams: Record<string, string>,
     updateMethod: string,
   ): Promise<Entity[]> {
     if(!isOperatorActive("fdx")) {

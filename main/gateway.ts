@@ -7,17 +7,27 @@
  * @license BSD 3-Clause License
  */
 
-import { Sfex } from "../operators/sfex.ts";
-import { Fdx } from "../operators/fdx.ts";
-import { Entity, OperatorRegistry, TrackingID } from "./model.ts";
+import {Entity, OperatorRegistry, TrackingID} from "./model.ts";
 
 // Define a type for the operator status
 type OperatorStatus = {
   [key: string]: boolean;
 };
 
+// Define an interface for operator modules
+interface OperatorModule {
+  whereIs(
+      trackingIds: TrackingID[],
+      extraParams: Record<string, string>,
+      updateMethod: string,
+  ): Promise<Entity[]>;
+}
+
 // Define the operator status variable
 const operatorStatus: OperatorStatus = {};
+
+// Registry for operator modules
+const operatorModules: Record<string, OperatorModule> = {};
 
 /**
  * Checks if a given operator is active.
@@ -43,6 +53,20 @@ export function setOperatorStatus(operator: string, status: boolean): void {
 }
 
 /**
+ * Registers a new operator module dynamically.
+ * This allows adding new operators without modifying the gateway code.
+ *
+ * @param {string} operatorCode - The operator code to register
+ * @param {OperatorModule} module - The operator module implementing the OperatorModule interface
+ */
+export function registerOperatorModule(
+    operatorCode: string,
+    module: OperatorModule,
+): void {
+  operatorModules[operatorCode] = module;
+}
+
+/**
  * Asynchronously retrieves the location information for a given tracking ID.
  * Supports different carriers (SF Express and FedEx) and handles their specific implementations.
  *
@@ -59,18 +83,14 @@ export async function requestWhereIs(
   extraParams: Record<string, string>,
   updateMethod: string,
 ): Promise<Entity[]> {
-  let entities: Entity[] = [];
-  switch (operator) {
-    case "sfex":
-      entities = await Sfex.whereIs(
-        trackingIds,
-        extraParams,
-        updateMethod,
-      );
-      break;
-    case "fdx":
-      entities = await Fdx.whereIs(trackingIds, updateMethod);
-      break;
+  const operatorModule = operatorModules[operator];
+  if (!operatorModule) {
+    throw new Error(`Operator module not found: ${operator}`);
   }
-  return entities;
+
+  return await operatorModule.whereIs(
+      trackingIds,
+      extraParams,
+      updateMethod,
+  );
 }
