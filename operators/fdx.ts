@@ -57,10 +57,10 @@ export class Fdx {
         sourceData: Record<string, unknown>,
       ): number {
         const locationType = sourceData["locationType"] as string;
-        const eventDescrition = sourceData["eventDescription"] as string;
+        const eventDescription = sourceData["eventDescription"] as string;
         if (
           locationType === "SORT_FACILITY" &&
-          /destination/i.test(eventDescrition)
+          /destination/i.test(eventDescription)
         ) {
           return 3300; // At destination sort facility
         }
@@ -368,7 +368,7 @@ export class Fdx {
       } else if (hasPreEventOccurred) {
         // if a 3100 event is found
         if(event.status === 3100) return false;
-        // if a event status is greater than 3100 is found
+        // if an event status is greater than 3100 is found
         if(event.status > 3100) return true;
       }
     }
