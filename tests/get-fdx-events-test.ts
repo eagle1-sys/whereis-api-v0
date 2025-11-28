@@ -17,7 +17,7 @@
  * @license BSD 3-Clause License
  */
 import { assert } from "@std/assert";
-import { Fdx } from "../src/connectors/operators/fdx.ts";
+import { Fdx } from "../src/connectors/operator/fdx.ts";
 
 const testDatas = [
   {
