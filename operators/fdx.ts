@@ -368,7 +368,7 @@ export class Fdx {
       } else if (hasPreEventOccurred) {
         // if a 3100 event is found
         if(event.status === 3100) return false;
-        // if an event status is greater than 3100 is found
+        // if an event with status greater than 3100 is found
         if(event.status > 3100) return true;
       }
     }
