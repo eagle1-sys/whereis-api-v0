@@ -18,9 +18,8 @@ import {
 import { crypto } from "@std/crypto";
 import { config } from "../../../config.ts";
 import { logger } from "../../tools/logger.ts";
-import {getResponseJSON} from "../../tools/util.ts";
 import {isOperatorActive} from "../../main/gateway.ts";
-import {adjustDateAndFormatWithTimezone, formatTimezoneOffset} from "../../tools/util.ts";
+import {getResponseJSON, adjustDateAndFormatWithTimezone, formatTimezoneOffset} from "../../tools/util.ts";
 
 /**
  * SF Express API client class for tracking shipments and managing route data.
