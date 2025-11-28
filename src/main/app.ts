@@ -6,8 +6,8 @@
  * @license BSD 3-Clause License
  */
 
-import { Sfex } from "../connectors/operators/sfex.ts";
-import { Fdx } from "../connectors/operators/fdx.ts";
+import { Sfex } from "../connectors/operator/sfex.ts";
+import { Fdx } from "../connectors/operator/fdx.ts";
 import { load } from "@std/dotenv";
 import { config } from "../../config.ts";
 import { loadJSONFromFs } from "../tools/util.ts";
