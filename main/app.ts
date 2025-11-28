@@ -6,6 +6,8 @@
  * @license BSD 3-Clause License
  */
 
+import { Sfex } from "../operators/sfex.ts";
+import { Fdx } from "../operators/fdx.ts";
 import { load } from "@std/dotenv";
 import { config } from "../config.ts";
 import { loadJSONFromFs } from "../tools/util.ts";
@@ -17,7 +19,7 @@ import {
   OperatorRegistry,
   StatusCode,
 } from "./model.ts";
-import { setOperatorStatus } from "./gateway.ts";
+import {registerOperatorModule, setOperatorStatus} from "./gateway.ts";
 
 /**
  * Loads environment variables from a `.env` file and sets them in `Deno.env`.
@@ -108,9 +110,11 @@ export async function loadMetaData(): Promise<void> {
 export function initializeOperatorStatus(): void {
   if (Deno.env.get("FDX_CLIENT_ID") && Deno.env.get("FDX_CLIENT_SECRET")) {
     setOperatorStatus("fdx", true);
+    registerOperatorModule("fdx", Fdx);
   }
 
   if (Deno.env.get("SFEX_PARTNER_ID") && Deno.env.get("SFEX_CHECK_WORD")) {
     setOperatorStatus("sfex", true);
+    registerOperatorModule("sfex", Sfex);
   }
 }

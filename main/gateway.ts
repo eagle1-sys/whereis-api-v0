@@ -7,17 +7,27 @@
  * @license BSD 3-Clause License
  */
 
-import { Sfex } from "../operators/sfex.ts";
-import { Fdx } from "../operators/fdx.ts";
-import { Entity, OperatorRegistry, TrackingID } from "./model.ts";
+import {Entity, OperatorRegistry, TrackingID} from "./model.ts";
 
 // Define a type for the operator status
 type OperatorStatus = {
   [key: string]: boolean;
 };
 
+// Define an interface for operator modules
+interface OperatorModule {
+  whereIs(
+      trackingIds: TrackingID[],
+      extraParams: Record<string, string>,
+      updateMethod: string,
+  ): Promise<Entity[]>;
+}
+
 // Define the operator status variable
 const operatorStatus: OperatorStatus = {};
+
+// Registry for operator modules
+const operatorModules: Record<string, OperatorModule> = {};
 
 /**
  * Checks if a given operator is active.
@@ -43,6 +53,20 @@ export function setOperatorStatus(operator: string, status: boolean): void {
 }
 
 /**
+ * Registers a new operator module dynamically.
+ * This allows adding new operators without modifying the gateway code.
+ *
+ * @param {string} operatorCode - The operator code to register
+ * @param {OperatorModule} module - The operator module implementing the OperatorModule interface
+ */
+export function registerOperatorModule(
+    operatorCode: string,
+    module: OperatorModule,
+): void {
+  operatorModules[operatorCode] = module;
+}
+
+/**
  * Asynchronously retrieves the location information for a given tracking ID.
  * Supports different carriers (SF Express and FedEx) and handles their specific implementations.
  *
@@ -59,75 +83,14 @@ export async function requestWhereIs(
   extraParams: Record<string, string>,
   updateMethod: string,
 ): Promise<Entity[]> {
-  let entities: Entity[] = [];
-  switch (operator) {
-    case "sfex":
-      entities = await Sfex.whereIs(
-        trackingIds,
-        extraParams,
-        updateMethod,
-      );
-      break;
-    case "fdx":
-      entities = await Fdx.whereIs(trackingIds, updateMethod);
-      break;
-  }
-  return entities;
-}
-
-/**
- * Parses JSON from a Response when Content-Type indicates JSON or when content-type is missing;
- * Handles various JSON content-types and edge cases like 204 responses and empty bodies.
- *
- * @param response - The Response object from the fetch call
- * @param uniqueId - A unique identifier string for logging purposes
- * @returns The JSON content of the response
- * @throws Error if the content type is not JSON-like or parsing fails
- */
-export async function getResponseJSON(response: Response, uniqueId: string): Promise<Record<string, unknown>> {
-  const contentType = response.headers.get("content-type");
-  const contentLength = response.headers.get("content-length");
-
-  // Handle explicit zero-length bodies
-  if (contentLength === "0") {
-    throw new Error(`Failed to get response as JSON (contentLength = 0) [${uniqueId}]`);
+  const operatorModule = operatorModules[operator];
+  if (!operatorModule) {
+    throw new Error(`Operator module not found: ${operator}`);
   }
 
-  // Check if content-type indicates JSON or JSON-like content
-  const isJsonContent = contentType ? contentType.toLowerCase().split(';')[0].trim().endsWith('json') : false;
-
-  // If no content-type header, attempt to parse as JSON (some APIs omit headers)
-  // Or if content-type indicates JSON, proceed with parsing
-  if (!contentType || isJsonContent) {
-    let parsed;
-    try {
-      let text = await response.text();
-
-      // Handle empty responses - return empty object
-      if (!text.trim()) {
-        return {};
-      }
-
-      // Strip UTF-8 BOM if present
-      if (text.charCodeAt(0) === 0xFEFF) {
-        text = text.slice(1);
-      }
-
-      parsed = JSON.parse(text);
-    } catch (error) {
-      if (!contentType) {
-        throw new Error(`Failed to parse response as JSON (no content-type header): ${error instanceof Error ? error.message : String(error)} [${uniqueId}]`);
-      }
-      throw new Error(`Failed to parse JSON response: ${error instanceof Error ? error.message : String(error)} [${uniqueId}]`);
-    }
-
-    // Enforce object root type
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      throw new TypeError(`Response root is not an object [${uniqueId}]`);
-    }
-
-    return parsed;
-  }
-
-  throw new Error(`Unexpected content type: ${contentType} [${uniqueId}]`);
+  return await operatorModule.whereIs(
+      trackingIds,
+      extraParams,
+      updateMethod,
+  );
 }

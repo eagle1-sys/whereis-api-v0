@@ -11,7 +11,8 @@
 import {AppError, DataUpdateMethod, Entity, Event, ExceptionCode, StatusCode, TrackingID,} from "../main/model.ts";
 import {config} from "../config.ts";
 import {logger} from "../tools/logger.ts";
-import {getResponseJSON, isOperatorActive} from "../main/gateway.ts";
+import {getResponseJSON} from "../tools/util.ts";
+import {isOperatorActive} from "../main/gateway.ts";
 import {adjustDateAndFormatWithTimezone, extractTimezone} from "../tools/util.ts";
 
 /**
@@ -56,10 +57,10 @@ export class Fdx {
         sourceData: Record<string, unknown>,
       ): number {
         const locationType = sourceData["locationType"] as string;
-        const eventDescrition = sourceData["eventDescription"] as string;
+        const eventDescription = sourceData["eventDescription"] as string;
         if (
           locationType === "SORT_FACILITY" &&
-          /destination/i.test(eventDescrition)
+          /destination/i.test(eventDescription)
         ) {
           return 3300; // At destination sort facility
         }
@@ -231,11 +232,13 @@ export class Fdx {
   /**
    * Retrieves the current location and tracking details for a given tracking number.
    * @param {TrackingID} trackingIds - The tracking ID(s) defined by eagle1.
+   * @param _extraParams
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Promise<Entity | undefined>} A promise resolving to the tracking entity or undefined if not found.
    */
   static async whereIs(
     trackingIds: TrackingID[],
+    _extraParams: Record<string, string>,
     updateMethod: string,
   ): Promise<Entity[]> {
     if(!isOperatorActive("fdx")) {
@@ -365,7 +368,7 @@ export class Fdx {
       } else if (hasPreEventOccurred) {
         // if a 3100 event is found
         if(event.status === 3100) return false;
-        // if a event status is greater than 3100 is found
+        // if an event status is greater than 3100 is found
         if(event.status > 3100) return true;
       }
     }
