@@ -8,12 +8,12 @@
  * @license BSD 3-Clause License
  */
 
-import {AppError, DataUpdateMethod, Entity, Event, ExceptionCode, StatusCode, TrackingID,} from "../main/model.ts";
-import {config} from "../config.ts";
-import {logger} from "../tools/logger.ts";
-import {getResponseJSON} from "../tools/util.ts";
-import {isOperatorActive} from "../main/gateway.ts";
-import {adjustDateAndFormatWithTimezone, extractTimezone} from "../tools/util.ts";
+import {AppError, DataUpdateMethod, Entity, Event, ExceptionCode, StatusCode, TrackingID,} from "../../main/model.ts";
+import {config} from "../../../config.ts";
+import {logger} from "../../tools/logger.ts";
+import {getResponseJSON} from "../../tools/util.ts";
+import {isOperatorActive} from "../../main/gateway.ts";
+import {adjustDateAndFormatWithTimezone, extractTimezone} from "../../tools/util.ts";
 
 /**
  * A class to interact with the FedEx tracking API and manage shipment tracking information.
