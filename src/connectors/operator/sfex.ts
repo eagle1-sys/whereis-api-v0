@@ -332,7 +332,7 @@ export class Sfex {
     for (const config of Sfex.missingEventConfigs) {
       if (config.checkMethod(entity)) {
         const baseEvent = config.getBaseEventMethod(entity);
-        if (baseEvent) {
+        if (baseEvent && baseEvent.when && baseEvent.where) {
           const supplementEvent: Event = this.createSupplementEvent(
               trackingId,
               config.status,

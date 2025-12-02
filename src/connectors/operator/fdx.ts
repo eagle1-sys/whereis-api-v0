@@ -512,7 +512,7 @@ export class Fdx {
     for (const config of Fdx.missingEventConfigs) {
       if (config.checkMethod(entity)) {
         const baseEvent = config.getBaseEventMethod(entity);
-        if (baseEvent) {
+        if (baseEvent && baseEvent.when && baseEvent.where) {
           const supplementEvent: Event = this.createSupplementEvent(trackingId, config.status, baseEvent.when as string, baseEvent.where as string);
           entity.addEvent(supplementEvent);
           entity.sortEventsByWhen();
