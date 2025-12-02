@@ -8,11 +8,12 @@
  * @license BSD 3-Clause License
  */
 
-import {AppError, DataUpdateMethod, Entity, Event, ExceptionCode, StatusCode, TrackingID,} from "../main/model.ts";
-import {config} from "../config.ts";
-import {logger} from "../tools/logger.ts";
-import {getResponseJSON, isOperatorActive} from "../main/gateway.ts";
-import {adjustDateAndFormatWithTimezone, extractTimezone} from "../tools/util.ts";
+import {AppError, DataUpdateMethod, Entity, Event, ExceptionCode, StatusCode, TrackingID,} from "../../main/model.ts";
+import {config} from "../../../config.ts";
+import {logger} from "../../tools/logger.ts";
+import {getResponseJSON} from "../../tools/util.ts";
+import {isOperatorActive} from "../../main/gateway.ts";
+import {adjustDateAndFormatWithTimezone, extractTimezone} from "../../tools/util.ts";
 
 /**
  * A class to interact with the FedEx tracking API and manage shipment tracking information.
@@ -35,8 +36,8 @@ export class Fdx {
     IT: {
       DR: 3250, // In-Transit
       DP: function (
-        _entity: Entity,
-        sourceData: Record<string, unknown>,
+          _entity: Entity,
+          sourceData: Record<string, unknown>,
       ): number {
         const locationType = sourceData.locationType as string;
         const eventDescription = sourceData.eventDescription as string;
@@ -52,14 +53,14 @@ export class Fdx {
         return 3004; // Departed, In-Transit
       },
       AR: function (
-        _entity: Entity,
-        sourceData: Record<string, unknown>,
+          _entity: Entity,
+          sourceData: Record<string, unknown>,
       ): number {
         const locationType = sourceData["locationType"] as string;
-        const eventDescrition = sourceData["eventDescription"] as string;
+        const eventDescription = sourceData["eventDescription"] as string;
         if (
-          locationType === "SORT_FACILITY" &&
-          /destination/i.test(eventDescrition)
+            locationType === "SORT_FACILITY" &&
+            /destination/i.test(eventDescription)
         ) {
           return 3300; // At destination sort facility
         }
@@ -71,8 +72,8 @@ export class Fdx {
         return locationTypeMap[locationType] ?? 3002; // Arrived, In-Transit (default)
       },
       IT: function (
-        _entity: Entity,
-        sourceData: Record<string, unknown>,
+          _entity: Entity,
+          sourceData: Record<string, unknown>,
       ): number {
         const exceptionCode = sourceData["exceptionCode"];
         if (exceptionCode == "67") {
@@ -83,8 +84,8 @@ export class Fdx {
       },
       AF: 3001, // Logistics In-Progress
       CC: function (
-        _entity: Entity,
-        sourceData: Record<string, unknown>,
+          _entity: Entity,
+          sourceData: Record<string, unknown>,
       ): number | undefined {
         const desc = sourceData["eventDescription"] as string;
         if (/Export/i.test(desc)) {
@@ -98,8 +99,8 @@ export class Fdx {
     },
     CD: {
       CD: function (
-        _entity: Entity,
-        sourceData: Record<string, unknown>,
+          _entity: Entity,
+          sourceData: Record<string, unknown>,
       ): number | undefined {
         const desc = sourceData["eventDescription"] as string;
         if (/Import/i.test(desc)) {
@@ -127,6 +128,15 @@ export class Fdx {
     "08": 907, // Recipient, Not Available
     "29": 909, // Rerouted
   };
+
+  // Define missing event configurations to check and supplement
+  private static readonly missingEventConfigs = [
+    {
+      status: 3100,
+      checkMethod: this.isMissing3100.bind(this),
+      getBaseEventMethod: this.get3100BaseEvent.bind(this),
+    }
+  ];
 
   /**
    * Fetches and manages the FedEx API authentication token.
@@ -231,12 +241,14 @@ export class Fdx {
   /**
    * Retrieves the current location and tracking details for a given tracking number.
    * @param {TrackingID} trackingIds - The tracking ID(s) defined by eagle1.
+   * @param _extraParams
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Promise<Entity | undefined>} A promise resolving to the tracking entity or undefined if not found.
    */
   static async whereIs(
-    trackingIds: TrackingID[],
-    updateMethod: string,
+      trackingIds: TrackingID[],
+      _extraParams: Record<string, string>,
+      updateMethod: string,
   ): Promise<Entity[]> {
     if(!isOperatorActive("fdx")) {
       throw new AppError("500-01", "500AB: fdx - CLIENT_ID");
@@ -248,35 +260,35 @@ export class Fdx {
     const output = result["output"] as Record<string, unknown>;
     if (output === undefined) {
       const trackingIdsStr: string = trackingIds.map((item) => item.toString())
-        .join(", ");
+          .join(", ");
       // get the display text of the data retrieval method. eg: auto-pull -> Auto-pull
       const updateMethodName = DataUpdateMethod.getDisplayText(updateMethod);
       logger.warn(
-        `${updateMethodName} -> FDX: Unexpected data received for ${trackingIdsStr}. Missing output{} in the received response: ${
-          JSON.stringify(result)
-        }`,
+          `${updateMethodName} -> FDX: Unexpected data received for ${trackingIdsStr}. Missing output{} in the received response: ${
+              JSON.stringify(result)
+          }`,
       );
       return entities;
     }
 
     const completeTrackResults = output["completeTrackResults"] as Record<
-      string,
-      unknown
+        string,
+        unknown
     >[];
     completeTrackResults.forEach(
-      (completeTrackResult: Record<string, unknown>) => {
-        const trackingId: TrackingID = TrackingID.parse(
-          "fdx-" + completeTrackResult["trackingNumber"] as string,
-        );
-        const entity: Entity | undefined = Fdx.convert(
-          trackingId,
-          completeTrackResult,
-          updateMethod,
-        );
-        if (entity !== undefined) {
-          entities.push(entity);
-        }
-      },
+        (completeTrackResult: Record<string, unknown>) => {
+          const trackingId: TrackingID = TrackingID.parse(
+              "fdx-" + completeTrackResult["trackingNumber"] as string,
+          );
+          const entity: Entity | undefined = Fdx.convert(
+              trackingId,
+              completeTrackResult,
+              updateMethod,
+          );
+          if (entity !== undefined) {
+            entities.push(entity);
+          }
+        },
     );
 
     return entities;
@@ -289,8 +301,8 @@ export class Fdx {
    * @returns {number} The corresponding internal event code, or 3001 if not found.
    */
   static getStatusCode(
-    entity: Entity,
-    sourceData: Record<string, unknown>,
+      entity: Entity,
+      sourceData: Record<string, unknown>,
   ): number {
     const derivedStatusCode = sourceData["derivedStatusCode"] as string;
     const eventType = sourceData["eventType"] as string;
@@ -310,7 +322,7 @@ export class Fdx {
   }
 
   static getExceptionCode(
-    sourceData: Record<string, unknown>,
+      sourceData: Record<string, unknown>,
   ): number | undefined {
     const code_original = sourceData["exceptionCode"] as string;
     if (!code_original || code_original === "71") {
@@ -328,11 +340,11 @@ export class Fdx {
   static getWhere(scanEvent: Record<string, unknown>): string {
     const scanLocation = scanEvent["scanLocation"] as Record<string, unknown>;
     const where = (scanLocation["city"] ?? "") + " " +
-      (scanLocation["stateOrProvinceCode"] ?? "") + " " +
-      (scanLocation["countryName"] ?? "");
+        (scanLocation["stateOrProvinceCode"] ?? "") + " " +
+        (scanLocation["countryName"] ?? "");
 
     return where.trim() ||
-      (scanEvent["locationType"] === "CUSTOMER" ? "Customer location" : "");
+        (scanEvent["locationType"] === "CUSTOMER" ? "Customer location" : "");
   }
 
   /**
@@ -342,7 +354,7 @@ export class Fdx {
    */
   static getAddress(address: Record<string, unknown>): string {
     return ((address["city"] as string ?? "") + " " +
-      (address["stateOrProvinceCode"] as string ?? "") + " " +
+        (address["stateOrProvinceCode"] as string ?? "") + " " +
         (address["countryName"] as string ?? "")).trim();
   }
 
@@ -358,39 +370,35 @@ export class Fdx {
    *                    sequence, false otherwise.
    */
   static isMissing3100(entity: Entity): boolean {
-    let hasPreEventOccurred : boolean = false;
     for (const event of entity.events) {
-      if (event.status <= 3050 && event.status%50 === 0) {
-        hasPreEventOccurred = true;
-      } else if (hasPreEventOccurred) {
-        // if a 3100 event is found
-        if(event.status === 3100) return false;
-        // if a event status is greater than 3100 is found
-        if(event.status > 3100) return true;
+      // if a 3100 event is found
+      if (event.status === 3100) return false;
+
+      // if an event with status greater than 3100 is found
+      if (event.status > 3100) {
+        return true;
       }
     }
-    return true;
+    return false;
   }
 
   /**
-  * Retrieves the base event for status code 3100 from the entity's events.
-  * Scans chronologically, skipping pre‑milestones (<=3050 and multiples of 50) and stopping at the next milestone (>3100 and multiple of 50).
-  * Returns the earliest event with status in [3001..3004] (inclusive) to serve as the base for creating a 3100 event.
-  * @param {Entity} entity - The entity containing the events to search through.
-  * @returns {Event | undefined} The earliest event with status 3001–3004 if found, otherwise undefined.
-  *                              This event is used as a base for creating a 3100 status event.
-  */
+   * Retrieves the base event for status code 3100 from the entity's events.
+   * Scans chronologically, skipping pre‑milestones (<=3050 and multiples of 50) and stopping at the next milestone (>3100 and multiple of 50).
+   * Returns the earliest event with status in [3001..3004] (inclusive) to serve as the base for creating a 3100 event.
+   * @param {Entity} entity - The entity containing the events to search through.
+   * @returns {Event | undefined} The earliest event with status 3001–3004 if found, otherwise undefined.
+   *                              This event is used as a base for creating a 3100 status event.
+   */
   static get3100BaseEvent(entity: Entity): Event | undefined {
     for (const event of entity.events) {
-      // if the event status is less than or equal to 3050, skip it
-      if (event.status <= 3050 && event.status%50 === 0) {
+      // if the event status is less than 3100, skip it
+      if (event.status < 3100) {
         continue;
       }
-      // if the event status is greater than 3100, stop the loop
-      if (event.status > 3100 && event.status%50 === 0) {
-        break;
-      }
-      if (event.status >= 3001 && event.status <= 3004) {
+
+      // find the immediately following event
+      if ((event.status >= 3001 && event.status <= 3004) || event.status > 3100) {
         return event;
       }
     }
@@ -404,17 +412,17 @@ export class Fdx {
    * @throws {Error} If the API request fails.
    */
   static async getRoute(
-    trackingNumbers: string[],
+      trackingNumbers: string[],
   ): Promise<Record<string, unknown>> {
     // Prepare the request payload
     const trackingInfo: { trackingNumberInfo: { trackingNumber: string } }[] =
-      [];
+        [];
     trackingNumbers.forEach((trackingNum) =>
-      trackingInfo.push({
-        "trackingNumberInfo": {
-          "trackingNumber": trackingNum,
-        },
-      })
+        trackingInfo.push({
+          "trackingNumberInfo": {
+            "trackingNumber": trackingNum,
+          },
+        })
     );
 
     const payload = {
@@ -451,9 +459,9 @@ export class Fdx {
    * @private
    */
   private static convert(
-    trackingId: TrackingID,
-    completeTrackResult: Record<string, unknown>,
-    updateMethod: string,
+      trackingId: TrackingID,
+      completeTrackResult: Record<string, unknown>,
+      updateMethod: string,
   ): Entity | undefined {
     const entity: Entity = new Entity();
     const trackResults = completeTrackResult["trackResults"] as [unknown];
@@ -461,7 +469,7 @@ export class Fdx {
 
     if (trackResult["error"] !== undefined) {
       logger.error(
-        `Error occurs during process ${trackingId.toString()}:` +
+          `Error occurs during process ${trackingId.toString()}:` +
           JSON.stringify(trackResult["error"]),
       );
       return undefined;
@@ -473,24 +481,24 @@ export class Fdx {
     entity.type = "waybill";
     entity.extra = {
       origin: Fdx.getAddress(
-        (trackResult["shipperInformation"] as Record<string, unknown>)[
-          "address"
-        ] as Record<string, unknown>,
+          (trackResult["shipperInformation"] as Record<string, unknown>)[
+              "address"
+              ] as Record<string, unknown>,
       ),
       destination: Fdx.getAddress(
-        (trackResult["recipientInformation"] as Record<string, unknown>)[
-          "address"
-        ] as Record<string, unknown>,
+          (trackResult["recipientInformation"] as Record<string, unknown>)[
+              "address"
+              ] as Record<string, unknown>,
       ),
     };
 
     const scanEvents = trackResult["scanEvents"] as Record<string, unknown>[];
     for (const scanEvent of scanEvents.reverse()) {
       const event = this.createEvent(
-        trackingId,
-        entity,
-        scanEvent,
-        updateMethod,
+          trackingId,
+          entity,
+          scanEvent,
+          updateMethod,
       );
       if (event && !entity.isEventIdExist(event.eventId)) {
         entity.addEvent(event);
@@ -500,13 +508,15 @@ export class Fdx {
     // sort the events based on when
     entity.sortEventsByWhen();
 
-    if(this.isMissing3100(entity)) {
-      const baseEvent = this.get3100BaseEvent(entity);
-      if(baseEvent?.when && baseEvent.where) {
-        const supplementEvent: Event = this.createSupplementEvent(trackingId, 3100,baseEvent.when as string, baseEvent.where as string);
-        entity.addEvent(supplementEvent);
-        // keep chronological order for downstream methods that don’t sort
-        entity.sortEventsByWhen();
+    // Process each missing event configuration
+    for (const config of Fdx.missingEventConfigs) {
+      if (config.checkMethod(entity)) {
+        const baseEvent = config.getBaseEventMethod(entity);
+        if (baseEvent) {
+          const supplementEvent: Event = this.createSupplementEvent(trackingId, config.status, baseEvent.when as string, baseEvent.where as string);
+          entity.addEvent(supplementEvent);
+          entity.sortEventsByWhen();
+        }
       }
     }
 
@@ -526,10 +536,10 @@ export class Fdx {
    * @returns {Event} A new Event object populated with data from the FedEx scan event.
    */
   private static createEvent(
-    trackingId: TrackingID,
-    entity: Entity,
-    scanEvent: Record<string, unknown>,
-    updateMethod: string,
+      trackingId: TrackingID,
+      entity: Entity,
+      scanEvent: Record<string, unknown>,
+      updateMethod: string,
   ): Event {
     const status = Fdx.getStatusCode(entity, scanEvent);
 
@@ -540,7 +550,7 @@ export class Fdx {
     const date = new Date(eventTime);
     const secondsSinceEpoch = Math.floor(date.getTime() / 1000);
     event.eventId =
-      `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
+        `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
     event.status = status;
     event.what = StatusCode.getDesc(status);
     event.whom = "FedEx";
@@ -560,10 +570,10 @@ export class Fdx {
     // process notes
     const eventDescription = (scanEvent["eventDescription"] as string).trim();
     const sourceExceptionDesc = (scanEvent["exceptionDescription"] as string)
-      .trim();
+        .trim();
     const notes = sourceExceptionDesc.trim() === ""
-      ? eventDescription
-      : `${eventDescription}: ${sourceExceptionDesc}`;
+        ? eventDescription
+        : `${eventDescription}: ${sourceExceptionDesc}`;
     event.notes = notes.toLowerCase() === event.what.toLowerCase() ? "" : notes;
     // extra data and source data
     event.extra = {
@@ -586,8 +596,7 @@ export class Fdx {
     const timeZone = extractTimezone(baseEventTime);
     const [secondsSinceEpoch, when] = adjustDateAndFormatWithTimezone(date, timeZone);
 
-    event.eventId =
-        `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
+    event.eventId = `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
     event.operatorCode = "fdx";
     event.trackingNum = trackingId.trackingNum;
     event.status = status;
@@ -608,3 +617,4 @@ export class Fdx {
   }
 
 }
+

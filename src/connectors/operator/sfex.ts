@@ -14,19 +14,23 @@ import {
   Event,
   StatusCode,
   TrackingID, AppError,
-} from "../main/model.ts";
+} from "../../main/model.ts";
 import { crypto } from "@std/crypto";
-import { config } from "../config.ts";
-import { logger } from "../tools/logger.ts";
-import {getResponseJSON, isOperatorActive} from "../main/gateway.ts";
-import {adjustDateAndFormatWithTimezone, formatTimezoneOffset} from "../tools/util.ts";
+import { config } from "../../../config.ts";
+import { logger } from "../../tools/logger.ts";
+import {getResponseJSON} from "../../tools/util.ts";
+import {isOperatorActive} from "../../main/gateway.ts";
+import {adjustDateAndFormatWithTimezone, formatTimezoneOffset} from "../../tools/util.ts";
 
 /**
  * SF Express API client class for tracking shipments and managing route data.
  */
 export class Sfex {
 
-  private static readonly POST_CUSTOMS_STATUSES: number[] = [3004, 3450, 3500] as const;
+  // Post statuses for the event '3400: Customs Clearance: Import Released'
+  private static readonly POST_3400_STATUSES: number[] = [3004, 3450, 3500] as const;
+  // Post statuses for the event '3300: Arrived at Destination'
+  private static readonly POST_3300_STATUSES: number[] = [3002, 3003, 3004, 3350, 3400, 3500] as const;
 
   /**
    * Mapping of SF Express status codes and operation codes to internal event codes.
@@ -99,6 +103,20 @@ export class Sfex {
       "80": 3500, // Delivered
     },
   };
+
+  // Define missing event configurations to check and supplement
+  private static readonly missingEventConfigs = [
+    {
+      status: 3300,
+      checkMethod: this.isMissing3300.bind(this),
+      getBaseEventMethod: this.get3300BaseEvent.bind(this),
+    },
+    {
+      status: 3400,
+      checkMethod: this.isMissing3400.bind(this),
+      getBaseEventMethod: this.get3400BaseEvent.bind(this),
+    },
+  ];
 
   /**
    * Generate a signed digest for API requests
@@ -311,21 +329,61 @@ export class Sfex {
     // sort the events based on when
     entity.sortEventsByWhen();
 
-    if(this.isMissing3400(entity)) {
-      const baseEvent = this.get3400BaseEvent(entity);
-      if(baseEvent) {
-        const supplementEvent: Event = this.createSupplementEvent(
-            trackingId,
-            3400,
-            baseEvent.when as string,
-            baseEvent.where as string,
-        );
-        entity.addEvent(supplementEvent);
-        entity.sortEventsByWhen();
+    // Process each missing event configuration
+    for (const config of Sfex.missingEventConfigs) {
+      if (config.checkMethod(entity)) {
+        const baseEvent = config.getBaseEventMethod(entity);
+        if (baseEvent) {
+          const supplementEvent: Event = this.createSupplementEvent(
+              trackingId,
+              config.status,
+              baseEvent.when as string,
+              baseEvent.where as string,
+          );
+          entity.addEvent(supplementEvent);
+          entity.sortEventsByWhen();
+        }
       }
     }
 
     return entity;
+  }
+
+
+  static isMissing3300(entity: Entity): boolean {
+    let isTransitToDestEventOccurred: boolean = false;
+
+    for (const event of entity.events) {
+      if (event.status === 3250) {
+        isTransitToDestEventOccurred = true;
+      }
+
+      // If a 3300 status event already exists in the entity
+      if (event.status === 3300) {
+        return false;
+      }
+
+      if (isTransitToDestEventOccurred && Sfex.POST_3300_STATUSES.includes(event.status)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static get3300BaseEvent(entity: Entity): Event | undefined {
+    let isTransitToDestEventOccurred: boolean = false;
+
+    for (const event of entity.events) {
+      if (event.status === 3250) {
+        isTransitToDestEventOccurred = true;
+      }
+
+      if (isTransitToDestEventOccurred && Sfex.POST_3300_STATUSES.includes(event.status)) {
+        return event;
+      }
+    }
+
+    return undefined;
   }
 
   /**
@@ -336,11 +394,6 @@ export class Sfex {
    * @returns A boolean indicating whether a 3400 status event is missing (true) or not (false).
    */
   static isMissing3400(entity: Entity): boolean {
-    // Cache the has3400 check to avoid repeated scans
-    if (entity.includeStatus(3400)) {
-      return false;
-    }
-
     let isCustomsEventOccurred: boolean = false;
 
     for (const event of entity.events) {
@@ -348,7 +401,12 @@ export class Sfex {
         isCustomsEventOccurred = true;
       }
 
-      if (isCustomsEventOccurred && Sfex.POST_CUSTOMS_STATUSES.includes(event.status)) {
+      // If a 3400 status event already exists in the entity
+      if (event.status === 3400) {
+        return false;
+      }
+
+      if (isCustomsEventOccurred && Sfex.POST_3400_STATUSES.includes(event.status)) {
         return true;
       }
     }
@@ -371,7 +429,7 @@ export class Sfex {
         isCustomsEventOccurred = true;
       }
 
-      if (isCustomsEventOccurred && Sfex.POST_CUSTOMS_STATUSES.includes(event.status)) {
+      if (isCustomsEventOccurred && Sfex.POST_3400_STATUSES.includes(event.status)) {
         return event;
       }
     }

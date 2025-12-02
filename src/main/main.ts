@@ -18,13 +18,13 @@
 const port = Deno.env.get("PORT") || "8080";
 
 const apiCmd = new Deno.Command(Deno.execPath(), {
-  args: ["serve", "--parallel", "--port", port, "--allow-net", "--allow-env", "--allow-read","--allow-write", "--allow-ffi", "main/api.ts"],
+  args: ["serve", "--parallel", "--port", port, "--allow-net", "--allow-env", "--allow-read","--allow-write", "--allow-ffi", "src/main/api.ts"],
   stdout: "inherit",
   stderr: "inherit",
 }).spawn();
 
 const schedulerCmd = new Deno.Command(Deno.execPath(), {
-  args: ["run", "--allow-env", "--allow-read", "--allow-net", "--allow-write", "--allow-ffi", "main/schedule.ts"],
+  args: ["run", "--allow-env", "--allow-read", "--allow-net", "--allow-write", "--allow-ffi", "src/main/schedule.ts"],
   stdout: "inherit",
   stderr: "inherit",
 }).spawn();

@@ -16,7 +16,7 @@ set -e  # Exit on any error
 set -u  # Exit on undefined variables
 set -x  # Print commands as they execute
 deno update
-deno cache main/main.ts
+deno cache src/main/main.ts
 deno check .
 deno lint
 CMD
@@ -27,7 +27,7 @@ USER deno
 ENV PORT=8037
 
 # Run the app with specified permissions
-CMD ["run", "--allow-run", "--allow-net", "--allow-env", "--allow-read", "--allow-write", "--allow-ffi", "main/main.ts"]
+CMD ["run", "--allow-run", "--allow-net", "--allow-env", "--allow-read", "--allow-write", "--allow-ffi", "src/main/main.ts"]
 
 # Set up health check to monitor the service process
 HEALTHCHECK --start-period=20s --start-interval=2s --interval=5s --timeout=1s --retries=3 \

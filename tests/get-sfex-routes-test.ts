@@ -20,7 +20,7 @@
  * @license BSD 3-Clause License
  */
 import { assert } from "@std/assert";
-import { Sfex } from "../operators/sfex.ts";
+import { Sfex } from "../src/connectors/operator/sfex.ts";
 
 const testData = [
   {

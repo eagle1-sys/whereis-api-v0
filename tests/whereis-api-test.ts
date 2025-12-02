@@ -19,7 +19,8 @@
 import { assert } from "@std/assert";
 import { handleEmptyDataError, WHEREIS_API_URL } from "./main-test.ts";
 import { assertErrorCode } from "./main-test.ts";
-import { getResponseJSON, isOperatorActive } from "../main/gateway.ts";
+import {getResponseJSON} from "../src/tools/util.ts";
+import {isOperatorActive } from "../src/main/gateway.ts";
 
 const testData = [
   {

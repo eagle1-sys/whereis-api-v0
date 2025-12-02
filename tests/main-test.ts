@@ -13,7 +13,7 @@ import {
   initializeOperatorStatus,
   loadEnv,
   loadMetaData,
-} from "../main/app.ts";
+} from "../src/main/app.ts";
 
 export function getHttpStatusFromErrorCode(errorCode: string): number {
   const match = errorCode.match(/^(\d{3})/);
@@ -80,7 +80,7 @@ initializeOperatorStatus(); // initialize operator status
 
 export const WHEREIS_API_URL = Deno.env.get("WHEREIS_API_URL");
 
-import { isOperatorActive } from "../main/gateway.ts";
+import { isOperatorActive } from "../src/main/gateway.ts";
 
 import { getTokenFromFdXTest } from "./get-fdx-token-test.ts";
 import { getEventsFromFdxTest } from "./get-fdx-events-test.ts";
