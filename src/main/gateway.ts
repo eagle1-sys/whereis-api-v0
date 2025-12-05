@@ -7,7 +7,7 @@
  * @license BSD 3-Clause License
  */
 
-import {Entity, OperatorRegistry, TrackingID} from "./model.ts";
+import { Entity, OperatorRegistry, TrackingID } from "./model.ts";
 
 // Define a type for the operator status
 type OperatorStatus = {
@@ -21,6 +21,10 @@ interface OperatorModule {
       extraParams: Record<string, string>,
       updateMethod: string,
   ): Promise<Entity[]>;
+
+  fromJSON(
+      jsonData: Record<string, unknown>,
+  ): Promise<{ entities: Entity[], result: Record<string, unknown> }>;
 }
 
 // Define the operator status variable
@@ -36,7 +40,7 @@ const operatorModules: Record<string, OperatorModule> = {};
  * @returns {boolean} True if the operator is active, false otherwise.
  */
 export function isOperatorActive(operator: string): boolean {
-    return operatorStatus[operator] ?? false;
+  return operatorStatus[operator] ?? false;
 }
 
 /**
@@ -60,8 +64,8 @@ export function setOperatorStatus(operator: string, status: boolean): void {
  * @param {OperatorModule} module - The operator module implementing the OperatorModule interface
  */
 export function registerOperatorModule(
-    operatorCode: string,
-    module: OperatorModule,
+  operatorCode: string,
+  module: OperatorModule,
 ): void {
   operatorModules[operatorCode] = module;
 }
@@ -89,8 +93,20 @@ export async function requestWhereIs(
   }
 
   return await operatorModule.whereIs(
-      trackingIds,
-      extraParams,
-      updateMethod,
+    trackingIds,
+    extraParams,
+    updateMethod,
   );
+}
+
+export async function processPushData(
+  operator: string,
+  trackingData: Record<string, unknown>,
+): Promise<{ entities: Entity[], result: Record<string, unknown> }> {
+  const operatorModule = operatorModules[operator];
+  if (!operatorModule) {
+    throw new Error(`Operator module not found: ${operator}`);
+  }
+
+  return await operatorModule.fromJSON(trackingData);
 }

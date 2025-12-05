@@ -11,9 +11,8 @@
 import {AppError, DataUpdateMethod, Entity, Event, ExceptionCode, StatusCode, TrackingID,} from "../../main/model.ts";
 import {config} from "../../../config.ts";
 import {logger} from "../../tools/logger.ts";
-import {getResponseJSON} from "../../tools/util.ts";
 import {isOperatorActive} from "../../main/gateway.ts";
-import {adjustDateAndFormatWithTimezone, extractTimezone} from "../../tools/util.ts";
+import {getResponseJSON, adjustDateAndFormatWithTimezone, extractTimezone} from "../../tools/util.ts";
 
 /**
  * A class to interact with the FedEx tracking API and manage shipment tracking information.
@@ -295,6 +294,24 @@ export class Fdx {
   }
 
   /**
+   * Creates an array of Entity objects from JSON data.
+   *
+   * @param {Record<string, unknown>} data - The JSON data object from FedEx containing event information to be converted.
+   * @returns {Promise<{ entities: Entity[], result: Record<string, unknown> }>} A promise that resolves to an object containing:
+   *          - `entities`: An array of Entity objects created from the JSON data
+   *          - `result`: The response data as a key-value record.
+   *
+   * @remarks
+   * This is currently a placeholder implementation that returns an empty array.
+   * The actual implementation should be based on the specific structure of the input data.
+   */
+  static async fromJSON(data: Record<string, unknown>): Promise<{ entities: Entity[], result: Record<string, unknown> }> {
+    const entities: Entity[] = [];
+    const result: Record<string, unknown> = {success:true};
+    return { entities, result };
+  }
+
+  /**
    * Retrieves the internal event code based on FedEx status code, event type, and source data.
    * @param {Entity} entity - The entity from FedEx.
    * @param {Record<string, unknown>} sourceData - The raw event data from FedEx.
@@ -512,7 +529,7 @@ export class Fdx {
     for (const config of Fdx.missingEventConfigs) {
       if (config.checkMethod(entity)) {
         const baseEvent = config.getBaseEventMethod(entity);
-        if (baseEvent) {
+        if (baseEvent && baseEvent.when && baseEvent.where) {
           const supplementEvent: Event = this.createSupplementEvent(trackingId, config.status, baseEvent.when as string, baseEvent.where as string);
           entity.addEvent(supplementEvent);
           entity.sortEventsByWhen();

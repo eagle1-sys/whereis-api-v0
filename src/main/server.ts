@@ -6,19 +6,13 @@
  * @copyright (c) 2025, the Eagle1 authors
  * @license BSD 3-Clause License
  */
+import { cors } from "hono/cors";
 import { Context, Hono, HonoRequest, Next } from "hono";
 import { ContentfulStatusCode } from "hono/utils/http-status";
-import { cors } from "hono/cors";
 import { dbClient} from "../db/dbutil.ts";
 import { logger } from "../tools/logger.ts";
-import { isOperatorActive, requestWhereIs } from "./gateway.ts";
-import {
-  ApiParams,
-  Entity,
-  OperatorRegistry,
-  TrackingID,
-  AppError,
-} from "./model.ts";
+import {isOperatorActive, processPushData, requestWhereIs} from "./gateway.ts";
+import {ApiParams, Entity, OperatorRegistry, TrackingID, AppError,} from "./model.ts";
 
 declare module "hono" {
   // noinspection JSUnusedGlobalSymbols
@@ -67,15 +61,12 @@ const customBearerAuth = async (c: Context, next: Next) => {
   await next();
 };
 
-app.use(
-  "/*",
-  cors({
-    origin: "*",
-    allowMethods: ["GET", "POST", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  }),
-);
+app.use("/*", cors({
+      origin: "*",
+      allowMethods: ["GET", "POST", "OPTIONS"],
+      allowHeaders: ["Content-Type", "Authorization"],
+      credentials: true,
+    }));
 
 // Extend Context class
 app.use("*", async (c: Context, next: Next) => {
@@ -204,6 +195,66 @@ app.get("/v0/whereis/:id", async (c: Context) => {
   outputJSON.entity.additional.processingTimeMs = elapsed.toFixed(3);
 
   return c.json(outputJSON, 200, {
+    "Content-Type": "application/json; charset=utf-8",
+  });
+});
+
+/**
+ * POST /v0/push/:operator - Receives tracking data from external sources
+ *
+ * This endpoint allows authenticated clients to push tracking information directly into the system.
+ * It validates the operator, processes the incoming data, and stores it in the database.
+ *
+ * @param c - The Hono context object containing request and response information.
+ * @returns A Promise resolving to a Response object.
+ *
+ * URL Parameters:
+ *   - operator: The carrier/operator code (e.g., 'fdx', 'sfex')
+ *
+ * Request Body (JSON):
+ *   - The structure depends on the operator. Different operators have different data structures.
+ *   - For FedEx (fdx): Expects FedEx-specific tracking data format
+ *   - For SF Express (sfex): Expects SF Express-specific tracking data format
+ *   - Refer to operator-specific documentation for exact schema requirements
+ */
+app.post("/v0/push/:operator", async (c: Context) => {
+  const operator = c.req.param("operator");
+  // Validate operator
+  if (!operator || !OperatorRegistry.getActiveOperatorCodes().includes(operator)) {
+    throw new AppError("400-02", `400AG: server - INVALID_OPERATOR: ${operator}`);
+  }
+
+  // Parse request body
+  let requestBody: Record<string, unknown>;
+  try {
+    requestBody = await c.req.json();
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new AppError("400-04", `400AH: server - INVALID_JSON: ${errorMessage}`);
+  }
+
+  // Process valid data and convert to entities
+  let entities: Entity[];
+  let result: Record<string, unknown>;
+  try {
+    const processResult = await processPushData(operator, requestBody);
+    entities = processResult.entities;
+    result = processResult.result;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new AppError("500-01", `500AA: server - DATA_PROCESSING_FAILED: ${errorMessage}`);
+  }
+
+  for (const entity of entities) {
+    try {
+      await dbClient.insertEntity(entity);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.warn(`Failed to store entity ${entity.id}: ${errorMessage}`);
+    }
+  }
+
+  return c.json(result, 200, {
     "Content-Type": "application/json; charset=utf-8",
   });
 });
