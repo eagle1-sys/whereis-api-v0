@@ -1,3 +1,4 @@
+import {httpPost} from "./util.ts";
 
 /**
  * @file github.ts
@@ -16,6 +17,9 @@ export class Github {
 
   // Singleton instance of the Github class.
   private static instance: Github | null = null;
+
+  // GitHub GraphQL API endpoint
+  private static readonly GITHUB_GRAPHQL_API_URL = "https://api.github.com/graphql";
 
   private readonly GITHUB_TOKEN: string;
   private readonly GITHUB_OWNER: string;
@@ -141,22 +145,22 @@ export class Github {
       }
     }`;
 
-    const variables = { owner: this.GITHUB_OWNER, repo: this.GITHUB_REPO_NAME };
-    const res = await fetch("https://api.github.com/graphql", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${this.GITHUB_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query, variables }),
-    });
+    const variables = {owner: this.GITHUB_OWNER, repo: this.GITHUB_REPO_NAME};
+    const response = await httpPost(
+        Github.GITHUB_GRAPHQL_API_URL,
+        {
+          "Authorization": `Bearer ${this.GITHUB_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        JSON.stringify({query, variables})
+    );
 
-    if (!res.ok) {
-      const err = await res.text();
+    if (!response.ok) {
+      const err = await response.text();
       throw new Error(`GraphQL search failed: ${err}`);
     }
 
-    const responseJson = await res.json();
+    const responseJson = await response.json();
 
     // Check for GraphQL errors (auth, rate limit, etc.)
     if (responseJson.errors && Array.isArray(responseJson.errors) && responseJson.errors.length > 0) {
@@ -236,21 +240,21 @@ export class Github {
       },
     };
 
-    const res = await fetch("https://api.github.com/graphql", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${this.GITHUB_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query: mutation, variables }),
-    });
+    const response = await httpPost(
+        Github.GITHUB_GRAPHQL_API_URL,
+        {
+          "Authorization": `Bearer ${this.GITHUB_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        JSON.stringify({query: mutation, variables})
+    );
 
-    if (!res.ok) {
-      const err = await res.text();
+    if (!response.ok) {
+      const err = await response.text();
       throw new Error(`Create failed: ${err}`);
     }
 
-    const responseJson = await res.json();
+    const responseJson = await response.json();
 
     // Check for GraphQL errors
     if (responseJson.errors && Array.isArray(responseJson.errors) && responseJson.errors.length > 0) {
@@ -316,21 +320,21 @@ export class Github {
       },
     };
 
-    const res = await fetch("https://api.github.com/graphql", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${this.GITHUB_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ query: mutation, variables }),
-    });
+    const response = await httpPost(
+        Github.GITHUB_GRAPHQL_API_URL,
+        {
+          "Authorization": `Bearer ${this.GITHUB_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        JSON.stringify({query: mutation, variables})
+    );
 
-    if (!res.ok) {
-      const err = await res.text();
+    if (!response.ok) {
+      const err = await response.text();
       throw new Error(`Add comment failed: ${err}`);
     }
 
-    const responseJson = await res.json();
+    const responseJson = await response.json();
 
     // Check for GraphQL errors
     if (responseJson.errors && Array.isArray(responseJson.errors) && responseJson.errors.length > 0) {

@@ -12,7 +12,7 @@ import {AppError, DataUpdateMethod, Entity, Event, ExceptionCode, StatusCode, Tr
 import {config} from "../../../config.ts";
 import {logger} from "../../tools/logger.ts";
 import {isOperatorActive} from "../../main/gateway.ts";
-import {getResponseJSON, adjustDateAndFormatWithTimezone, extractTimezone} from "../../tools/util.ts";
+import {getResponseJSON, adjustDateAndFormatWithTimezone, extractTimezone, httpPost} from "../../tools/util.ts";
 
 /**
  * A class to interact with the FedEx tracking API and manage shipment tracking information.
@@ -189,17 +189,16 @@ export class Fdx {
       throw new AppError("500-01", "500AA: fdx - CLIENT_ID/SECRET");
     }
 
-    const response = await fetch(fdxApiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        grant_type: "client_credentials",
-        client_id: fdxClientId,
-        client_secret: fdxClientSecret,
-      }),
-    });
+    const response = await httpPost(
+        fdxApiUrl,
+        {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        new URLSearchParams({
+          grant_type: "client_credentials",
+          client_id: fdxClientId,
+          client_secret: fdxClientSecret,
+        }));
 
     const data: Record<string, unknown>  = await getResponseJSON(response, "500AC - getToken");
 
@@ -296,7 +295,7 @@ export class Fdx {
   /**
    * Creates an array of Entity objects from JSON data.
    *
-   * @param {Record<string, unknown>} data - The JSON data object from FedEx containing event information to be converted.
+   * @param {Record<string, unknown>} _data - The JSON data object from FedEx containing event information to be converted.
    * @returns {Promise<{ entities: Entity[], result: Record<string, unknown> }>} A promise that resolves to an object containing:
    *          - `entities`: An array of Entity objects created from the JSON data
    *          - `result`: The response data as a key-value record.
@@ -305,7 +304,8 @@ export class Fdx {
    * This is currently a placeholder implementation that returns an empty array.
    * The actual implementation should be based on the specific structure of the input data.
    */
-  static async fromJSON(data: Record<string, unknown>): Promise<{ entities: Entity[], result: Record<string, unknown> }> {
+  // deno-lint-ignore require-await
+  static async fromJSON(_data: Record<string, unknown>): Promise<{ entities: Entity[], result: Record<string, unknown> }> {
     const entities: Entity[] = [];
     const result: Record<string, unknown> = {success:true};
     return { entities, result };
@@ -450,16 +450,15 @@ export class Fdx {
     // Send the API request
     const token = await this.getToken();
     const fdxTrackApiUrl: string = config.fdx.trackApiUrl ?? "";
-    const response = await fetch(fdxTrackApiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-locale": "en_US",
-        "Authorization": "Bearer " + token,
-      },
-      body: JSON.stringify(payload),
-    });
-
+    const response = await httpPost(
+        fdxTrackApiUrl,
+        {
+          "Content-Type": "application/json",
+          "X-locale": "en_US",
+          "Authorization": "Bearer " + token,
+        },
+        JSON.stringify(payload)
+    );
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status} [500AD - getRoute]`);
     }
