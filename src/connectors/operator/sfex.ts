@@ -8,17 +8,11 @@
  * @license BSD 3-Clause License
  */
 
-import {
-  DataUpdateMethod,
-  Entity,
-  Event,
-  StatusCode,
-  TrackingID, AppError,
-} from "../../main/model.ts";
 import { crypto } from "@std/crypto";
 import { config } from "../../../config.ts";
 import { logger } from "../../tools/logger.ts";
 import {isOperatorActive} from "../../main/gateway.ts";
+import {DataUpdateMethod, Entity, Event, StatusCode, TrackingID, AppError} from "../../main/model.ts";
 import {getResponseJSON, adjustDateAndFormatWithTimezone, formatTimezoneOffset} from "../../tools/util.ts";
 
 /**
@@ -189,6 +183,24 @@ export class Sfex {
   }
 
   /**
+   * Creates an array of Entity objects from JSON data.
+   *
+   * @param {Record<string, unknown>} data - The JSON data object from SF Express containing event information to be converted.
+   * @returns {Promise<{ entities: Entity[], result: Record<string, unknown> }>} A promise that resolves to an object containing:
+   *        - `entities`: An array of Entity objects created from the JSON data
+   *        - `result`: The response data as a key-value record.
+   *
+   * @remarks
+   * This is currently a placeholder implementation that returns an empty array.
+   * The actual implementation should be based on the specific structure of the input data.
+   */
+  static async fromJSON(data: Record<string, unknown>): Promise<{ entities: Entity[], result: Record<string, unknown> }> {
+    const entities: Entity[] = [];
+    const result: Record<string, unknown> = {success:true};
+    return { entities, result };
+  }
+
+  /**
    * Retrieves the internal event code based on SF Express status and operation codes.
    *
    * @static
@@ -332,7 +344,7 @@ export class Sfex {
     for (const config of Sfex.missingEventConfigs) {
       if (config.checkMethod(entity)) {
         const baseEvent = config.getBaseEventMethod(entity);
-        if (baseEvent) {
+        if (baseEvent && baseEvent.when && baseEvent.where) {
           const supplementEvent: Event = this.createSupplementEvent(
               trackingId,
               config.status,
