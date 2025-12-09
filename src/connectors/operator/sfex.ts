@@ -13,7 +13,7 @@ import { config } from "../../../config.ts";
 import { logger } from "../../tools/logger.ts";
 import {isOperatorActive} from "../../main/gateway.ts";
 import {DataUpdateMethod, Entity, Event, StatusCode, TrackingID, AppError} from "../../main/model.ts";
-import {getResponseJSON, adjustDateAndFormatWithTimezone, formatTimezoneOffset} from "../../tools/util.ts";
+import {getResponseJSON, adjustDateAndFormatWithTimezone, formatTimezoneOffset, httpPost} from "../../tools/util.ts";
 
 /**
  * SF Express API client class for tracking shipments and managing route data.
@@ -185,7 +185,7 @@ export class Sfex {
   /**
    * Creates an array of Entity objects from JSON data.
    *
-   * @param {Record<string, unknown>} data - The JSON data object from SF Express containing event information to be converted.
+   * @param {Record<string, unknown>} _data - The JSON data object from SF Express containing event information to be converted.
    * @returns {Promise<{ entities: Entity[], result: Record<string, unknown> }>} A promise that resolves to an object containing:
    *        - `entities`: An array of Entity objects created from the JSON data
    *        - `result`: The response data as a key-value record.
@@ -194,7 +194,8 @@ export class Sfex {
    * This is currently a placeholder implementation that returns an empty array.
    * The actual implementation should be based on the specific structure of the input data.
    */
-  static async fromJSON(data: Record<string, unknown>): Promise<{ entities: Entity[], result: Record<string, unknown> }> {
+  // deno-lint-ignore require-await
+  static async fromJSON(_data: Record<string, unknown>): Promise<{ entities: Entity[], result: Record<string, unknown> }> {
     const entities: Entity[] = [];
     const result: Record<string, unknown> = {success:true};
     return { entities, result };
@@ -264,23 +265,22 @@ export class Sfex {
       sfexCheckWord,
     );
 
-    const response = await fetch(sfexApiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams(
+    const response = await httpPost(
+        sfexApiUrl,
         {
-          partnerID: sfexPartnerId,
-          requestID: crypto.randomUUID(),
-          serviceCode: "EXP_RECE_SEARCH_ROUTES",
-          timestamp: timestamp.toString(),
-          msgDigest: msgDigest,
-          msgData: msgString,
+          "Content-Type": "application/x-www-form-urlencoded",
         },
-      ),
-    });
-
+        new URLSearchParams(
+            {
+              partnerID: sfexPartnerId,
+              requestID: crypto.randomUUID(),
+              serviceCode: "EXP_RECE_SEARCH_ROUTES",
+              timestamp: timestamp.toString(),
+              msgDigest: msgDigest,
+              msgData: msgString,
+            },
+        )
+    );
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status} [500BC - getRoute]`);
     }

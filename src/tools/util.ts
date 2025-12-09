@@ -8,8 +8,19 @@
  * @license BSD 3-Clause License
  */
 
-import { crypto } from "@std/crypto";
-import { parse } from "@std/jsonc";
+import {crypto} from "@std/crypto";
+import {parse} from "@std/jsonc";
+
+export async function httpPost(url: string, headers: Record<string, string>, body: string| URLSearchParams): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  return await fetch(url, {
+    method: "POST",
+    headers: headers,
+    body: body,
+    signal: controller.signal
+  }).finally(() => clearTimeout(timer));
+}
 
 /**
  * Asynchronously loads and parses a JSON file from the filesystem.
