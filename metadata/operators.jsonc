@@ -11,6 +11,6 @@
   },
   "eg1": {
     "name": "Eagle1",
-    "active": false
+    "active": true
   }
 }
