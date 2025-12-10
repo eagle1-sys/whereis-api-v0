@@ -354,6 +354,19 @@ export class Entity {
     return this.events.map((event) => event.eventId);
   }
 
+  public compare(eventIdsInDb: string[]): { dataChanged: boolean, eventIdsNew: string[], eventIdsToBeRemoved: string[] } {
+    let dataChanged: boolean = true; // assume data changed
+    const eventIdsFresh: string[] = this.eventIds();
+    const dbSet = new Set(eventIdsInDb);
+    const freshSet = new Set(eventIdsFresh);
+    const eventIdsNew = eventIdsFresh.filter((id) => !dbSet.has(id));
+    const eventIdsToBeRemoved = eventIdsInDb.filter((id) => !freshSet.has(id));
+    if (eventIdsNew.length === 0 && eventIdsToBeRemoved.length === 0) {
+      dataChanged = false; // no change in data
+    }
+    return {dataChanged, eventIdsNew, eventIdsToBeRemoved};
+  }
+
   /**
    * Checks if the object is completed (has a status of 3500).
    * @returns {boolean} True if completed, false otherwise.

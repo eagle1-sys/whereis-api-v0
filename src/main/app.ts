@@ -8,6 +8,8 @@
 
 import { Sfex } from "../connectors/operator/sfex.ts";
 import { Fdx } from "../connectors/operator/fdx.ts";
+import { Eg1 } from "../connectors/operator/eg1.ts";
+
 import { load } from "@std/dotenv";
 import { config } from "../../config.ts";
 import { loadJSONFromFs } from "../tools/util.ts";
@@ -108,6 +110,9 @@ export async function loadMetaData(): Promise<void> {
  * @returns {void} This function doesn't return a value.
  */
 export function initializeOperatorStatus(): void {
+  setOperatorStatus("eg1", true);
+  registerOperatorModule("eg1", Eg1);
+
   if (Deno.env.get("FDX_CLIENT_ID") && Deno.env.get("FDX_CLIENT_SECRET")) {
     setOperatorStatus("fdx", true);
     registerOperatorModule("fdx", Fdx);

@@ -22,6 +22,7 @@ export interface DatabaseWrapper {
 
   updateEntity(
     entity: Entity,
+    updateMethod: string,
     eventIdsNew: string[],
     eventIdsToBeRemoved: string[],
   ): Promise<boolean>;
