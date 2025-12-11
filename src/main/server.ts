@@ -11,7 +11,7 @@ import { Context, Hono, HonoRequest, Next } from "hono";
 import { ContentfulStatusCode } from "hono/utils/http-status";
 import { dbClient} from "../db/dbutil.ts";
 import { logger } from "../tools/logger.ts";
-import {isOperatorActive, processPushData, requestWhereIs} from "./gateway.ts";
+import {processPushData, requestWhereIs} from "./gateway.ts";
 import {ApiParams, Entity, OperatorRegistry, TrackingID, AppError,} from "./model.ts";
 
 declare module "hono" {
@@ -31,6 +31,7 @@ declare module "hono" {
  */
 const app = new Hono();
 
+const RESTRICTED_CLIENT_TOKEN = "eagle1";
 // Bearer Auth middleware
 const customBearerAuth = async (c: Context, next: Next) => {
   const authHeader = c.req.header("Authorization");
@@ -44,16 +45,25 @@ const customBearerAuth = async (c: Context, next: Next) => {
     throw new AppError("401-02", "401AB: server - TOKEN_VALIDATION");
   }
 
-  if (token === "eagle1") {
-    // Extract tracking ID from the URL
-    const trackingId = c.req.param("id") ?? "";
-    const idx = trackingId.trim().indexOf("-");
-    if (idx > 0) {
-      const operatorCode = trackingId.substring(0, idx);
-      if (isOperatorActive(operatorCode)) {
-        // The client API key is not authorized for this request.
-        throw new AppError("403-01","403AA: server - CLIENT_AUTHORIZATION");
+  if (token === RESTRICTED_CLIENT_TOKEN) {
+    const path = c.req.path;
+    // Handle /vx/whereis/ and /vx/push/ paths
+    const isWhereisPath = /^\/v\d+\/whereis\/.+$/.test(path);
+    const isPushPath = /^\/v\d+\/push\/.+$/.test(path);
+    if (isWhereisPath) {
+      // Extract tracking ID from the URL
+      const trackingId = c.req.param("id") ?? "";
+      const idx = trackingId.trim().indexOf("-");
+      if (idx !== -1) {
+        const operatorCode = trackingId.substring(0, idx);
+        if (operatorCode !== 'eg1') {
+          // The client API key is not authorized for this request.
+          throw new AppError("403-01", "403AA: server - CLIENT_AUTHORIZATION");
+        }
       }
+    } else if (isPushPath) {
+      // The client API key is not authorized for this request.
+      throw new AppError("403-01", "403AB: server - CLIENT_AUTHORIZATION");
     }
   }
 
@@ -102,6 +112,8 @@ app.use("*", async (c: Context, next: Next) => {
 });
 
 app.use("/v0/whereis/:id", customBearerAuth);
+
+app.use("/v0/push/:operator", customBearerAuth);
 
 /**
  * GET /v0/status/:id? - Retrieves the status for a given tracking ID
@@ -245,15 +257,34 @@ app.post("/v0/push/:operator", async (c: Context) => {
     throw new AppError("500-01", `500AA: server - DATA_PROCESSING_FAILED: ${errorMessage}`);
   }
 
+  let updated = 0;
+  let failed = 0;
   for (const entity of entities) {
     try {
-      await dbClient.insertEntity(entity);
+      const eventIdsInDb: string[] = await dbClient.queryEventIds(
+          TrackingID.parse(entity.id),
+      );
+      if (eventIdsInDb.length === 0) {
+        const changes = await dbClient.insertEntity(entity);
+        updated = updated + (changes ?? 0);
+        if (changes !== undefined) updated = updated + 1;
+      } else {
+        // update the database on-demand
+        const {dataChanged, eventIdsNew, eventIdsToBeRemoved} = entity.compare(eventIdsInDb);
+        if (dataChanged) {
+          const success = await dbClient.updateEntity(entity, "push", eventIdsNew, eventIdsToBeRemoved);
+          if (success) updated = updated + 1;
+        }
+      }
     } catch (error) {
+      failed = failed + 1;
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.warn(`Failed to store entity ${entity.id}: ${errorMessage}`);
     }
   }
 
+  result.updated = updated;
+  result.failed = failed;
   return c.json(result, 200, {
     "Content-Type": "application/json; charset=utf-8",
   });

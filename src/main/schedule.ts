@@ -55,37 +55,27 @@ function groupTrackingNumsByOperator(
  * @async
  */
 async function processTrackingIds(
-  operator: string,
-  trackingIds: TrackingID[],
-  params: Record<string, string>,
+    operator: string,
+    trackingIds: TrackingID[],
+    params: Record<string, string>,
 ): Promise<void> {
+  const updateMethod = "auto-pull";
   // step 1: fetch latest status from external data provider
   const entities: Entity[] = await requestWhereIs(
-    operator,
-    trackingIds,
-    params as Record<string, string>,
-    "auto-pull",
+      operator,
+      trackingIds,
+      params as Record<string, string>,
+      updateMethod,
   );
   if (entities.length === 0) return;
 
   // step 2: compare eventIds in the database and fresh eventIds
   for (const entity of entities) {
-    let dataChanged = true; // assume data changed
-    const eventIdsFresh: string[] = entity.eventIds();
-    const eventIdsInDb: string[] = await dbClient.queryEventIds(
-      TrackingID.parse(entity.id),
-    );
-    const dbSet = new Set(eventIdsInDb);
-    const freshSet = new Set(eventIdsFresh);
-    const eventIdsNew = eventIdsFresh.filter((id) => !dbSet.has(id));
-    const eventIdsToBeRemoved = eventIdsInDb.filter((id) => !freshSet.has(id));
-    if (eventIdsNew.length === 0 && eventIdsToBeRemoved.length === 0) {
-      dataChanged = false; // no change in data
-    }
-
-    // step 3：update the database
+    const eventIdsInDb: string[] = await dbClient.queryEventIds(TrackingID.parse(entity.id));
+    // update the database on-demand
+    const {dataChanged, eventIdsNew, eventIdsToBeRemoved} = entity.compare(eventIdsInDb);
     if (dataChanged) {
-      await dbClient.updateEntity(entity, eventIdsNew, eventIdsToBeRemoved);
+      await dbClient.updateEntity(entity, updateMethod, eventIdsNew, eventIdsToBeRemoved);
     }
   }
 }
