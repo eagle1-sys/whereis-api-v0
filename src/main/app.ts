@@ -8,6 +8,8 @@
 
 import { Sfex } from "../connectors/operator/sfex.ts";
 import { Fdx } from "../connectors/operator/fdx.ts";
+import { Eg1 } from "../connectors/operator/eg1.ts";
+
 import { load } from "@std/dotenv";
 import { config } from "../../config.ts";
 import { loadJSONFromFs } from "../tools/util.ts";
@@ -101,13 +103,17 @@ export async function loadMetaData(): Promise<void> {
  * and sets the status of corresponding operators to active (true) if the
  * required credentials are available.
  *
- * Currently, it initializes the status for two operators:
+ * Currently, it initializes the status for three operators:
+ * - 'eg1': Activated unconditionally (push-based operator).
  * - 'fdx': Activated if FDX_CLIENT_ID and FDX_CLIENT_SECRET are set.
  * - 'sfex': Activated if SFEX_PARTNER_ID and SFEX_CHECK_WORD are set.
  *
  * @returns {void} This function doesn't return a value.
  */
 export function initializeOperatorStatus(): void {
+  setOperatorStatus("eg1", true);
+  registerOperatorModule("eg1", Eg1);
+
   if (Deno.env.get("FDX_CLIENT_ID") && Deno.env.get("FDX_CLIENT_SECRET")) {
     setOperatorStatus("fdx", true);
     registerOperatorModule("fdx", Fdx);

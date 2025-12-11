@@ -120,14 +120,15 @@ export class PostgresWrapper implements DatabaseWrapper {
    * All operations are performed within a single database transaction to ensure data consistency.
    *
    * @param entity - The Entity object containing updated information.
+   * @param updateMethod - A string describing the update method (e.g., "auto-pull" or "manual-pull")
    * @param eventIdsNew - An array of event IDs that need to be added to the entity.
    * @param eventIdsToBeRemoved - An array of event IDs that need to be removed from the entity.
    * @returns A Promise that resolves to true if the update operation is successful.
    *          Note: The boolean return doesn't indicate success or failure, as errors will throw exceptions.
    * @throws Will throw an error if any database operation fails.
    */
-  async updateEntity(entity: Entity, eventIdsNew: string[], eventIdsToBeRemoved: string[]): Promise<boolean> {
-    const updateMethod = DataUpdateMethod.getDisplayText("auto-pull");
+  async updateEntity(entity: Entity, updateMethod: string, eventIdsNew: string[], eventIdsToBeRemoved: string[]): Promise<boolean> {
+    const updateMethodText = DataUpdateMethod.getDisplayText("auto-pull");
 
     await this.sql.begin(async (tx: ReturnType<typeof postgres>) => {
       // update the entity record
@@ -141,7 +142,7 @@ export class PostgresWrapper implements DatabaseWrapper {
         const events: Event[] = (entity.events ?? []).filter((event) =>
             eventIdsNew.includes(event.eventId)
         );
-        await this.insertEvents(tx, events, updateMethod);
+        await this.insertEvents(tx, events, updateMethodText);
       }
 
       // step 3: remove events that are not in the updated entity
