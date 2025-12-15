@@ -5,12 +5,8 @@
  * @copyright (c) 2025, the Eagle1 authors
  * @license BSD 3-Clause License
  */
-import {
-  Log,
-  LogTransportBase,
-  LogTransportBaseOptions,
-  Severity,
-} from "@cross/log";
+import {Log, LogTransportBase, LogTransportBaseOptions, Severity,} from "@cross/log";
+import { Grafana } from "./grafana.ts";
 
 function getLogLevel(): Severity {
   const env = Deno.env.get("APP_ENV") || "dev";
@@ -30,9 +26,16 @@ function getLogLevel(): Severity {
  */
 export class CustomLogger extends LogTransportBase {
   override options: LogTransportBaseOptions;
+  private grafana: Grafana | undefined;
+
   constructor(options?: LogTransportBaseOptions) {
     super();
     this.options = { ...this.defaults, ...options };
+    try {
+      this.grafana = Grafana.getInstance();
+    } catch (e) {
+      console.error("Failed to initialize Grafana instance:", e);
+    }
   }
 
   override log(level: Severity, scope: string, data: unknown[], _timestamp: Date) {
@@ -43,6 +46,11 @@ export class CustomLogger extends LogTransportBase {
         console.error(formattedMessage);
       } else {
         console.log(formattedMessage);
+      }
+
+      // Send log to Grafana
+      if (this.grafana !== undefined) {
+        this.grafana.log(formattedMessage, level);
       }
     }
   }
