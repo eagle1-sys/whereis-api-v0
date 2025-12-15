@@ -6,19 +6,13 @@
  * @copyright (c) 2025, the Eagle1 authors
  * @license BSD 3-Clause License
  */
+import { cors } from "hono/cors";
 import { Context, Hono, HonoRequest, Next } from "hono";
 import { ContentfulStatusCode } from "hono/utils/http-status";
-import { cors } from "hono/cors";
 import { dbClient} from "../db/dbutil.ts";
 import { logger } from "../tools/logger.ts";
-import { isOperatorActive, requestWhereIs } from "./gateway.ts";
-import {
-  ApiParams,
-  Entity,
-  OperatorRegistry,
-  TrackingID,
-  AppError,
-} from "./model.ts";
+import {processPushData, requestWhereIs} from "./gateway.ts";
+import {ApiParams, Entity, OperatorRegistry, TrackingID, AppError,} from "./model.ts";
 
 declare module "hono" {
   // noinspection JSUnusedGlobalSymbols
@@ -37,6 +31,7 @@ declare module "hono" {
  */
 const app = new Hono();
 
+const RESTRICTED_CLIENT_TOKEN = "eagle1";
 // Bearer Auth middleware
 const customBearerAuth = async (c: Context, next: Next) => {
   const authHeader = c.req.header("Authorization");
@@ -50,16 +45,25 @@ const customBearerAuth = async (c: Context, next: Next) => {
     throw new AppError("401-02", "401AB: server - TOKEN_VALIDATION");
   }
 
-  if (token === "eagle1") {
-    // Extract tracking ID from the URL
-    const trackingId = c.req.param("id") ?? "";
-    const idx = trackingId.trim().indexOf("-");
-    if (idx > 0) {
-      const operatorCode = trackingId.substring(0, idx);
-      if (isOperatorActive(operatorCode)) {
-        // The client API key is not authorized for this request.
-        throw new AppError("403-01","403AA: server - CLIENT_AUTHORIZATION");
+  if (token === RESTRICTED_CLIENT_TOKEN) {
+    const path = c.req.path;
+    // Handle /vx/whereis/ and /vx/push/ paths
+    const isWhereisPath = /^\/v\d+\/whereis\/.+$/.test(path);
+    const isPushPath = /^\/v\d+\/push\/.+$/.test(path);
+    if (isWhereisPath) {
+      // Extract tracking ID from the URL
+      const trackingId = c.req.param("id") ?? "";
+      const idx = trackingId.trim().indexOf("-");
+      if (idx !== -1) {
+        const operatorCode = trackingId.substring(0, idx);
+        if (operatorCode !== 'eg1') {
+          // The client API key is not authorized for this request.
+          throw new AppError("403-01", "403AA: server - CLIENT_AUTHORIZATION");
+        }
       }
+    } else if (isPushPath) {
+      // The client API key is not authorized for this request.
+      throw new AppError("403-01", "403AB: server - CLIENT_AUTHORIZATION");
     }
   }
 
@@ -67,15 +71,12 @@ const customBearerAuth = async (c: Context, next: Next) => {
   await next();
 };
 
-app.use(
-  "/*",
-  cors({
-    origin: "*",
-    allowMethods: ["GET", "POST", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  }),
-);
+app.use("/*", cors({
+      origin: "*",
+      allowMethods: ["GET", "POST", "OPTIONS"],
+      allowHeaders: ["Content-Type", "Authorization"],
+      credentials: true,
+    }));
 
 // Extend Context class
 app.use("*", async (c: Context, next: Next) => {
@@ -111,6 +112,8 @@ app.use("*", async (c: Context, next: Next) => {
 });
 
 app.use("/v0/whereis/:id", customBearerAuth);
+
+app.use("/v0/push/:operator", customBearerAuth);
 
 /**
  * GET /v0/status/:id? - Retrieves the status for a given tracking ID
@@ -204,6 +207,85 @@ app.get("/v0/whereis/:id", async (c: Context) => {
   outputJSON.entity.additional.processingTimeMs = elapsed.toFixed(3);
 
   return c.json(outputJSON, 200, {
+    "Content-Type": "application/json; charset=utf-8",
+  });
+});
+
+/**
+ * POST /v0/push/:operator - Receives tracking data from external sources
+ *
+ * This endpoint allows authenticated clients to push tracking information directly into the system.
+ * It validates the operator, processes the incoming data, and stores it in the database.
+ *
+ * @param c - The Hono context object containing request and response information.
+ * @returns A Promise resolving to a Response object.
+ *
+ * URL Parameters:
+ *   - operator: The carrier/operator code (e.g., 'fdx', 'sfex')
+ *
+ * Request Body (JSON):
+ *   - The structure depends on the operator. Different operators have different data structures.
+ *   - For FedEx (fdx): Expects FedEx-specific tracking data format
+ *   - For SF Express (sfex): Expects SF Express-specific tracking data format
+ *   - Refer to operator-specific documentation for exact schema requirements
+ */
+app.post("/v0/push/:operator", async (c: Context) => {
+  const operator = c.req.param("operator");
+  // Validate operator
+  if (!operator || !OperatorRegistry.getActiveOperatorCodes().includes(operator)) {
+    throw new AppError("400-02", `400AG: server - INVALID_OPERATOR: ${operator}`);
+  }
+
+  // Parse request body
+  let requestBody: Record<string, unknown>;
+  try {
+    requestBody = await c.req.json();
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new AppError("400-04", `400AH: server - INVALID_JSON: ${errorMessage}`);
+  }
+
+  // Process valid data and convert to entities
+  let entities: Entity[];
+  let result: Record<string, unknown>;
+  try {
+    const processResult = await processPushData(operator, requestBody);
+    entities = processResult.entities;
+    result = processResult.result;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new AppError("500-01", `500AA: server - DATA_PROCESSING_FAILED: ${errorMessage}`);
+  }
+
+  let updated = 0;
+  let failed = 0;
+  for (const entity of entities) {
+    try {
+      const eventIdsInDb: string[] = await dbClient.queryEventIds(
+          TrackingID.parse(entity.id),
+      );
+      if (eventIdsInDb.length === 0) {
+        const changes = await dbClient.insertEntity(entity);
+        updated = updated + (changes ?? 0);
+        if (changes !== undefined) updated = updated + 1;
+      } else {
+        // update the database on-demand
+        const {dataChanged, eventIdsNew, eventIdsToBeRemoved} = entity.compare(eventIdsInDb);
+        if (dataChanged) {
+          const success = await dbClient.updateEntity(entity, "push", eventIdsNew, eventIdsToBeRemoved);
+          if (success) updated = updated + 1;
+        }
+      }
+    } catch (error) {
+      failed = failed + 1;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.warn(`Failed to store entity ${entity.id}: ${errorMessage}`);
+    }
+  }
+
+  result.updated = updated;
+  result.failed = failed;
+  return c.json(result, 200, {
     "Content-Type": "application/json; charset=utf-8",
   });
 });

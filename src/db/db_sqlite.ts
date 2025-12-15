@@ -93,15 +93,17 @@ export class SQLiteWrapper implements DatabaseWrapper {
   }
 
   /**
-   * Updates an existing entity in the database and manages its associated events.
+   * Updates an existing entity in the database by modifying its completion status,
+   * adding new events, and removing obsolete events.
    *
-   * @param entity - The Entity object with updated information.
-   * @param eventIdsNew - An array of new event IDs to be inserted.
-   * @param eventIdsToBeRemoved - An array of event IDs to be removed.
-   * @returns A Promise that resolves to true if the update was successful.
+   * @param entity - The Entity object containing the updated entity data and events.
+   * @param updateMethod - A string describing the update method (e.g., "auto-pull" or "manual-pull").
+   * @param eventIdsNew - An array of event IDs representing new events to be inserted into the database.
+   * @param eventIdsToBeRemoved - An array of event IDs representing existing events to be deleted from the database.
+   * @returns A Promise that resolves to true if the update was successful, false if an error occurred during the transaction.
    */
-  async updateEntity(entity: Entity, eventIdsNew: string[],eventIdsToBeRemoved: string[]): Promise<boolean> {
-    const updateMethod = DataUpdateMethod.getDisplayText("auto-pull");
+  async updateEntity(entity: Entity, updateMethod: string, eventIdsNew: string[], eventIdsToBeRemoved: string[]): Promise<boolean> {
+    const updateMethodText = DataUpdateMethod.getDisplayText(updateMethod);
 
     return await new Promise((resolve, _reject) => {
       const transaction = this.db.transaction(() => {
@@ -121,14 +123,12 @@ export class SQLiteWrapper implements DatabaseWrapper {
               eventIdsNew.includes(event.eventId)
           );
 
-          this.insertEvents(this.db, events, updateMethod);
+          this.insertEvents(this.db, events, updateMethodText);
         }
 
         // step 3: remove events that are not in the updated entity
         if (eventIdsToBeRemoved.length > 0) {
-          const stmt = this.db.prepare(`DELETE
-                                    FROM events
-                                    WHERE event_id = ?`);
+          const stmt = this.db.prepare(`DELETE FROM events WHERE event_id = ?`);
           try {
             for (const eventId of eventIdsToBeRemoved) {
               logger.info(`${updateMethod}: Delete exist event with ID ${eventId}`);
