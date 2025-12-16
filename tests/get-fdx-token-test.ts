@@ -16,7 +16,7 @@ import { Fdx } from "../src/connectors/operator/fdx.ts";
 
 export function getTokenFromFdXTest() {
   Deno.test("Test get token from FedEx", async () => {
-    const token = await Fdx.getToken();
+    const token = await new Fdx().getToken();
     assertEquals(token.length, 1269, "FedEx token should have a length of 1269 characters");
   });
 }
