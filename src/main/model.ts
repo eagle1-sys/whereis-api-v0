@@ -1,3 +1,5 @@
+import {validateTrackingNum} from "./gateway.ts";
+
 /**
  * @file model.ts
  * @description A singleton class for storing and retrieving key-value pairs where keys are numbers and values are strings.
@@ -206,39 +208,11 @@ export class TrackingID {
       throw new AppError("400-04", `400BC: model - OPERATOR_CODE[${lowerCaseOperator}]`);
     }
 
-    switch (lowerCaseOperator) {
-      case "fdx":
-        this.checkFedExTrackingNum(trackingNum);
-        break;
-      case "sfex":
-        this.checkSFTrackingNum(trackingNum);
-        break;
-    }
+    validateTrackingNum(lowerCaseOperator, trackingNum);
 
     return new TrackingID(lowerCaseOperator, trackingNum);
   }
 
-  /**
-   * Validates a FedEx tracking number.
-   * @param {string} trackingNum - The tracking number to validate.
-   * @returns {string | undefined} An error code if invalid (e.g., "400-02"), or undefined if valid.
-   */
-  static checkFedExTrackingNum(trackingNum: string): void {
-    if (trackingNum.length != 12) {
-      throw new AppError("400-02","400BD: model - FDX_LENGTH");
-    }
-  }
-
-  /**
-   * Validates an SF Express tracking number.
-   * @param {string} trackingNum - The tracking number to validate.
-   * @returns {string | undefined} An error code if invalid (e.g., "400-02"), or undefined if valid.
-   */
-  static checkSFTrackingNum(trackingNum: string): void {
-    if (!/^SF\d{13}$/.test(trackingNum)) {
-          throw new AppError("400-02", "400BE: model - SFEX_FORMAT");
-    }
-  }
 }
 
 /**
