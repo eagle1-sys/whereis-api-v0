@@ -13,16 +13,18 @@ import {config} from "../../../config.ts";
 import {logger} from "../../tools/logger.ts";
 import {isOperatorActive} from "../../main/gateway.ts";
 import {getResponseJSON, adjustDateAndFormatWithTimezone, extractTimezone, httpPost} from "../../tools/util.ts";
+import {OperatorModule} from "../../main/operator.ts";
 
 /**
  * A class to interact with the FedEx tracking API and manage shipment tracking information.
  */
-export class Fdx {
+export class Fdx implements OperatorModule {
+
   /** @type {string} The current authentication token for FedEx API requests. */
-  private static token: string;
+  private token: string | undefined;
   /** @type {number} The expiration time of the token in milliseconds since epoch. Initially 0. */
-  private static expireTime: number = 0;
-  private static tokenPromise: Promise<string> | null = null;
+  private expireTime: number = 0;
+  private tokenPromise: Promise<string> | null = null;
 
   /**
    * A mapping of FedEx status codes and event types to internal event codes or functions.
@@ -145,7 +147,7 @@ export class Fdx {
    * @returns {Promise<string>} A promise that resolves to the current or newly fetched authentication token.
    * @throws {Error} If the token cannot be retrieved from the FedEx API.
    */
-  static async getToken(): Promise<string> {
+  async getToken(): Promise<string> {
     // If a token fetch is already in progress, return that promise
     if (this.tokenPromise) {
       return this.tokenPromise;
@@ -181,7 +183,7 @@ export class Fdx {
    *
    * @returns {Promise<string>} A promise that resolves to the newly obtained access token.
    */
-  static async fetchNewToken(): Promise<string> {
+  async fetchNewToken(): Promise<string> {
     const fdxApiUrl: string = config.fdx.apiUrl ?? "";
     const fdxClientId = Deno.env.get("FDX_CLIENT_ID");
     const fdxClientSecret = Deno.env.get("FDX_CLIENT_SECRET");
@@ -236,6 +238,24 @@ export class Fdx {
     }
   }
 
+  validateStoredEntity(_entity: Entity, _params: Record<string, unknown>): boolean {
+    return true; // Placeholder validation logic
+  }
+
+  validateParams(_trackingId: TrackingID, _params: Record<string, string>): boolean {
+    return true; // Placeholder validation logic
+  }
+
+  getExtraParams(_params: Record<string, string>): Record<string, string> {
+    return {};
+  }
+
+  validateTrackingNum(trackingNum: string): void {
+    if (trackingNum.length != 12) {
+      throw new AppError("400-02","400BD: model - FDX_LENGTH");
+    }
+  }
+
   /**
    * Retrieves the current location and tracking details for a given tracking number.
    * @param {TrackingID} trackingIds - The tracking ID(s) defined by eagle1.
@@ -243,12 +263,8 @@ export class Fdx {
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Promise<Entity | undefined>} A promise resolving to the tracking entity or undefined if not found.
    */
-  static async whereIs(
-      trackingIds: TrackingID[],
-      _extraParams: Record<string, string>,
-      updateMethod: string,
-  ): Promise<Entity[]> {
-    if(!isOperatorActive("fdx")) {
+  async whereIs(trackingIds: TrackingID[], _extraParams: Record<string, string>, updateMethod: string): Promise<Entity[]> {
+    if (!isOperatorActive("fdx")) {
       throw new AppError("500-01", "500AB: fdx - CLIENT_ID");
     }
 
@@ -305,7 +321,7 @@ export class Fdx {
    * The actual implementation should be based on the specific structure of the input data.
    */
   // deno-lint-ignore require-await
-  static async fromJSON(_data: Record<string, unknown>): Promise<{ entities: Entity[], result: Record<string, unknown> }> {
+  async fromJSON(_data: Record<string, unknown>): Promise<{ entities: Entity[], result: Record<string, unknown> }> {
     const entities: Entity[] = [];
     const result: Record<string, unknown> = {success:true};
     return { entities, result };
@@ -428,12 +444,9 @@ export class Fdx {
    * @returns {Promise<Record<string, unknown>>} A promise resolving to the raw API response data.
    * @throws {Error} If the API request fails.
    */
-  static async getRoute(
-      trackingNumbers: string[],
-  ): Promise<Record<string, unknown>> {
+  async getRoute(trackingNumbers: string[]): Promise<Record<string, unknown>> {
     // Prepare the request payload
-    const trackingInfo: { trackingNumberInfo: { trackingNumber: string } }[] =
-        [];
+    const trackingInfo: { trackingNumberInfo: { trackingNumber: string } }[] = [];
     trackingNumbers.forEach((trackingNum) =>
         trackingInfo.push({
           "trackingNumberInfo": {

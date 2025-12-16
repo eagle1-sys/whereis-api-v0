@@ -8,11 +8,25 @@
  */
 
 import {Entity, Event, TrackingID,} from "../../main/model.ts";
+import {OperatorModule} from "../../main/operator.ts";
 
 /**
  * A class to interact with the Eagle1 tracking API and manage shipment tracking information.
  */
-export class Eg1 {
+export class Eg1 implements OperatorModule{
+
+    validateStoredEntity(_entity: Entity, _params: Record<string, unknown>): boolean {
+      return true; // Placeholder validation logic
+    }
+    validateParams(_trackingId: TrackingID, _params: Record<string, string>): boolean {
+      return true; // Placeholder validation logic
+    }
+    getExtraParams(_params: Record<string, string>): Record<string, string> {
+      return {}; // Placeholder for extra parameters
+    }
+    validateTrackingNum(_trackingNum: string): void {
+      return; // Placeholder validation logic for tracking number format
+    }
 
     /**
      * Retrieves the current location and tracking details for a given tracking number.
@@ -21,14 +35,9 @@ export class Eg1 {
      * @param {string} _updateMethod - The method used to update the tracking information.
      * @returns {Promise<Entity | undefined>} A promise resolving to the tracking entity or undefined if not found.
      */
-    static async whereIs(
-        _trackingIds: TrackingID[],
-        _extraParams: Record<string, string>,
-        _updateMethod: string,
-    ): Promise<Entity[]> {
-        return [];
+    async whereIs(_trackingIds: TrackingID[], _extraParams: Record<string, string>, _updateMethod: string): Promise<Entity[]> {
+        throw new Error("Method not implemented.");
     }
-
 
     /**
      * Creates an array of Entity objects from JSON data.
@@ -39,7 +48,7 @@ export class Eg1 {
      *          - `result`: The response data as a key-value record.
      *
      */
-    static async fromJSON(data: Record<string, unknown>): Promise<{ entities: Entity[], result: Record<string, unknown> }> {
+    async fromJSON(data: Record<string, unknown>): Promise<{ entities: Entity[], result: Record<string, unknown> }> {
         const entities: Entity[] = [];
         const result: Record<string, unknown> = { success: true };
         try {
