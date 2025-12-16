@@ -32,10 +32,7 @@ export function getEventsFromFdxTest() {
       const data = testDatas[i];
       const input = data["input"];
       const trackingNum = input["trackingNum"];
-      const result = await Fdx.getRoute([trackingNum]) as Record<
-        string,
-        unknown
-      >;
+      const result = await new Fdx().getRoute([trackingNum]) as Record<string, unknown>;
       assert(result["transactionId"] !== undefined, `Unexpected output format: ${JSON.stringify(result)}`);
     }
   });
