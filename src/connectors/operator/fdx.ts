@@ -251,7 +251,7 @@ export class Fdx implements OperatorModule {
   }
 
   validateTrackingNum(trackingNum: string): void {
-    if (trackingNum.length != 12) {
+    if (trackingNum.length > 25) {
       throw new AppError("400-02","400BD: model - FDX_LENGTH");
     }
   }
