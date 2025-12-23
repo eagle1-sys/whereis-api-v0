@@ -26,6 +26,9 @@ export class Fdx implements OperatorModule {
   private expireTime: number = 0;
   private tokenPromise: Promise<string> | null = null;
 
+  // Post statuses for the event '3400: Customs Clearance: Import Released'
+  private static readonly POST_3400_STATUSES: number[] = [3004, 3450, 3500] as const;
+
   /**
    * A mapping of FedEx status codes and event types to internal event codes or functions.
    * @type {Record<string, Record<string, unknown>>}
@@ -136,6 +139,11 @@ export class Fdx implements OperatorModule {
       status: 3100,
       checkMethod: Fdx.isMissing3100.bind(this),
       getBaseEventMethod: Fdx.get3100BaseEvent.bind(this),
+    },
+    {
+      status: 3400,
+      checkMethod: Fdx.isMissing3400.bind(this),
+      getBaseEventMethod: Fdx.get3400BaseEvent.bind(this),
     }
   ];
 
@@ -333,10 +341,7 @@ export class Fdx implements OperatorModule {
    * @param {Record<string, unknown>} sourceData - The raw event data from FedEx.
    * @returns {number} The corresponding internal event code, or 3001 if not found.
    */
-  static getStatusCode(
-      entity: Entity,
-      sourceData: Record<string, unknown>,
-  ): number {
+  static getStatusCode(entity: Entity, sourceData: Record<string, unknown>): number {
     const derivedStatusCode = sourceData["derivedStatusCode"] as string;
     const eventType = sourceData["eventType"] as string;
     const statusMap = Fdx.statusCodeMap[derivedStatusCode];
@@ -354,9 +359,7 @@ export class Fdx implements OperatorModule {
     return 3001;
   }
 
-  static getExceptionCode(
-      sourceData: Record<string, unknown>,
-  ): number | undefined {
+  static getExceptionCode(sourceData: Record<string, unknown>): number | undefined {
     const code_original = sourceData["exceptionCode"] as string;
     if (!code_original || code_original === "71") {
       return undefined;
@@ -395,8 +398,7 @@ export class Fdx implements OperatorModule {
    * Checks if a 3100 status event is missing from the entity's event sequence.
    *
    * This function iterates through the entity's events to determine if a 3100 status
-   * event (typically representing "Received by Carrier") is missing where it should
-   * be present in the logical sequence of events.
+   * event is missing where it should be present in the logical sequence of events.
    *
    * @param {Entity} entity - The entity object containing an array of events to check.
    * @returns {boolean} Returns true if a 3100 status event is missing in the expected
@@ -432,6 +434,44 @@ export class Fdx implements OperatorModule {
 
       // find the immediately following event
       if ((event.status >= 3001 && event.status <= 3004) || event.status > 3100) {
+        return event;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Checks if a 3400 status event is missing from the entity's event sequence.
+   *
+   * This function iterates through the entity's events to determine if a 3400 status
+   * event is missing where it should be present in the logical sequence of events.
+   *
+   * @param {Entity} entity - The entity object containing an array of events to check.
+   * @returns {boolean} Returns true if a 3400 status event is missing in the expected
+   *                    sequence, false otherwise.
+   */
+  static isMissing3400(entity: Entity): boolean {
+    for (const event of entity.events) {
+      // if a 3400 event is found
+      if (event.status === 3400) return false;
+
+      // if an event with status greater than 3400 is found
+      if (event.status > 3400) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+
+  static get3400BaseEvent(entity: Entity): Event | undefined {
+    for (const event of entity.events) {
+      // if the event status is less than 3350, skip it
+      if (event.status < 3350) {
+        continue;
+      }
+
+      if (Fdx.POST_3400_STATUSES.includes(event.status)) {
         return event;
       }
     }
@@ -487,11 +527,7 @@ export class Fdx implements OperatorModule {
    * @returns {Entity} An Entity object represents the trackingId's status.
    * @private
    */
-  private static convert(
-      trackingId: TrackingID,
-      completeTrackResult: Record<string, unknown>,
-      updateMethod: string,
-  ): Entity | undefined {
+  private static convert(trackingId: TrackingID, completeTrackResult: Record<string, unknown>, updateMethod: string): Entity | undefined {
     const entity: Entity = new Entity();
     const trackResults = completeTrackResult["trackResults"] as [unknown];
     const trackResult = trackResults[0] as Record<string, unknown>;
@@ -564,12 +600,7 @@ export class Fdx implements OperatorModule {
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Event} A new Event object populated with data from the FedEx scan event.
    */
-  private static createEvent(
-      trackingId: TrackingID,
-      entity: Entity,
-      scanEvent: Record<string, unknown>,
-      updateMethod: string,
-  ): Event {
+  private static createEvent(trackingId: TrackingID, entity: Entity, scanEvent: Record<string, unknown>, updateMethod: string): Event {
     const status = Fdx.getStatusCode(entity, scanEvent);
 
     const trackingNum = trackingId.trackingNum;
@@ -578,8 +609,7 @@ export class Fdx implements OperatorModule {
     const eventTime = scanEvent["date"] as string;
     const date = new Date(eventTime);
     const secondsSinceEpoch = Math.floor(date.getTime() / 1000);
-    event.eventId =
-        `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
+    event.eventId = `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
     event.status = status;
     event.what = StatusCode.getDesc(status);
     event.whom = "FedEx";
@@ -598,11 +628,8 @@ export class Fdx implements OperatorModule {
 
     // process notes
     const eventDescription = (scanEvent["eventDescription"] as string).trim();
-    const sourceExceptionDesc = (scanEvent["exceptionDescription"] as string)
-        .trim();
-    const notes = sourceExceptionDesc.trim() === ""
-        ? eventDescription
-        : `${eventDescription}: ${sourceExceptionDesc}`;
+    const sourceExceptionDesc = (scanEvent["exceptionDescription"] as string).trim();
+    const notes = sourceExceptionDesc.trim() === "" ? eventDescription : `${eventDescription}: ${sourceExceptionDesc}`;
     event.notes = notes.toLowerCase() === event.what.toLowerCase() ? "" : notes;
     // extra data and source data
     event.extra = {
@@ -614,12 +641,7 @@ export class Fdx implements OperatorModule {
     return event;
   }
 
-  private static createSupplementEvent(
-      trackingId: TrackingID,
-      status: number,
-      baseEventTime: string,
-      where: string,
-  ): Event {
+  private static createSupplementEvent(trackingId: TrackingID, status: number, baseEventTime: string, where: string,): Event {
     const event: Event = new Event();
     const date = new Date(baseEventTime);
     const timeZone = extractTimezone(baseEventTime);
@@ -646,4 +668,3 @@ export class Fdx implements OperatorModule {
   }
 
 }
-
