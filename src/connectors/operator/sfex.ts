@@ -238,10 +238,7 @@ export class Sfex implements OperatorModule{
    * @param {Record<string, unknown>} sourceData - Additional source data for complex mappings.
    * @returns {number} The corresponding internal event code. Returns 3001 if no specific mapping is found.
    */
-  static getStatusCode(
-    entity: Entity,
-    sourceData: Record<string, unknown>,
-  ): number {
+  static getStatusCode(entity: Entity, sourceData: Record<string, unknown>): number {
     const statusCode = sourceData["secondaryStatusCode"] as string;
     const opCode = sourceData["opCode"] as string;
     const statusMap = Sfex.statusCodeMap[statusCode];
@@ -273,10 +270,7 @@ export class Sfex implements OperatorModule{
    * @returns {Promise<Record<string, unknown>>} A promise that resolves to the raw API response data.
    * @throws {Error} If the API request fails or an error occurs during fetching.
    */
-  async getRoute(
-    trackingNumber: string,
-    phoneNo: string,
-  ): Promise<Record<string, unknown>> {
+  async getRoute(trackingNumber: string, phoneNo: string,): Promise<Record<string, unknown>> {
     // live
     const sfexApiUrl = config.sfex.apiUrl ?? "";
     const sfexPartnerId = Deno.env.get("SFEX_PARTNER_ID") ?? "";
@@ -288,11 +282,7 @@ export class Sfex implements OperatorModule{
     };
     const timestamp = Date.now();
     const msgString = JSON.stringify(msgData);
-    const msgDigest = await Sfex.generateSignature(
-      msgString,
-      timestamp,
-      sfexCheckWord,
-    );
+    const msgDigest = await Sfex.generateSignature(msgString, timestamp, sfexCheckWord);
 
     const response = await httpPost(
         sfexApiUrl,
@@ -325,12 +315,7 @@ export class Sfex implements OperatorModule{
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Entity} An Entity object represents the shipment data.
    */
-  private convert(
-    trackingId: TrackingID,
-    result: Record<string, unknown>,
-    params: Record<string, string>,
-    updateMethod: string,
-  ): Entity | undefined {
+  private convert(trackingId: TrackingID, result: Record<string, unknown>, params: Record<string, string>, updateMethod: string): Entity | undefined {
     const apiResult = JSON.parse(result["apiResultData"] as string);
     const routeResp = apiResult["msgData"]["routeResps"][0];
     const routes: [] = routeResp["routes"];
