@@ -112,15 +112,15 @@ export async function loadMetaData(): Promise<void> {
  */
 export function initializeOperatorStatus(): void {
   setOperatorStatus("eg1", true);
-  registerOperatorModule("eg1", Eg1);
+  registerOperatorModule("eg1", new Eg1());
 
   if (Deno.env.get("FDX_CLIENT_ID") && Deno.env.get("FDX_CLIENT_SECRET")) {
     setOperatorStatus("fdx", true);
-    registerOperatorModule("fdx", Fdx);
+    registerOperatorModule("fdx", new Fdx());
   }
 
   if (Deno.env.get("SFEX_PARTNER_ID") && Deno.env.get("SFEX_CHECK_WORD")) {
     setOperatorStatus("sfex", true);
-    registerOperatorModule("sfex", Sfex);
+    registerOperatorModule("sfex", new Sfex());
   }
 }
