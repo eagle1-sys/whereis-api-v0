@@ -779,8 +779,23 @@ export class OperatorRegistry {
     this.operators = Array.from(this.instance.data.keys());
   }
 
-  public static include( operator: string): boolean {
+  public static include(operator: string): boolean {
     return this.operators.includes(operator);
+  }
+
+  public static getBatchSize(operator: string): number {
+    const details = this.instance.data.get(operator);
+    if (!details) {
+      return 0;
+    }
+
+    const batchSize = details.batchSize;
+    if (typeof batchSize === 'number' && batchSize > 0) {
+      return batchSize;
+    }
+
+    // Return default batch size if not specified or invalid
+    return 1;
   }
 
   /**
