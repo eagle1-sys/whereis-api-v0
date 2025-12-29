@@ -354,6 +354,53 @@ export class Entity {
   }
 
   /**
+   * Checks if the entity has been delivered by verifying if any event has a status of 3500.
+   *
+   * This method iterates through the events in reverse order (most recent first) to determine
+   * if the entity has reached the delivered state. The status code 3500 represents a successful delivery.
+   *
+   * @returns {boolean} True if any event has a status of 3500 (delivered), false otherwise.
+   *                    Returns false if no events exist.
+   */
+  public isDelivered(): boolean {
+    if (this.events === undefined) return false;
+
+    for (let i = this.events.length - 1; i >= 0; i--) {
+      if (this.events[i].status === 3500) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Gets the missing critical status codes by checking whether the entity includes 3100, 3300 and 3400 status.
+   * 3000 & 3200 can be ignored as they are not considered critical status codes.
+   *
+   * @returns {number[]} An array of missing critical status codes. Returns an empty array if all critical statuses are present.
+   */
+  public getMissingMajorStatuses(): number[] {
+    const criticalStatuses = [3100, 3300, 3400];
+    const missingStatuses: number[] = [];
+
+    if (this.events === undefined || this.events.length === 0) {
+      return criticalStatuses;
+    }
+
+    // Create a set of existing status codes for efficient lookup
+    const existingStatuses = new Set(this.events.map(event => event.status));
+
+    // Check each major status
+    for (const status of criticalStatuses) {
+      if (!existingStatuses.has(status)) {
+        missingStatuses.push(status);
+      }
+    }
+
+    return missingStatuses;
+  }
+
+  /**
    * Gets the creation time of the object based on the first event.
    * @returns {string} The creation time, or an empty string if no events exist.
    */
