@@ -3,14 +3,17 @@
 {
   "fdx": {
     "name": "FedEx",
-    "active": true
+    "active": true,
+    "batchSize": 10
   },
   "sfex": {
     "name": "SF Express",
-    "active": true
+    "active": true,
+    "batchSize": 1
   },
   "eg1": {
     "name": "Eagle1",
-    "active": true
+    "active": true,
+    "batchSize": 0
   }
 }
