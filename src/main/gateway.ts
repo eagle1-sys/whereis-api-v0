@@ -10,6 +10,7 @@
 import { HonoRequest } from "hono/request";
 import { Entity, OperatorRegistry, TrackingID } from "./model.ts";
 import {OperatorModule} from "./operator.ts";
+import {logger} from "../tools/logger.ts";
 
 // Define a type for the operator status
 type OperatorStatus = {
@@ -94,7 +95,18 @@ export function validateStoredEntity(operator: string, entity: Entity, params: R
 export async function requestWhereIs(operator: string, trackingIds: TrackingID[], extraParams: Record<string, string>, updateMethod: string,): Promise<Entity[]> {
   const operatorModule = getOperatorModule(operator);
 
-  return await operatorModule.whereIs(trackingIds, extraParams, updateMethod);
+  const entities: Entity[] = await operatorModule.whereIs(trackingIds, extraParams, updateMethod);
+
+  // whether entity is missing critical status code
+  for (const entity of entities) {
+    if (!entity.isDelivered()) continue;
+
+    const missingStatuses = entity.getMissingMajorStatuses();
+    for (const status of missingStatuses) {
+      logger.warn(`Entity ${entity.id} missing critical status : ${status}`);
+    }
+  }
+  return entities;
 }
 
 export async function processPushData(operator: string, trackingData: Record<string, unknown>): Promise<{
