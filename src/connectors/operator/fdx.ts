@@ -281,32 +281,18 @@ export class Fdx implements OperatorModule {
     const result: Record<string, unknown> = await this.getRoute(trackingNums);
     const output = result["output"] as Record<string, unknown>;
     if (output === undefined) {
-      const trackingIdsStr: string = trackingIds.map((item) => item.toString())
-          .join(", ");
+      const trackingIdsStr: string = trackingIds.map((item) => item.toString()).join(", ");
       // get the display text of the data retrieval method. eg: auto-pull -> Auto-pull
       const updateMethodName = DataUpdateMethod.getDisplayText(updateMethod);
-      logger.warn(
-          `${updateMethodName} -> FDX: Unexpected data received for ${trackingIdsStr}. Missing output{} in the received response: ${
-              JSON.stringify(result)
-          }`,
-      );
+      logger.warn(`${updateMethodName} -> FDX: Unexpected data received for ${trackingIdsStr}. 
+                  Missing output{} in the received response: ${JSON.stringify(result)}`);
       return entities;
     }
 
-    const completeTrackResults = output["completeTrackResults"] as Record<
-        string,
-        unknown
-    >[];
-    completeTrackResults.forEach(
-        (completeTrackResult: Record<string, unknown>) => {
-          const trackingId: TrackingID = TrackingID.parse(
-              "fdx-" + completeTrackResult["trackingNumber"] as string,
-          );
-          const entity: Entity | undefined = Fdx.convert(
-              trackingId,
-              completeTrackResult,
-              updateMethod,
-          );
+    const completeTrackResults = output["completeTrackResults"] as Record<string, unknown>[];
+    completeTrackResults.forEach((completeTrackResult: Record<string, unknown>) => {
+          const trackingId: TrackingID = TrackingID.parse("fdx-" + completeTrackResult["trackingNumber"] as string);
+          const entity: Entity | undefined = Fdx.convert(trackingId, completeTrackResult, updateMethod);
           if (entity !== undefined) {
             entities.push(entity);
           }
@@ -451,13 +437,15 @@ export class Fdx implements OperatorModule {
    *                    sequence, false otherwise.
    */
   static isMissing3400(entity: Entity): boolean {
-    for (const event of entity.events) {
-      // if a 3400 event is found
-      if (event.status === 3400) return false;
+    if (entity.extra.isCrossBorder) {
+      for (const event of entity.events) {
+        // if a 3400 event is found
+        if (event.status === 3400) return false;
 
-      // if an event with status greater than 3400 is found
-      if (event.status > 3400) {
-        return true;
+        // if an event with status greater than 3400 is found
+        if (event.status > 3400) {
+          return true;
+        }
       }
     }
     return false;
@@ -544,19 +532,17 @@ export class Fdx implements OperatorModule {
     entity.id = trackingId.toString();
     entity.params = {};
     entity.type = "waybill";
+    const shipperAddress = (trackResult["shipperInformation"] as Record<string, unknown>)["address"]  as Record<string, unknown>;
+    const recipientAddress = (trackResult["recipientInformation"] as Record<string, unknown>)["address"]  as Record<string, unknown>;
     entity.extra = {
-      origin: Fdx.getAddress(
-          (trackResult["shipperInformation"] as Record<string, unknown>)[
-              "address"
-              ] as Record<string, unknown>,
-      ),
-      destination: Fdx.getAddress(
-          (trackResult["recipientInformation"] as Record<string, unknown>)[
-              "address"
-              ] as Record<string, unknown>,
-      ),
+      origin: Fdx.getAddress(shipperAddress),
+      destination: Fdx.getAddress(recipientAddress)
     };
-
+    const shipperCountry = shipperAddress["countryName"] as string;
+    const recipientCountry = recipientAddress["countryName"] as string;
+    if (shipperCountry.toLowerCase() !== recipientCountry.toLowerCase()) {
+      entity.extra.isCrossBorder = true;
+    }
     const scanEvents = trackResult["scanEvents"] as Record<string, unknown>[];
     for (const scanEvent of scanEvents.reverse()) {
       const event = this.createEvent(

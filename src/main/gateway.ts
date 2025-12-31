@@ -99,7 +99,7 @@ export async function requestWhereIs(operator: string, trackingIds: TrackingID[]
 
   // whether entity is missing critical status code
   for (const entity of entities) {
-    if (!entity.isDelivered()) continue;
+    if (!entity.isStatusExist(3500)) continue;
 
     const missingStatuses = entity.getMissingMajorStatuses();
     for (const status of missingStatuses) {
