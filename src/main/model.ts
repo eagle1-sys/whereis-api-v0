@@ -233,7 +233,7 @@ export class Entity {
   /** Indicates the timestamp of the first event */
   creationTime: string;
   /** Additional metadata for the object */
-  extra: Record<string, string>;
+  extra: Record<string, unknown>;
   /** Parameters associated with the object. ex:{phonenum:'1234'} */
   params: Record<string, string>;
   /** List of events associated with the object */
@@ -272,6 +272,11 @@ export class Entity {
     ["origin", "destination"].forEach((key) => {
       if (key in extra) additional[key] = extra[key];
     });
+
+    // Add isCrossBorder if it exists in extra or the status is [3350,3400]
+    if (extra.isCrossBorder || this.isStatusExist(3350, 3400)) {
+      additional.isCrossBorder = true;
+    }
 
     const entity = {
       id: this.id,
@@ -343,30 +348,26 @@ export class Entity {
    * @returns {boolean} True if completed, false otherwise.
    */
   public isCompleted(): boolean {
-    if (this.events === undefined) return false;
-
-    for (let i = this.events.length - 1; i >= 0; i--) {
-      if (this.events[i].status === 3500 || this.events[i].status === 3009) {
-        return true;
-      }
-    }
-    return false;
+    return this.isStatusExist(3500, 3009);
   }
 
+
   /**
-   * Checks if the entity has been delivered by verifying if any event has a status of 3500.
+   * Checks if an event with any of the specified status codes exists in the entity's event list.
    *
    * This method iterates through the events in reverse order (most recent first) to determine
-   * if the entity has reached the delivered state. The status code 3500 represents a successful delivery.
+   * if any event has a status code matching any of the provided values.
    *
-   * @returns {boolean} True if any event has a status of 3500 (delivered), false otherwise.
+   * @param {...number} statuses - One or more status codes to search for in the events list.
+   * @returns {boolean} True if an event with any of the specified status codes exists, false otherwise.
    *                    Returns false if no events exist.
    */
-  public isDelivered(): boolean {
+  public isStatusExist(...statuses: number[]): boolean {
     if (this.events === undefined) return false;
 
+    const statusSet = new Set(statuses);
     for (let i = this.events.length - 1; i >= 0; i--) {
-      if (this.events[i].status === 3500) {
+      if (statusSet.has(this.events[i].status)) {
         return true;
       }
     }
