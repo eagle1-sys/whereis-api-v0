@@ -81,7 +81,7 @@ export class Eg1 implements OperatorModule{
                 if (entityData["id"]) entity.id = entityData["id"] as string;
                 if (entityData["type"]) entity.type = entityData["type"] as string;
                 if (entityData["params"]) entity.params = entityData["params"] as Record<string, string>;
-                if (entityData["additional"]) entity.additional = entityData["additional"] as Record<string, string>;
+                if (entityData["additional"]) entity.additional = entityData["additional"] as Record<string, unknown>;
 
                 // Process events array
                 for (const eventData of eventsData) {

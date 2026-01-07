@@ -419,7 +419,7 @@ export class PostgresWrapper implements DatabaseWrapper {
       entity.id = row.id;
       entity.type = row.type;
       entity.completed = row.completed;
-      entity.additional = row.additional as Record<string, string>;
+      entity.additional = row.additional as Record<string, unknown>;
       entity.params = row.params as Record<string, string>;
       entity.creationTime = row.creation_time as string;
     }
@@ -481,7 +481,7 @@ export class PostgresWrapper implements DatabaseWrapper {
       event.exceptionDesc = row.exception_desc as string;
       event.notificationCode = row.notification_code as number;
       event.notificationDesc = row.notification_desc as string;
-      event.additional = row.additional as Record<string, string>;
+      event.additional = row.additional as Record<string, unknown>;
       event.sourceData = row.source_data as Record<string, string>;
       events.push(event);
     }

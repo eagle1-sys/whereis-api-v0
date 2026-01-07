@@ -259,7 +259,7 @@ export class Entity {
    * @returns {Record<string, unknown>} A structured object representing the object and its events.
    */
   public toJSON(fullData: boolean = false): Record<string, unknown> {
-    const additional = this.additional || {};
+    const additionalData = this.additional || {};
     // sort the events first to ensure getCreationTime()/lastEvent() works correctly
     this.events.sort((a, b) => {
       const dateA = a.when ? new Date(a.when).getTime() : 0;
@@ -268,8 +268,8 @@ export class Entity {
     });
 
     // Add isCrossBorder if it exists in additional or the status is [3350,3400]
-    if (additional.isCrossBorder || this.isStatusExist(3350, 3400)) {
-      additional.isCrossBorder = true;
+    if (additionalData.isCrossBorder || this.isStatusExist(3350, 3400)) {
+      additionalData.isCrossBorder = true;
     }
 
     const entity = {
@@ -277,7 +277,7 @@ export class Entity {
       type: this.type,
       uuid: this.uuid,
       createdAt: this.getCreationTime(),
-      ...(Object.keys(additional).length > 0 && { additional }),
+      ...(Object.keys(additionalData).length > 0 && {additional: additionalData}),
     };
 
     const events = this.events?.map((event) => event.toJSON(fullData)) || [];
