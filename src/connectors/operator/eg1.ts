@@ -81,7 +81,7 @@ export class Eg1 implements OperatorModule{
                 if (entityData["id"]) entity.id = entityData["id"] as string;
                 if (entityData["type"]) entity.type = entityData["type"] as string;
                 if (entityData["params"]) entity.params = entityData["params"] as Record<string, string>;
-                if (entityData["extra"]) entity.extra = entityData["extra"] as Record<string, string>;
+                if (entityData["additional"]) entity.additional = entityData["additional"] as Record<string, string>;
 
                 // Process events array
                 for (const eventData of eventsData) {
@@ -104,8 +104,8 @@ export class Eg1 implements OperatorModule{
                         if (additional["exceptionCode"]) event.exceptionCode = additional["exceptionCode"] as number;
                         if (additional["exceptionDesc"]) event.exceptionDesc = additional["exceptionDesc"] as string;
 
-                        // Store updateMethod and updatedAt in extra
-                        event.extra = {
+                        // Store updateMethod and updatedAt in additional
+                        event.additional = {
                             updateMethod: "push",
                             updatedAt: new Date().toISOString(),
                         };

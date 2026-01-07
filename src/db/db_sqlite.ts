@@ -275,7 +275,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
    */
   private insertEntityRecord(db: Database, entity: Entity): number {
     const insertEntityStmt = db.prepare(
-        `INSERT INTO entities (uuid, id, type, creation_time, completed, extra, params)
+        `INSERT INTO entities (uuid, id, type, creation_time, completed, additional, params)
              VALUES (?, ?, ?, ?, ?, ?, ?)`,
     );
     try {
@@ -285,7 +285,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
           entity.type,
           entity.getCreationTime(),
           entity.isCompleted() ? 1 : 0,
-          JSON.stringify(entity.extra ?? {}),
+          JSON.stringify(entity.additional ?? {}),
           JSON.stringify(entity.params ?? {}),
       );
     } finally {
@@ -309,7 +309,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
         const insertEventStmt = db.prepare(`
         INSERT INTO events (event_id, status, what_, when_, where_,
                             whom_, notes, operator_code, tracking_num, data_provider,
-                            exception_code, exception_desc, notification_code, notification_desc, extra,
+                            exception_code, exception_desc, notification_code, notification_desc, additional,
                             source_data)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
@@ -341,7 +341,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
                   event.exceptionDesc || null,
                   event.notificationCode || null,
                   event.notificationDesc || null,
-                  JSON.stringify(event.extra ?? {}),
+                  JSON.stringify(event.additional ?? {}),
                   JSON.stringify(event.sourceData ?? {}),
               );
 
@@ -405,7 +405,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
   private queryEntityRecord(trackingId: TrackingID): Entity | undefined {
     let entity: Entity | undefined;
     const stmt = this.db.prepare(`
-    SELECT uuid, id, type, completed, extra, params, creation_time
+    SELECT uuid, id, type, completed, additional, params, creation_time
     FROM entities
     WHERE id = ?
   `);
@@ -416,7 +416,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
         id: string;
         type: string;
         completed: number;
-        extra: string;
+        additional: string;
         params: string;
         creation_time: string;
       } | undefined;
@@ -427,7 +427,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
         entity.id = row.id;
         entity.type = row.type;
         entity.completed = Boolean(row.completed);
-        entity.extra = JSON.parse(row.extra);
+        entity.additional = JSON.parse(row.additional);
         entity.params = JSON.parse(row.params);
         entity.creationTime = row.creation_time;
       }
@@ -448,7 +448,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
       const stmt = this.db.prepare(`
     SELECT event_id, status, what_, whom_, when_, where_, notes,
            operator_code, tracking_num, data_provider, exception_code,
-           exception_desc, notification_code, notification_desc, extra, source_data
+           exception_desc, notification_code, notification_desc, additional, source_data
     FROM events
     WHERE operator_code = ? AND tracking_num = ?
     ORDER BY event_id ASC
@@ -471,7 +471,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
           event.exceptionDesc = row.exception_desc;
           event.notificationCode = row.notification_code;
           event.notificationDesc = row.notification_desc;
-          event.extra = row.extra ? JSON.parse(row.extra) : {};
+          event.additional = row.additional ? JSON.parse(row.additional) : {};
           event.sourceData = row.source_data ? JSON.parse(row.source_data) : {};
           return event;
         });

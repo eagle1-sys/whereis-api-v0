@@ -233,7 +233,7 @@ export class Entity {
   /** Indicates the timestamp of the first event */
   creationTime: string;
   /** Additional metadata for the object */
-  extra: Record<string, unknown>;
+  additional: Record<string, unknown>;
   /** Parameters associated with the object. ex:{phonenum:'1234'} */
   params: Record<string, string>;
   /** List of events associated with the object */
@@ -248,7 +248,7 @@ export class Entity {
     this.type = "";
     this.completed = false;
     this.creationTime = "";
-    this.extra = {};
+    this.additional = {};
     this.params = {};
     this.events = [];
   }
@@ -259,8 +259,7 @@ export class Entity {
    * @returns {Record<string, unknown>} A structured object representing the object and its events.
    */
   public toJSON(fullData: boolean = false): Record<string, unknown> {
-    const extra = this.extra || {};
-    const additional: Record<string, unknown> = {};
+    const additional = this.additional || {};
     // sort the events first to ensure getCreationTime()/lastEvent() works correctly
     this.events.sort((a, b) => {
       const dateA = a.when ? new Date(a.when).getTime() : 0;
@@ -268,13 +267,8 @@ export class Entity {
       return dateA - dateB;
     });
 
-    // Add origin and destination if they exist in extra
-    ["origin", "destination"].forEach((key) => {
-      if (key in extra) additional[key] = extra[key];
-    });
-
-    // Add isCrossBorder if it exists in extra or the status is [3350,3400]
-    if (extra.isCrossBorder || this.isStatusExist(3350, 3400)) {
+    // Add isCrossBorder if it exists in additional or the status is [3350,3400]
+    if (additional.isCrossBorder || this.isStatusExist(3350, 3400)) {
       additional.isCrossBorder = true;
     }
 
@@ -517,14 +511,14 @@ export class Event {
   notificationDesc?: string;
 
   /** Additional metadata for the event */
-  extra?: Record<string, unknown>;
+  additional?: Record<string, unknown>;
   /** Raw source data for the event */
   sourceData: Record<string, unknown>;
 
   constructor() {
     this.eventId = "";
     this.status = -1;
-    this.extra = {};
+    this.additional = {};
     this.sourceData = {};
   }
 
@@ -548,8 +542,8 @@ export class Event {
       trackingNum: this.trackingNum,
       operatorCode: this.operatorCode,
       dataProvider: this.dataProvider,
-      updateMethod: this.extra?.updateMethod,
-      updatedAt: this.extra?.updatedAt,
+      updateMethod: this.additional?.updateMethod,
+      updatedAt: this.additional?.updatedAt,
     };
 
     if (this.exceptionCode != null) {
@@ -565,8 +559,8 @@ export class Event {
       additional.notificationDesc = this.notificationDesc;
     }
 
-    if (this.extra != null && "transitMode" in this.extra) {
-      additional.transitMode = this.extra.transitMode;
+    if (this.additional != null && "transitMode" in this.additional) {
+      additional.transitMode = this.additional.transitMode;
     }
 
     result.additional = additional;
