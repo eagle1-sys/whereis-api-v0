@@ -88,7 +88,7 @@ export class PostgresWrapper implements DatabaseWrapper {
    * also inserts those events into the database using a manual pull update method.
    *
    * @param entity - The Entity object to be inserted into the database.
-   *                 It should contain all necessary properties such as uuid, id, type, creation time, completion status, extra data, and parameters.
+   *                 It should contain all necessary properties such as uuid, id, type, creation time, completion status, additional data, and parameters.
    *
    * @returns A Promise that resolves to:
    *          - 1 if the insertion was successful (note: this doesn't necessarily mean the entity was inserted, just that the operation completed)
@@ -290,13 +290,13 @@ export class PostgresWrapper implements DatabaseWrapper {
    */
   private async insertEntityRecord(tx: ReturnType<typeof postgres>, entity: Entity): Promise<number> {
     const result = await tx`
-        INSERT INTO entities (uuid, id, type, creation_time, completed, extra, params)
+        INSERT INTO entities (uuid, id, type, creation_time, completed, additional, params)
         VALUES (${entity.uuid},
                 ${entity.id},
                 ${entity.type},
                 ${entity.getCreationTime()},
                 ${entity.isCompleted()},
-                ${tx.json(ensureJSONSafe(entity.extra ?? {}))},
+                ${tx.json(ensureJSONSafe(entity.additional ?? {}))},
                 ${tx.json(ensureJSONSafe(entity.params ?? {}))}) `;
 
     return result.count?? 0;
@@ -335,7 +335,7 @@ export class PostgresWrapper implements DatabaseWrapper {
         const result = await tx`
         INSERT INTO events (event_id, status, what_, when_, where_,
                             whom_, notes, operator_code, tracking_num, data_provider,
-                            exception_code, exception_desc, notification_code, notification_desc, extra,
+                            exception_code, exception_desc, notification_code, notification_desc, additional,
                             source_data)
         VALUES (${event.eventId},
                 ${event.status},
@@ -351,7 +351,7 @@ export class PostgresWrapper implements DatabaseWrapper {
                 ${event.exceptionDesc || null},
                 ${event.notificationCode ?? null},
                 ${event.notificationDesc || null},
-                ${tx.json(ensureJSONSafe(event.extra ?? {}))},
+                ${tx.json(ensureJSONSafe(event.additional ?? {}))},
                 ${tx.json(ensureJSONSafe(event.sourceData ?? {}))}
                ) ON CONFLICT(event_id) DO NOTHING RETURNING event_id;
         `;
@@ -403,7 +403,7 @@ export class PostgresWrapper implements DatabaseWrapper {
                id,
                type,
                completed,
-               extra,
+               additional,
                params,
                creation_time
         FROM entities
@@ -419,7 +419,7 @@ export class PostgresWrapper implements DatabaseWrapper {
       entity.id = row.id;
       entity.type = row.type;
       entity.completed = row.completed;
-      entity.extra = row.extra as Record<string, string>;
+      entity.additional = row.additional as Record<string, unknown>;
       entity.params = row.params as Record<string, string>;
       entity.creationTime = row.creation_time as string;
     }
@@ -457,7 +457,7 @@ export class PostgresWrapper implements DatabaseWrapper {
                exception_desc,
                notification_code,
                notification_desc,
-               extra,
+               additional,
                source_data
         FROM events
         WHERE operator_code = ${trackingID.operator}
@@ -481,7 +481,7 @@ export class PostgresWrapper implements DatabaseWrapper {
       event.exceptionDesc = row.exception_desc as string;
       event.notificationCode = row.notification_code as number;
       event.notificationDesc = row.notification_desc as string;
-      event.extra = row.extra as Record<string, string>;
+      event.additional = row.additional as Record<string, unknown>;
       event.sourceData = row.source_data as Record<string, string>;
       events.push(event);
     }
