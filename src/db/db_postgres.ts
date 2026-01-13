@@ -178,17 +178,18 @@ export class PostgresWrapper implements DatabaseWrapper {
       return 0;
     }
 
+    let inserted = 0;
     await this.sql.begin(async (tx: ReturnType<typeof postgres>) => {
       // delete entity and events
       await this.deleteEntityAndEvents(tx, trackingId);
 
       // insert new entity and events
-      const inserted = await this.insertEntityRecord(tx, entity);
+      inserted = await this.insertEntityRecord(tx, entity);
       if (inserted == 1) {
         await this.insertEvents(tx, entity.events, DataUpdateMethod.getDisplayText("manual-pull"));
       }
     });
-    return 1;
+    return inserted;
   }
 
   /**

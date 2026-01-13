@@ -201,11 +201,12 @@ export class SQLiteWrapper implements DatabaseWrapper {
         if (changes === 1) {
           this.insertEvents(this.db, entity.events, updateMethod);
         }
+        return changes;
       });
 
       try {
-        transaction();
-        resolve(1);
+        const changes = transaction();
+        resolve(changes);
       } catch {
         resolve(0);
       }
