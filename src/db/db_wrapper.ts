@@ -85,7 +85,7 @@ export interface DatabaseWrapper {
   /**
    * Retrieves all tracking numbers currently in processing status.
    * Used for monitoring and managing active shipments that require updates.
-   * @returns Promise resolving to a nested record structure mapping operator codes to tracking numbers and their parameters
+   * @returns Promise resolving to a record mapping tracking numbers to their associated parameters
    * @example
    * {
    *   "1234567890123": {},
