@@ -64,7 +64,7 @@ async function initPgConnection() : Promise<ReturnType<typeof postgres>> {
       } else if (/connect_timeout/i.test(errorMessage)) {
         logger.error("DB connection: Connect timeout - check if the db host/port is correct");
       } else if (/failed to lookup address/i.test(errorMessage)) {
-        logger.error("DB connection: Unknown server name  - check if the db server name is correct");
+        logger.error("DB connection: Unknown server name - check if the db server name is correct");
       }
     } else {
       logger.error("Error initializing database connection pool:", err);
