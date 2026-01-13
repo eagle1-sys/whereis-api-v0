@@ -390,8 +390,8 @@ export class SQLiteWrapper implements DatabaseWrapper {
    * @param db
    * @param trackingId - The TrackingID of the entity to be deleted.
    * @returns The number of rows affected by the delete operations. Returns a value
-   *          greater than 0 if rows were successfully deleted, or 0 if no matching
-   *          records were found.
+   *          greater than 0 if entity were successfully deleted, or 0 if no matching
+   *          entity were found.
    */
   private deleteEntityAndEvents(db: Database, trackingId: TrackingID): number {
     const deleteEvents = db.prepare(`DELETE
