@@ -8,7 +8,7 @@
  *   deno task initkey                              # Generate key for default user
  *   deno task initkey --user=admin                 # Generate key for specific user
  *   deno task initkey --key=sk-abc123 --user=test  # Store custom key
-  *
+ *
  * @copyright (c) 2025, the Eagle1 authors
  * @license BSD 3-Clause License
  */
