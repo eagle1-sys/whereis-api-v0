@@ -31,25 +31,29 @@ export interface DatabaseWrapper {
    * Inserts a new API key and associates it with a user identifier.
    * @param apikey - The API key to insert (typically in format 'sk-...')
    * @param userId - The user identifier to associate with the API key
-   * @returns Promise resolving to true if insertion succeeded, false if key already exists or insertion failed
+   * @returns Promise resolving to the number of rows inserted (0 if key already exists due to conflict, 1 if successfully inserted)
    */
-  insertToken(apikey: string, userId: string): Promise<boolean>;
+  insertToken(apikey: string, userId: string): Promise<number>;
 
   /**
    * Inserts a new tracking entity into the database.
    * @param entity - The entity object containing tracking information and events
-   * @returns Promise resolving to the inserted entity's database ID, or undefined if insertion failed
+   * @returns Promise resolving to:
+   *          - 1 if the entity and its events were successfully inserted
+   *          - 0 if the entity has no events or the insertion failed
    */
-  insertEntity(entity: Entity): Promise<number | undefined>;
+  insertEntity(entity: Entity): Promise<number>;
 
   /**
    * Completely replaces an existing entity's data with new information.
    * This operation removes all existing events and replaces them with the new entity's events.
    * @param trackingId - The tracking identifier of the entity to refresh
    * @param entity - The new entity data to replace the existing data
-   * @returns Promise resolving to true if refresh succeeded, false otherwise
+   * @returns Promise resolving to:
+   *          - 1 if the refresh operation succeeded (entity deleted and new data inserted)
+   *          - 0 if the entity has no events or the operation failed
    */
-  refreshEntity(trackingId: TrackingID, entity: Entity): Promise<boolean>;
+  refreshEntity(trackingId: TrackingID, entity: Entity): Promise<number>;
 
   /**
    * Updates an existing entity by adding new events and removing specified events.
@@ -58,9 +62,11 @@ export interface DatabaseWrapper {
    * @param updateMethod - The method used to obtain the update (e.g., 'manual-pull', 'auto-pull')
    * @param eventIdsNew - Array of new event IDs to add to the entity
    * @param eventIdsToBeRemoved - Array of event IDs to remove from the entity
-   * @returns Promise resolving to true if update succeeded, false otherwise
+   * @returns Promise resolving to:
+   *          - 1 if the update operation succeeded
+   *          - 0 if the operation failed
    */
-  updateEntity(entity: Entity, updateMethod: string, eventIdsNew: string[], eventIdsToBeRemoved: string[]): Promise<boolean>;
+  updateEntity(entity: Entity, updateMethod: string, eventIdsNew: string[], eventIdsToBeRemoved: string[]): Promise<number>;
 
   /**
    * Retrieves all event IDs associated with a tracking entity.
