@@ -1,6 +1,13 @@
 /**
  * @file init_key.ts
-
+ * @description Command-line utility for generating and storing API keys in the database.
+ * This script creates secure, URL-safe API keys and associates them with user identifiers.
+ * It supports custom key generation or accepts pre-defined keys via command-line arguments.
+ *
+ * Usage:
+ *   deno task initkey                              # Generate key for default user
+ *   deno task initkey --user=admin                 # Generate key for specific user
+ *   deno task initkey --key=sk-abc123 --user=test  # Store custom key
  *
  * @copyright (c) 2025, the Eagle1 authors
  * @license BSD 3-Clause License
@@ -9,7 +16,6 @@ import {loadEnv} from "../main/app.ts";
 import {initConnection} from "./dbutil.ts";
 import { getLogger  } from "../tools/logger.ts";
 import { dbClient} from "./dbutil.ts";
-
 
 async function main(): Promise<void> {
     // step 1: load environment variable first

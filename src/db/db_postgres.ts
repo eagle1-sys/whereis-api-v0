@@ -72,13 +72,13 @@ export class PostgresWrapper implements DatabaseWrapper {
     return testResult[0].connection_test === 1;
   }
 
-  async insertToken(apikey: string, userId: string): Promise<boolean> {
+  async insertToken(apikey: string, userId: string): Promise<number> {
     const result = await this.sql`
       INSERT INTO tokens (id, user_id)
       VALUES (${apikey},
               ${userId}) ON CONFLICT(id) DO NOTHING RETURNING 0`;
 
-    return (result.count ?? 0) > 0;
+    return result.count ?? 0;
   }
 
   /**
@@ -91,17 +91,22 @@ export class PostgresWrapper implements DatabaseWrapper {
    *                 It should contain all necessary properties such as uuid, id, type, creation time, completion status, additional data, and parameters.
    *
    * @returns A Promise that resolves to:
-   *          - 1 if the insertion was successful (note: this doesn't necessarily mean the entity was inserted, just that the operation completed)
-   *          - undefined if the operation failed or no insertion occurred
+   *          - 1 if both the entity and its events were successfully inserted
+   *          - 0 if the entity has no events or the insertion failed
    *
    * @throws Will throw an error if the database operation fails.
    */
-  async insertEntity(entity: Entity): Promise<number | undefined> {
+  async insertEntity(entity: Entity): Promise<number> {
     let inserted = 0;
+    if(entity.events === undefined || entity.events.length === 0) {
+      logger.error(`Entity [${entity.id}] has no events`);
+      return 0;
+    }
+
     await this.sql.begin(async (tx: ReturnType<typeof postgres>) => {
        inserted = await this.insertEntityRecord(tx, entity);
       // insert events
-      if (inserted == 1 && entity.events != undefined) {
+      if (inserted == 1) {
         await this.insertEvents(tx, entity.events, DataUpdateMethod.getDisplayText("manual-pull"));
       }
     });
@@ -123,11 +128,10 @@ export class PostgresWrapper implements DatabaseWrapper {
    * @param updateMethod - A string describing the update method (e.g., "auto-pull" or "manual-pull")
    * @param eventIdsNew - An array of event IDs that need to be added to the entity.
    * @param eventIdsToBeRemoved - An array of event IDs that need to be removed from the entity.
-   * @returns A Promise that resolves to true if the update operation is successful.
-   *          Note: The boolean return doesn't indicate success or failure, as errors will throw exceptions.
-   * @throws Will throw an error if any database operation fails.
+   * @returns A Promise that resolves to the number 1 upon successful completion of all update operations.
+   * @throws Will throw an error if any database operation fails during the transaction.
    */
-  async updateEntity(entity: Entity, updateMethod: string, eventIdsNew: string[], eventIdsToBeRemoved: string[]): Promise<boolean> {
+  async updateEntity(entity: Entity, updateMethod: string, eventIdsNew: string[], eventIdsToBeRemoved: string[]): Promise<number> {
     const updateMethodText = DataUpdateMethod.getDisplayText("auto-pull");
 
     await this.sql.begin(async (tx: ReturnType<typeof postgres>) => {
@@ -154,7 +158,7 @@ export class PostgresWrapper implements DatabaseWrapper {
       }
     });
 
-    return true;
+    return 1;
   }
 
   /**
@@ -163,22 +167,29 @@ export class PostgresWrapper implements DatabaseWrapper {
    *
    * @param trackingId - The unique identifier for tracking the entity. It's used to locate and delete the existing entity.
    * @param entity - The new Entity object containing the updated information to be inserted into the database.
-   * @returns A Promise that resolves to true if the refresh operation is successful.
-   *          The boolean return value doesn't indicate success or failure, as errors will throw exceptions.
-   * @throws Will throw an error if either the delete or insert operation fails.
+   * @returns A Promise that resolves to the number 1 upon successful completion of the refresh
+   *          operation. The return value indicates the operation completed successfully.
+   * @throws Will throw an error if either the delete or insert operation fails during the
+   *         database transaction.
    */
-  async refreshEntity(trackingId: TrackingID, entity: Entity): Promise<boolean> {
+  async refreshEntity(trackingId: TrackingID, entity: Entity): Promise<number> {
+    if(entity.events === undefined || entity.events.length === 0) {
+      logger.error(`Entity [${entity.id}] has no events`);
+      return 0;
+    }
+
+    let inserted = 0;
     await this.sql.begin(async (tx: ReturnType<typeof postgres>) => {
       // delete entity and events
       await this.deleteEntityAndEvents(tx, trackingId);
 
       // insert new entity and events
-      const inserted = await this.insertEntityRecord(tx, entity);
-      if (inserted == 1 && entity.events != undefined) {
+      inserted = await this.insertEntityRecord(tx, entity);
+      if (inserted == 1) {
         await this.insertEvents(tx, entity.events, DataUpdateMethod.getDisplayText("manual-pull"));
       }
     });
-    return true;
+    return inserted;
   }
 
   /**
