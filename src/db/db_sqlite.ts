@@ -455,10 +455,10 @@ export class SQLiteWrapper implements DatabaseWrapper {
   /**
    * Queries the database for events associated with a given tracking ID.
    *
-   * @param trackingID - The TrackingID used to query associated events.
+   * @param trackingId - The TrackingID used to query associated events.
    * @returns A Promise that resolves to an array of Event objects.
    */
-  private async queryEvents(trackingID: TrackingID): Promise<Event[]> {
+  private async queryEvents(trackingId: TrackingID): Promise<Event[]> {
     return await new Promise((resolve, _reject) => {
       const stmt = this.db.prepare(`
         SELECT event_id, status, what_, whom_, when_, where_, notes,
@@ -470,7 +470,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
       `);
 
       try {
-        const rows = stmt.all(trackingID.operator, trackingID.trackingNum);
+        const rows = stmt.all(trackingId.operator, trackingId.trackingNum);
         const events = rows.map((row) => {
           const event = new Event();
           event.eventId = row.event_id;
