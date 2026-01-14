@@ -95,7 +95,7 @@ export function validateStoredEntity(operator: string, entity: Entity, params: R
 export async function requestWhereIs(operator: string, trackingIds: TrackingID[], extraParams: Record<string, string>, updateMethod: string,): Promise<Entity[]> {
   const operatorModule = getOperatorModule(operator);
 
-  const entities: Entity[] = await operatorModule.whereIs(trackingIds, extraParams, updateMethod);
+  const entities: Entity[] = await operatorModule.pullFromSource(trackingIds, extraParams, updateMethod);
 
   // whether entity is missing critical status code
   for (const entity of entities) {
@@ -109,13 +109,23 @@ export async function requestWhereIs(operator: string, trackingIds: TrackingID[]
   return entities;
 }
 
-export async function processPushData(operator: string, trackingData: Record<string, unknown>): Promise<{
-  entities: Entity[],
-  result: Record<string, unknown>
-}> {
+/**
+ * Processes push data from a carrier's webhook or push notification system.
+ * Delegates the processing to the appropriate operator module to parse and transform
+ * the tracking data into standardized entities.
+ *
+ * @param {string} operator - The carrier code identifying which operator module to use for processing
+ * @param {Record<string, unknown>} trackingData - The raw tracking data received from the carrier's push notification
+ * @returns {Promise<{ entities: Entity[], result: Record<string, unknown> }>} A promise that resolves to an object containing:
+ *   - entities: An array of parsed Entity objects representing the tracking information
+ *   - result: Additional metadata or response data from the processing operation
+ * @async
+ */
+export async function processPushData(operator: string, trackingData: Record<string, unknown>):
+    Promise<{ entities: Entity[], result: Record<string, unknown> }> {
   const operatorModule = getOperatorModule(operator);
 
-  return await operatorModule.fromJSON(trackingData);
+  return await operatorModule.processPushData(trackingData);
 }
 
 function getOperatorModule(operator: string): OperatorModule {

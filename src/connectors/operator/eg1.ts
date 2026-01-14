@@ -35,7 +35,7 @@ export class Eg1 implements OperatorModule{
      * @param {string} _updateMethod - The method used to update the tracking information.
      * @returns {Promise<Entity | undefined>} A promise resolving to the tracking entity or undefined if not found.
      */
-    async whereIs(_trackingIds: TrackingID[], _extraParams: Record<string, string>, _updateMethod: string): Promise<Entity[]> {
+    async pullFromSource(_trackingIds: TrackingID[], _extraParams: Record<string, string>, _updateMethod: string): Promise<Entity[]> {
         throw new Error("eg1 is a push-based operator and does not support whereIs queries");
     }
 
@@ -48,7 +48,7 @@ export class Eg1 implements OperatorModule{
      *          - `result`: The response data as a key-value record.
      *
      */
-    async fromJSON(data: Record<string, unknown>): Promise<{ entities: Entity[], result: Record<string, unknown> }> {
+    async processPushData(data: Record<string, unknown>): Promise<{ entities: Entity[], result: Record<string, unknown> }> {
         const entities: Entity[] = [];
         const result: Record<string, unknown> = { success: true };
         try {
