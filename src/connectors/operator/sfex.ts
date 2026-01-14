@@ -176,7 +176,7 @@ export class Sfex implements OperatorModule{
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Promise<Entity | undefined>} A promise that resolves to an object or undefined if no data is found.
    */
-  async whereIs(trackingIds: TrackingID[], extraParams: Record<string, string>, updateMethod: string,): Promise<Entity[]> {
+  async pullFromSource(trackingIds: TrackingID[], extraParams: Record<string, string>, updateMethod: string,): Promise<Entity[]> {
     if (!isOperatorActive("sfex")) {
       throw new AppError("500-01", "500BA: sfex - PARTNERID");
     }
@@ -224,7 +224,7 @@ export class Sfex implements OperatorModule{
    * The actual implementation should be based on the specific structure of the input data.
    */
   // deno-lint-ignore require-await
-  async fromJSON(_data: Record<string, unknown>): Promise<{ entities: Entity[], result: Record<string, unknown> }> {
+  async processPushData(_data: Record<string, unknown>): Promise<{ entities: Entity[], result: Record<string, unknown> }> {
     const entities: Entity[] = [];
     const result: Record<string, unknown> = {success:true};
     return { entities, result };

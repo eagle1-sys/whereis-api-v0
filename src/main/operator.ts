@@ -21,7 +21,7 @@ export interface OperatorModule {
 
     validateStoredEntity(entity: Entity, params: Record<string, string>): boolean;
 
-    whereIs(trackingIds: TrackingID[], extraParams: Record<string, string>, updateMethod: string): Promise<Entity[]>;
+    pullFromSource(trackingIds: TrackingID[], extraParams: Record<string, string>, updateMethod: string): Promise<Entity[]>;
 
-    fromJSON(jsonData: Record<string, unknown>): Promise<{entities: Entity[], result: Record<string, unknown>}>;
+    processPushData(jsonData: Record<string, unknown>): Promise<{entities: Entity[], result: Record<string, unknown>}>;
 }
