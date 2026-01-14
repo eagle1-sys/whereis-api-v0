@@ -175,7 +175,7 @@ app.get("/v0/whereis/:id", async (c: Context) => {
   if (!outputJSON.entity.additional) {
     outputJSON.entity.additional = {};
   }
-  outputJSON.entity.additional.processingTimeMs = Number(elapsed.toFixed(3));
+  outputJSON.entity.additional.processingTimeMs = Number(elapsed.toFixed(2));
 
   return c.json(outputJSON, 200, {
     "Content-Type": "application/json; charset=utf-8",
