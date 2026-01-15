@@ -33,7 +33,7 @@ async function main() {
                 case "help":
                     console.log("\nAvailable commands:");
                     console.log("  help    - Show this help message");
-                    console.log("  grafana - Read log from grafana");
+                    console.log("  log     - Read log from grafana");
                     console.log("  exit    - Exit the program");
                     console.log();
                     break;
@@ -43,14 +43,17 @@ async function main() {
                     break;
                 }
 
-                default:
+                default: {
                     console.log(`Unknown command: "${input}"`);
                     console.log('Type "help" for available commands\n');
                     break;
+                }
 
-                case "exit":
+                case "exit": {
                     console.log("Goodbye!");
-                    Deno.exit(0);
+                    return;
+                }
+
             }
         } catch (error) {
             console.error("Error reading input:", error);
@@ -91,6 +94,8 @@ async function analyseLog(args: string[]): Promise<void> {
         errorHandler(err);
     }
 
+    if (logs === undefined) return;
+
     // todo: step 4: analyse the logs
     // ...
 }
@@ -120,13 +125,16 @@ function getTimeRangeFromArgs(args: string[]): { start: number; end: number } {
     args.forEach(arg => {
         if (arg.startsWith("--h=")) {
             const value = arg.slice(4);
-            hours = isNaN(Number(value)) ? 24 :parseInt(value);
+            const parsed = Number(value);
+            hours = isNaN(parsed) || parsed <= 0 ? 24 : Math.floor(parsed);
         } else if (arg.startsWith("--d=")) {
             const value = arg.slice(4);
-            hours = isNaN(Number(value)) ? 24 : parseInt(value) * 24;
+            const parsed = Number(value);
+            hours = isNaN(parsed) || parsed <= 0 ? 24 : Math.floor(parsed) * 24;
         } else if (arg.startsWith("--span=")) {
             const value = arg.slice(7);
-            span = isNaN(Number(value)) ? 24 : parseInt(value);
+            const parsed = Number(value);
+            span = isNaN(parsed) || parsed <= 0 ? 24 : Math.floor(parsed);
         }
     });
 
