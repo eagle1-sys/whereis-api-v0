@@ -43,15 +43,15 @@ async function main() {
                     break;
                 }
 
+                case "exit": {
+                    console.log("Goodbye!");
+                    return;
+                }
+
                 default: {
                     console.log(`Unknown command: "${input}"`);
                     console.log('Type "help" for available commands\n');
                     break;
-                }
-
-                case "exit": {
-                    console.log("Goodbye!");
-                    return;
                 }
 
             }
