@@ -82,21 +82,19 @@ async function analyseLog(args: string[]): Promise<void> {
     // step 2: initialize Grafana instance
     const grafana = Grafana.getInstance();
 
-    let logs;
     // step 3: query logs from Grafana within the specified time range
-    try {
-        logs = await grafana.queryLog({
-            start: start,
-            end: end
-        });
-        console.log(JSON.stringify(logs, null, 2));
-    } catch (err) {
-        errorHandler(err);
+    const logs = await grafana.queryLog({
+        start: start,
+        end: end
+    });
+
+    if (!logs) {
+        console.error("Failed to retrieve logs from Grafana");
+        return;
     }
 
-    if (logs === undefined) return;
-
     // todo: step 4: analyse the logs
+    console.log(JSON.stringify(logs, null, 2));
     // ...
 }
 
@@ -139,7 +137,7 @@ function getTimeRangeFromArgs(args: string[]): { start: number; end: number } {
     });
 
     const start = Date.now() - MILLIS_PER_HOUR * hours;
-    const end = start + MILLIS_PER_HOUR * span;
+    const end = Math.min(start + MILLIS_PER_HOUR * span, Date.now());
 
     return { start, end };
 }
@@ -156,7 +154,7 @@ function getTimeRangeFromArgs(args: string[]): { start: number; end: number } {
  */
 async function readLine(prompt: string = ""): Promise<string> {
     if (prompt) {
-        console.log(prompt);
+        await Deno.stdout.write(new TextEncoder().encode(prompt));
     }
 
     const buf = new Uint8Array(1024);
