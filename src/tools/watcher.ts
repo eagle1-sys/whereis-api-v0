@@ -7,8 +7,16 @@
  */
 import { Grafana } from "./grafana.ts";
 import { loadEnv } from "../main/app.ts";
+import {loadJSONFromFs} from "./util.ts";
 
 const MILLIS_PER_HOUR = 60 * 60 * 1000;
+
+let ROUTER_API_KEY : string | undefined;
+const ROUTER_API_URL = "https://router.requesty.ai/v1/chat/completions";
+
+const jsonStatusCode: Record<string, unknown> = await loadJSONFromFs(
+    "./metadata/status-codes.jsonc",
+);
 
 /**
  * Initializes and runs the interactive REPL (Read-Eval-Print Loop) interface for the log watcher tool.
@@ -21,6 +29,7 @@ async function main() {
     // step 1: load environment variable first
     await loadEnv();
 
+    ROUTER_API_KEY = Deno.env.get("ROUTER_API_KEY");
     console.log("=== Console Input Handler ===");
     console.log('Type "help" for available commands\n');
     while (true) {
@@ -40,6 +49,18 @@ async function main() {
 
                 case "log": {
                     await analyseLog(parts.slice(1));
+                    break;
+                }
+
+                case "check": {
+                    // eg: check sfex SF3182998070266 6993
+                    await check(parts[1], parts[2], parts.length >= 4 ? parts[3] : undefined);
+                    break;
+                }
+
+                case "aicheck": {
+                    // eg: aicheck sfex SF3182998070266 6993
+                    await aiCheck(parts[1], parts[2], parts.length >= 4 ? parts[3] : undefined);
                     break;
                 }
 
@@ -77,69 +98,82 @@ async function main() {
  */
 async function analyseLog(args: string[]): Promise<void> {
     // step 1: get time range from user input
-    const {start, end} = getTimeRangeFromArgs(args);
+    const options = getOptionsFromArgs(args);
 
     // step 2: initialize Grafana instance
     const grafana = Grafana.getInstance();
 
     // step 3: query logs from Grafana within the specified time range
-    const logs = await grafana.queryLog({
-        start: start,
-        end: end
-    });
+    const logs:Record<string, unknown> | undefined = await grafana.queryLog(options);
 
     if (!logs) {
         console.error("Failed to retrieve logs from Grafana");
         return;
     }
 
-    // todo: step 4: analyse the logs
-    console.log(JSON.stringify(logs, null, 2));
+    // const result = logs["data"]["result"];
+    const data = logs["data"] as Record<string, unknown>;
+    const result = data["result"];
+
+    if (!Array.isArray(result) || result.length === 0) {
+        console.info("No log returned from Grafana");
+        return;
+    }
+
+    // step 4: extract log messages and convert them for future processing
+    const values = result[0]["values"];
+    const messages = getLogMessages(values)
+
+    // todo: step 5: analyse the logs
+    console.log(JSON.stringify(messages, null, 2));
     // ...
 }
 
-/**
- * Parses command-line arguments to extract and calculate a time range for log queries.
- *
- * This function processes an array of command-line parameters to determine the start and end
- * timestamps for querying logs. It supports three argument formats:
- * - `--h=<hours>`: Specifies how many hours back from now to start the query
- * - `--d=<days>`: Specifies how many days back from now to start the query (converted to hours)
- * - `--span=<hours>`: Specifies the duration of the time range in hours
- *
- * If invalid or missing values are provided, defaults to 24 hours for both lookback and span.
- * The start time is calculated as the current time minus the specified hours, and the end time
- * is calculated as the start time plus the span duration.
- *
- * @param args - An array of command-line argument strings to parse. Expected formats include
- *                 "--h=<number>", "--d=<number>", and "--span=<number>".
- * @returns An object containing the calculated time range with two properties:
- *          - `start`: The start timestamp in milliseconds since Unix epoch
- *          - `end`: The end timestamp in milliseconds since Unix epoch
- */
-function getTimeRangeFromArgs(args: string[]): { start: number; end: number } {
-    let hours = 24, span: number = 24;
+function getOptionsFromArgs(args: string[]): Record<string, unknown> {
+    const result = {
+        level: "error",
+        start: 0,
+        end: 0,
+        keyword: ""
+    };
 
-    args.forEach(arg => {
-        if (arg.startsWith("--h=")) {
-            const value = arg.slice(4);
-            const parsed = Number(value);
-            hours = isNaN(parsed) || parsed <= 0 ? 24 : Math.floor(parsed);
-        } else if (arg.startsWith("--d=")) {
-            const value = arg.slice(4);
-            const parsed = Number(value);
-            hours = isNaN(parsed) || parsed <= 0 ? 24 : Math.floor(parsed) * 24;
-        } else if (arg.startsWith("--span=")) {
-            const value = arg.slice(7);
-            const parsed = Number(value);
-            span = isNaN(parsed) || parsed <= 0 ? 24 : Math.floor(parsed);
+    let hours = 24, offset: number = 24;
+    let levelSet = false;
+
+    for (let i = 0; i < args.length; i++) {
+        const arg = args[i];
+
+        // Check if this is the first argument and it's not a flag - treat it as log level
+        if (i === 0 && !arg.startsWith("--")) {
+            result.level = arg.toUpperCase();
+            levelSet = true;
+            continue;
         }
-    });
 
-    const start = Date.now() - MILLIS_PER_HOUR * hours;
-    const end = Math.min(start + MILLIS_PER_HOUR * span, Date.now());
+        if (arg === "--from" && i + 1 < args.length) {
+            const value = args[i + 1];
+            if (value.startsWith("h")) {
+                const parsed = Number(value.substring(1));
+                hours = isNaN(parsed) || parsed <= 0 ? 24 : Math.floor(parsed);
+            } else if (value.startsWith("d")) {
+                const parsed = Number(value.substring(1));
+                hours = isNaN(parsed) || parsed <= 0 ? 24 : Math.floor(parsed) * 24;
+            }
+            i++;
+        } else if (arg === "--offset" && i + 1 < args.length) {
+            const parsed = Number(args[i + 1]);
+            offset = isNaN(parsed) || parsed <= 0 ? 24 : Math.floor(parsed);
+            i++;
+        } else if (!arg.startsWith("--") && levelSet) {
+            // This is a non-flag argument after the level has been set - treat it as keyword
+            result.keyword = arg;
+        }
+    }
 
-    return { start, end };
+    result.start = Date.now() - MILLIS_PER_HOUR * hours;
+    result.end = Math.min(result.start + MILLIS_PER_HOUR * offset, Date.now());
+
+    return result;
 }
 
 /**
@@ -167,28 +201,237 @@ async function readLine(prompt: string = ""): Promise<string> {
     return new TextDecoder().decode(buf.subarray(0, n)).trim();
 }
 
-/**
- * Handles and logs errors in a structured format for the LogWatcher tool.
- *
- * This function provides comprehensive error logging by checking if the error is an
- * instance of the Error class and logging its message, stack trace, and cause if available.
- * For non-Error objects, it converts them to a string representation for logging.
- *
- * @param err - The error object to be handled. Can be of any type (Error instance or other).
- * @returns This function does not return a value (void). It only logs error information to the console.
- */
-function errorHandler(err: unknown): void {
-    if (err instanceof Error) {
-        console.error(`LogWatcher: ${err.message}`);
-        if (err.stack) {
-            console.error(`Stack trace: ${err.stack}`);
+function getLogMessages(logData: Array<Record<string, unknown>>): Array<{ time: string; message: string }> {
+    const formattedLogs: Array<{ time: string; message: string }> = [];
+
+    for (const entry of logData) {
+        if (!Array.isArray(entry)) {
+            continue;
         }
-        if (err.cause) {
-            console.error(`Caused by: ${err.cause}`);
+        const timestampNs = entry[0];
+        const logJson = entry[1];
+        // Convert nanosecond timestamp to milliseconds
+        const timestampMs = Math.floor(Number(timestampNs) / 1000000);
+        const isoTime = new Date(timestampMs).toISOString();
+
+        // Parse the JSON string to extract the message
+        try {
+            const logObject = JSON.parse(logJson);
+            const message = logObject.message || logJson;
+
+            formattedLogs.push({
+                time: isoTime,
+                message: message
+            });
+        } catch {
+            // If JSON parsing fails, use the raw string
+            formattedLogs.push({
+                time: isoTime,
+                message: logJson
+            });
+        }
+    }
+
+    return formattedLogs;
+}
+
+
+async function check(operator: string, trackingNum: string, phoneNum?:string): Promise<void> {
+    const trackingId = operator + "-" + trackingNum;
+    try {
+        const events = await loadEvents(operator, trackingNum, phoneNum);
+
+        // Optionally analyze the events
+        checkMissingStatusByRule(trackingId, events);
+    } catch (error) {
+        console.error(`Error loading data for ${trackingId}:`, error instanceof Error ? error.message : error);
+    }
+}
+
+function checkMissingStatusByRule(trackingId: string, data: Array<Record<string, unknown>>): void {
+    // Sort data by output.when attribute
+    const sortedData = [...data].sort((a, b) => {
+        const outputA = a.output as Record<string, unknown>;
+        const outputB = b.output as Record<string, unknown>;
+        const whenA = outputA.when as string;
+        const whenB = outputB.when as string;
+        return whenA.localeCompare(whenB);
+    });
+
+    // Define major event codes
+    const majorEventCodes = [3000, 3100, 3200, 3300, 3400, 3500];
+
+    // Extract status codes from sorted data
+    const existingStatuses = new Set<number>();
+    for (const item of sortedData) {
+        const output = item.output as Record<string, unknown>;
+        const status = output.status as number;
+        existingStatuses.add(status);
+    }
+
+    // Check for missing major events
+    const missingStatuses: number[] = [];
+    for (const majorCode of majorEventCodes) {
+        if (!existingStatuses.has(majorCode)) {
+            missingStatuses.push(majorCode);
+        }
+    }
+
+    // Print results
+    console.log(`=== Status Check Results for trackingID ${trackingId} ===`);
+    if (missingStatuses.length > 0) {
+        console.log(`Missing major events: ${missingStatuses.join(", ")}`);
+        for (const code of missingStatuses) {
+            const statusInfo = jsonStatusCode[code];
+            if (statusInfo) {
+                // console.log(`   - ${code}: ${statusInfo}`);
+            }
         }
     } else {
-        console.error(`Unknown error in LogWatcher: ${String(err)}`);
+        console.log("All major events are present");
     }
+    console.log("===========================\n");
+}
+
+
+async function aiCheck(operator: string, trackingNum: string, phoneNum?:string): Promise<void> {
+    // load data from whereis service
+    const data = await loadEvents(operator, trackingNum, phoneNum);
+
+    const systemMessage = "You are a professional logistics data analyst tasked with standardizing logistics data " +
+        "from various external providers into a consistent format based on specific rules. I will provide two datasets:" +
+        "A standardized status & what list detailing major and minor events. Major event codes includes 3000, 3100, 3200, 3300, 3400 and 3500. " +
+        "Minor event codes include 3050, 3150, 3250, 3350 and 3450, All other event codes are classified as non-critical codes." +
+        "Shipment data containing raw routing data from external providers and their transformed status & what outputs. " +
+        "Each routing data point includes an input (raw data from the provider) and an output (converted status & what)." +
+        "Your task is to analyse events in the waybill and ensure all major events are present, " +
+        "you need to output the missing major events in JSON format. The JSON output should include two attribute: one is status code, the other is what.";
+    const userPrompt = `The standardized status & what list is: ${JSON.stringify(jsonStatusCode)}` +
+        `The shipment data is: ${JSON.stringify(data)},`;
+
+    const messages: Array<{ role: string; content: string }> = [
+        { role: "system", content: systemMessage },
+        { role: "user", content: userPrompt },
+    ];
+
+    // anthropic/claude-3-5-haiku-latest
+    // deepinfra/deepseek-ai/DeepSeek-V3.1
+    const completion = await getCompletion(
+        "deepinfra/deepseek-ai/DeepSeek-V3",
+        messages,
+    );
+    console.log("Result:", completion);
+}
+
+async function getCompletion(model: string, messages: Array<{ role: string; content: string }>): Promise<string> {
+    const response = await fetch(ROUTER_API_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${ROUTER_API_KEY}`,
+        },
+        body: JSON.stringify({
+            model: model,
+            messages: messages,
+        }),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`HTTP error! status: ${response.status} : ${errorData.error?.message}`);  }
+
+    const data = await response.json();
+    return data.choices[0].message.content.trim();
+}
+
+
+async function loadEvents(operator: string, trackingNum: string, phoneNum?:string): Promise<Array<Record<string, unknown>>> {
+    let events: Array<Record<string, unknown>> = [];
+    const trackingId = operator + "-" + trackingNum;
+    try {
+        console.log(`Loading data for tracking: ${trackingId}`);
+        const extra: { [key: string]: string | undefined } = {fulldata: "true"};
+        if (phoneNum !== "") {
+            extra['phonenum'] = phoneNum;
+        }
+        const waybillData = await loadTrackingDataFromWhereis(trackingId, extra);
+        events = convertWaybill(operator, waybillData);
+        console.log(`Loaded ${events.length} events for ${trackingId}`);
+    } catch (error) {
+        console.error(`Error loading data for ${trackingId}:`, error instanceof Error ? error.message : error);
+    }
+    return events;
+}
+
+async function loadTrackingDataFromWhereis(trackingId: string, extra: {[key: string]: string | undefined}): Promise<Record<string, unknown>> {
+    const WHEREIS_API_URL = Deno.env.get("WHEREIS_API_URL");
+    let url = `${WHEREIS_API_URL}/v0/whereis/${trackingId}`;
+    if (extra !== undefined) {
+        const params = new URLSearchParams(extra as Record<string, string>);
+        url = url + "?" + params.toString();
+    }
+
+    // issue http request
+    const apiKey = Deno.env.get("WHEREIS_API_KEY");
+    const response = await fetch(url, {
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${apiKey}`,
+        },
+    });
+
+    return  await response.json();
+}
+
+function convertWaybill(operatorCode: string, waybill: Record<string, unknown>): Array<Record<string, unknown>> {
+    const result: Array<Record<string, unknown>> = [];
+
+    const events = waybill.events as Array<Record<string, unknown>>;
+    if (!events || !Array.isArray(events)) {
+        return result;
+    }
+
+    for (const event of events) {
+        const sourceData = event.sourceData as Record<string, unknown>;
+
+        if (!sourceData) {
+            continue;
+        }
+
+        let input: Record<string, unknown>;
+        if (operatorCode === "sfex") {
+            input = {
+                firstStatusCode: sourceData.firstStatusCode,
+                firstStatusName: sourceData.firstStatusName,
+                secondaryStatusCode: sourceData.secondaryStatusCode,
+                secondaryStatusName: sourceData.secondaryStatusName,
+                date: sourceData.acceptTime,
+                remark: sourceData.remark,
+            };
+        } else if (operatorCode === "fdx") {
+            input = {
+                eventType: sourceData.eventType,
+                eventDescription: sourceData.eventDescription,
+                derivedStatusCode: sourceData.derivedStatusCode,
+                derivedStatus: sourceData.derivedStatus,
+                date: sourceData.date,
+            };
+        } else {
+            // Default fallback for unknown operators
+            input = sourceData;
+        }
+
+        result.push({
+            input: input,
+            output: {
+                status: event.status,
+                what: event.what,
+                when: event.when,
+            },
+        });
+    }
+
+    return result;
 }
 
 // Execute the main function and handle any uncaught errors
