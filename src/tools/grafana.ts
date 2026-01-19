@@ -1,6 +1,7 @@
 
 interface QueryLogsOptions {
-    query?: string;
+    level?: string;
+    keyword?: string;
     start?: number;
     end?: number;
     limit?: number;
@@ -47,7 +48,7 @@ export class Grafana {
         }
     }
 
-    async queryLog(options: Record<string, unknown> = {}): Promise<Record<string, unknown> | undefined> {
+    async queryLog(options: QueryLogsOptions = {}): Promise<Record<string, unknown> | undefined> {
         const {
             level = 'info',
             keyword = '',
@@ -57,11 +58,18 @@ export class Grafana {
             direction = 'backward',
         } = options;
 
+        // Escape special characters for LogQL
+        const escapeLogQL = (s: unknown): string => {
+            return String(s).replace(/["\\]/g, '\\$&');
+        };
+        const safeLevel = escapeLogQL(level);
+        const safeKeyword = escapeLogQL(keyword);
+
         // Filter by level only
-        let query: string = `{app="whereis"} |= "${level}"`;
+        let query: string = `{app="whereis"} |= "${safeLevel}"`;
         if (keyword) {
             // Filter by both level and keyword
-            query = `{app="whereis"} |= "${level}" |= "${keyword}"`;
+            query = `{app="whereis"} |= "${safeLevel}" |= "${safeKeyword}"`;
         }
 
         const startNs = (Number(start) * 1000000).toString();

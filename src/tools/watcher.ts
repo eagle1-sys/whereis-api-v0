@@ -14,9 +14,7 @@ const MILLIS_PER_HOUR = 60 * 60 * 1000;
 let ROUTER_API_KEY : string | undefined;
 const ROUTER_API_URL = "https://router.requesty.ai/v1/chat/completions";
 
-const jsonStatusCode: Record<string, unknown> = await loadJSONFromFs(
-    "./metadata/status-codes.jsonc",
-);
+let jsonStatusCode: Record<string, unknown> = {};
 
 /**
  * Initializes and runs the interactive REPL (Read-Eval-Print Loop) interface for the log watcher tool.
@@ -28,6 +26,9 @@ const jsonStatusCode: Record<string, unknown> = await loadJSONFromFs(
 async function main() {
     // step 1: load environment variable first
     await loadEnv();
+
+    // load status codes
+    await loadStatusCodes();
 
     ROUTER_API_KEY = Deno.env.get("ROUTER_API_KEY");
     console.log("=== Console Input Handler ===");
@@ -43,6 +44,8 @@ async function main() {
                     console.log("\nAvailable commands:");
                     console.log("  help    - Show this help message");
                     console.log("  log     - Read log from grafana");
+                    console.log("  check   - Check tracking status (usage: check <operator> <trackingNum> [phoneNum])");
+                    console.log("  aicheck - AI-powered tracking check (usage: aicheck <operator> <trackingNum> [phoneNum])");
                     console.log("  exit    - Exit the program");
                     console.log();
                     break;
@@ -54,12 +57,20 @@ async function main() {
 
                 case "check": {
                     // eg: check sfex SF3182998070266 6993
+                    if (parts.length < 3) {
+                        console.log("Usage: check <operator> <trackingNum> [phoneNum]");
+                        break;
+                    }
                     await check(parts[1], parts[2], parts.length >= 4 ? parts[3] : undefined);
                     break;
                 }
 
                 case "aicheck": {
                     // eg: aicheck sfex SF3182998070266 6993
+                    if (parts.length < 3) {
+                        console.log("Usage: aicheck <operator> <trackingNum> [phoneNum]");
+                        break;
+                    }
                     await aiCheck(parts[1], parts[2], parts.length >= 4 ? parts[3] : undefined);
                     break;
                 }
@@ -80,6 +91,15 @@ async function main() {
             console.error("Error reading input:", error);
             break;
         }
+    }
+}
+
+async function loadStatusCodes(): Promise<void> {
+    try {
+        jsonStatusCode = await loadJSONFromFs("./metadata/status-codes.jsonc");
+    } catch (error) {
+        console.error("Failed to load status codes:", error instanceof Error ? error.message : error);
+        Deno.exit(1);
     }
 }
 
@@ -201,7 +221,7 @@ async function readLine(prompt: string = ""): Promise<string> {
     return new TextDecoder().decode(buf.subarray(0, n)).trim();
 }
 
-function getLogMessages(logData: Array<Record<string, unknown>>): Array<{ time: string; message: string }> {
+function getLogMessages(logData: Array<[string, string]>): Array<{ time: string; message: string }> {
     const formattedLogs: Array<{ time: string; message: string }> = [];
 
     for (const entry of logData) {
@@ -284,7 +304,7 @@ function checkMissingStatusByRule(trackingId: string, data: Array<Record<string,
         for (const code of missingStatuses) {
             const statusInfo = jsonStatusCode[code];
             if (statusInfo) {
-                // console.log(`   - ${code}: ${statusInfo}`);
+                console.log(`   - ${code}: ${statusInfo}`);
             }
         }
     } else {
@@ -324,6 +344,10 @@ async function aiCheck(operator: string, trackingNum: string, phoneNum?:string):
 }
 
 async function getCompletion(model: string, messages: Array<{ role: string; content: string }>): Promise<string> {
+    if (!ROUTER_API_KEY) {
+        throw new Error("ROUTER_API_KEY environment variable is not set");
+    }
+
     const response = await fetch(ROUTER_API_URL, {
         method: "POST",
         headers: {
@@ -341,6 +365,7 @@ async function getCompletion(model: string, messages: Array<{ role: string; cont
         throw new Error(`HTTP error! status: ${response.status} : ${errorData.error?.message}`);  }
 
     const data = await response.json();
+    // The content MUST be a string
     return data.choices[0].message.content.trim();
 }
 
@@ -351,7 +376,7 @@ async function loadEvents(operator: string, trackingNum: string, phoneNum?:strin
     try {
         console.log(`Loading data for tracking: ${trackingId}`);
         const extra: { [key: string]: string | undefined } = {fulldata: "true"};
-        if (phoneNum !== "") {
+        if (phoneNum) {
             extra['phonenum'] = phoneNum;
         }
         const waybillData = await loadTrackingDataFromWhereis(trackingId, extra);
@@ -379,6 +404,10 @@ async function loadTrackingDataFromWhereis(trackingId: string, extra: {[key: str
             "Authorization": `Bearer ${apiKey}`,
         },
     });
+
+    if (!response.ok) {
+        throw new Error(`WhereIs API error: ${response.status} ${response.statusText}`);
+    }
 
     return  await response.json();
 }
