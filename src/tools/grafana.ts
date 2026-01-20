@@ -1,6 +1,7 @@
 
 interface QueryLogsOptions {
-    query?: string;
+    level?: string;
+    keyword?: string;
     start?: number;
     end?: number;
     limit?: number;
@@ -47,23 +48,38 @@ export class Grafana {
         }
     }
 
-    async queryLog(options: QueryLogsOptions = {}): Promise<unknown> {
+    async queryLog(options: QueryLogsOptions = {}): Promise<Record<string, unknown> | undefined> {
         const {
-            query = '{app="whereis"}',
+            level = 'info',
+            keyword = '',
             start = Date.now() - 3600000,
             end = Date.now(),
             limit = 100,
-            direction = 'backward'
+            direction = 'backward',
         } = options;
 
-        const startNs = (start * 1000000).toString();
-        const endNs = (end * 1000000).toString();
+        // Escape special characters for LogQL
+        const escapeLogQL = (s: unknown): string => {
+            return String(s).replace(/["\\]/g, '\\$&');
+        };
+        const safeLevel = escapeLogQL(level);
+        const safeKeyword = escapeLogQL(keyword);
+
+        // Filter by level only
+        let query: string = `{app="whereis"} |= "${safeLevel}"`;
+        if (keyword) {
+            // Filter by both level and keyword
+            query = `{app="whereis"} |= "${safeLevel}" |= "${safeKeyword}"`;
+        }
+
+        const startNs = (Number(start) * 1000000).toString();
+        const endNs = (Number(end) * 1000000).toString();
         const params = new URLSearchParams({
             query: query,
             start: startNs,
             end: endNs,
-            limit: limit.toString(),
-            direction: direction
+            limit: String(limit),
+            direction: String(direction)
         });
 
         try {
@@ -78,13 +94,13 @@ export class Grafana {
 
             if (!response.ok) {
                 console.error('Failed to query logs:', response.status, await response.text());
-                return null;
+                return undefined;
             }
 
             return await response.json();
         } catch (err) {
             console.error('Failed to query logs', err);
-            return null;
+            return undefined;
         }
     }
 
