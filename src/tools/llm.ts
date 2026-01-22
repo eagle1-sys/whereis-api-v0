@@ -32,19 +32,10 @@ export async function checkStatusViaGemini(data: Array<Record<string, unknown>>,
     const userPrompt = `The standardized status & what list is: ${JSON.stringify(jsonStatusCode)}` +
         `The shipment data is: ${JSON.stringify(data)},`;
 
-    const contents: Array<Record<string, unknown>> = [
-        {
-            role: "user",
-            parts: [
-                {text: systemMessage},
-                {text: userPrompt}
-            ]
-        },
-    ];
-
     const completion = await callGemini(
         "gemini-2.5-flash",
-        contents,
+        systemMessage,
+        userPrompt
     );
     console.log("Result:", completion);
 }
@@ -68,20 +59,18 @@ async function callLLMViaRequesty(model: string, messages: Array<{ role: string;
         }),
     });
 
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`HTTP error! status: ${response.status} : ${errorData.error?.message}`);  }
-
-    const data = await response.json();
-    const content = data?.choices?.[0]?.message?.content;
+    const data = await getLLMResponse(response);
+    const choices = data?.choices as Array<Record<string, unknown>> | undefined;
+    const message = choices?.[0]?.message as Record<string, unknown> | undefined;
+    const content = message?.content;
     if (typeof content !== "string") {
         throw new Error("Unexpected LLM response: missing choices[0].message.content");
     }
-    // The content MUST be a string
+
     return content.trim();
 }
 
-async function callGemini(model: string, contents: Array<Record<string, unknown>>): Promise<string> {
+async function callGemini(model: string, systemIntruction: string, userMessage: string): Promise<string> {
     const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
 
     if (!geminiApiKey) {
@@ -89,24 +78,46 @@ async function callGemini(model: string, contents: Array<Record<string, unknown>
     }
 
     const apiUrl = GEMINI_API_URL.replace("MODEL_NAME", model) + "?key=" + geminiApiKey;
+    const contents: Array<Record<string, unknown>> = [
+        {
+            role: "user",
+            parts: [
+                {text: userMessage}
+            ]
+        },
+    ];
     const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
+            system_instruction: { parts: [{ text: systemIntruction }] },
             contents: contents,
         }),
     });
 
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`HTTP error! status: ${response.status} : ${errorData.error?.message}`);  }
-
-    const data = await response.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const data = await getLLMResponse(response);
+    const candidates = data?.candidates as Array<Record<string, unknown>> | undefined;
+    const content = candidates?.[0]?.content as Record<string, unknown> | undefined;
+    const parts = content?.parts as Array<Record<string, unknown>> | undefined;
+    const text = parts?.[0]?.text;
     if (typeof text !== "string") {
         throw new Error("Unexpected Gemini response: missing candidates[0].content.parts[0].text");
     }
     return text.trim();
+}
+
+async function getLLMResponse(response: Response): Promise<Record<string, unknown>>  {
+    if (!response.ok) {
+        let errorMessage;
+        try {
+            const errorData = await response.json();
+            errorMessage = errorData?.error?.message ?? "";
+        } catch {
+            errorMessage = await response.text().catch(() => "");
+        }
+        throw new Error(`HTTP error! status: ${response.status} : ${errorMessage}`);
+    }
+    return await response.json();
 }
