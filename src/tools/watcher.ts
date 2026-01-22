@@ -25,6 +25,7 @@ let jsonStatusCode: Record<string, unknown> = {};
 async function main() {
     // step 1: load environment variable first
     await loadEnv();
+    aiModel = Deno.env.get("AI_MODEL") ?? aiModel;
 
     // load status codes
     await loadStatusCodes();
@@ -71,8 +72,12 @@ async function main() {
                     }
                     const operator = parts[1];
                     const trackingNum = parts[2];
-                    const phoneNum = parts.length >= 4? parts[3] : undefined;
+                    const phoneNum = parts.length >= 4 ? parts[3] : undefined;
                     const data = await loadEvents(operator, trackingNum, phoneNum);
+                    if (data.length === 0) {
+                        console.warn("No events loaded; skipping AI check.");
+                        break;
+                    }
                     if (aiModel === "gemini") {
                         await checkStatusViaGemini(data, jsonStatusCode);
                     } else {

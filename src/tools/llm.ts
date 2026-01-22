@@ -1,4 +1,3 @@
-let GEMINI_API_KEY: string | undefined;
 const ROUTER_API_URL = "https://router.requesty.ai/v1/chat/completions";
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/MODEL_NAME:generateContent`;
 
@@ -51,9 +50,9 @@ export async function checkStatusViaGemini(data: Array<Record<string, unknown>>,
 }
 
 async function callLLMViaRequesty(model: string, messages: Array<{ role: string; content: string }>): Promise<string> {
-    GEMINI_API_KEY = Deno.env.get("ROUTER_API_KEY");
+    const routerApiKey = Deno.env.get("ROUTER_API_KEY");
 
-    if (!GEMINI_API_KEY) {
+    if (!routerApiKey) {
         throw new Error("ROUTER_API_KEY environment variable is not set");
     }
 
@@ -61,7 +60,7 @@ async function callLLMViaRequesty(model: string, messages: Array<{ role: string;
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${GEMINI_API_KEY}`,
+            "Authorization": `Bearer ${routerApiKey}`,
         },
         body: JSON.stringify({
             model: model,
@@ -74,18 +73,22 @@ async function callLLMViaRequesty(model: string, messages: Array<{ role: string;
         throw new Error(`HTTP error! status: ${response.status} : ${errorData.error?.message}`);  }
 
     const data = await response.json();
+    const content = data?.choices?.[0]?.message?.content;
+    if (typeof content !== "string") {
+        throw new Error("Unexpected LLM response: missing choices[0].message.content");
+    }
     // The content MUST be a string
-    return data.choices[0].message.content.trim();
+    return content.trim();
 }
 
 async function callGemini(model: string, contents: Array<Record<string, unknown>>): Promise<string> {
-    GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
 
-    if (!GEMINI_API_KEY) {
+    if (!geminiApiKey) {
         throw new Error("GEMINI_API_KEY environment variable is not set");
     }
 
-    const apiUrl = GEMINI_API_URL.replace("MODEL_NAME", model) + "?key=" + GEMINI_API_KEY;
+    const apiUrl = GEMINI_API_URL.replace("MODEL_NAME", model) + "?key=" + geminiApiKey;
     const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
@@ -101,6 +104,9 @@ async function callGemini(model: string, contents: Array<Record<string, unknown>
         throw new Error(`HTTP error! status: ${response.status} : ${errorData.error?.message}`);  }
 
     const data = await response.json();
-    // The content MUST be a string
-    return data.candidates[0].content.parts[0].text.trim();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (typeof text !== "string") {
+        throw new Error("Unexpected Gemini response: missing candidates[0].content.parts[0].text");
+    }
+    return text.trim();
 }
