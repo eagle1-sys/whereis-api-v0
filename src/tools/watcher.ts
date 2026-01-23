@@ -8,11 +8,10 @@
 import { Grafana } from "./grafana.ts";
 import { loadEnv } from "../main/app.ts";
 import {loadJSONFromFs} from "./util.ts";
+import {checkStatusViaRequesty, checkStatusViaGemini} from "./llm.ts";
 
+let aiModel: string = "gemini";
 const MILLIS_PER_HOUR = 60 * 60 * 1000;
-
-let ROUTER_API_KEY : string | undefined;
-const ROUTER_API_URL = "https://router.requesty.ai/v1/chat/completions";
 
 let jsonStatusCode: Record<string, unknown> = {};
 
@@ -26,11 +25,11 @@ let jsonStatusCode: Record<string, unknown> = {};
 async function main() {
     // step 1: load environment variable first
     await loadEnv();
+    aiModel = Deno.env.get("AI_MODEL") ?? aiModel;
 
     // load status codes
     await loadStatusCodes();
 
-    ROUTER_API_KEY = Deno.env.get("ROUTER_API_KEY");
     console.log("=== Console Input Handler ===");
     console.log('Type "help" for available commands\n');
     while (true) {
@@ -71,7 +70,19 @@ async function main() {
                         console.log("Usage: aicheck <operator> <trackingNum> [phoneNum]");
                         break;
                     }
-                    await aiCheck(parts[1], parts[2], parts.length >= 4 ? parts[3] : undefined);
+                    const operator = parts[1];
+                    const trackingNum = parts[2];
+                    const phoneNum = parts.length >= 4 ? parts[3] : undefined;
+                    const data = await loadEvents(operator, trackingNum, phoneNum);
+                    if (data.length === 0) {
+                        console.warn("No events loaded; skipping AI check.");
+                        break;
+                    }
+                    if (aiModel === "gemini") {
+                        await checkStatusViaGemini(data, jsonStatusCode);
+                    } else {
+                        await checkStatusViaRequesty(data, jsonStatusCode);
+                    }
                     break;
                 }
 
@@ -311,62 +322,6 @@ function checkMissingStatusByRule(trackingId: string, data: Array<Record<string,
         console.log("All major events are present");
     }
     console.log("===========================\n");
-}
-
-
-async function aiCheck(operator: string, trackingNum: string, phoneNum?:string): Promise<void> {
-    // load data from whereis service
-    const data = await loadEvents(operator, trackingNum, phoneNum);
-
-    const systemMessage = "You are a professional logistics data analyst tasked with standardizing logistics data " +
-        "from various external providers into a consistent format based on specific rules. I will provide two datasets:" +
-        "A standardized status & what list detailing major and minor events. Major event codes includes 3000, 3100, 3200, 3300, 3400 and 3500. " +
-        "Minor event codes include 3050, 3150, 3250, 3350 and 3450, All other event codes are classified as non-critical codes." +
-        "Shipment data containing raw routing data from external providers and their transformed status & what outputs. " +
-        "Each routing data point includes an input (raw data from the provider) and an output (converted status & what)." +
-        "Your task is to analyse events in the waybill and ensure all major events are present, " +
-        "you need to output the missing major events in JSON format. The JSON output should include two attribute: one is status code, the other is what.";
-    const userPrompt = `The standardized status & what list is: ${JSON.stringify(jsonStatusCode)}` +
-        `The shipment data is: ${JSON.stringify(data)},`;
-
-    const messages: Array<{ role: string; content: string }> = [
-        { role: "system", content: systemMessage },
-        { role: "user", content: userPrompt },
-    ];
-
-    // anthropic/claude-3-5-haiku-latest
-    // deepinfra/deepseek-ai/DeepSeek-V3.1
-    const completion = await getCompletion(
-        "deepinfra/deepseek-ai/DeepSeek-V3",
-        messages,
-    );
-    console.log("Result:", completion);
-}
-
-async function getCompletion(model: string, messages: Array<{ role: string; content: string }>): Promise<string> {
-    if (!ROUTER_API_KEY) {
-        throw new Error("ROUTER_API_KEY environment variable is not set");
-    }
-
-    const response = await fetch(ROUTER_API_URL, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${ROUTER_API_KEY}`,
-        },
-        body: JSON.stringify({
-            model: model,
-            messages: messages,
-        }),
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`HTTP error! status: ${response.status} : ${errorData.error?.message}`);  }
-
-    const data = await response.json();
-    // The content MUST be a string
-    return data.choices[0].message.content.trim();
 }
 
 
