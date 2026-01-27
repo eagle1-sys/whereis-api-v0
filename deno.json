@@ -2,8 +2,9 @@
   "unstable": ["cron"],
   "tasks": {
     "check": "deno lint && deno check .",
-    "initkey": "deno task check && deno run --allow-env --allow-read --allow-net --allow-ffi db/init_key.ts",
-    "test": "deno task check && deno test --allow-env --allow-read --allow-net tests/main-test.ts"
+    "initkey": "deno task check && deno run --allow-env --allow-read --allow-net --allow-ffi src/db/init_key.ts",
+    "test": "deno task check && deno test --allow-env --allow-read --allow-net tests/main-test.ts",
+    "watch": "deno run --allow-env --allow-read --allow-net src/tools/watcher.ts"
   },
   "imports": {
     "@std/dotenv": "jsr:@std/dotenv",
