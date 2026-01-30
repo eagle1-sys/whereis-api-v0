@@ -417,6 +417,7 @@ export class PostgresWrapper implements DatabaseWrapper {
         SELECT uuid,
                id,
                type,
+               ingestion_mode,
                completed,
                additional,
                params,
@@ -433,6 +434,7 @@ export class PostgresWrapper implements DatabaseWrapper {
       entity.uuid = row.uuid;
       entity.id = row.id;
       entity.type = row.type;
+      entity.ingestionMode = row.ingestion_mode;
       entity.completed = row.completed;
       entity.additional = row.additional as Record<string, unknown>;
       entity.params = row.params as Record<string, string>;

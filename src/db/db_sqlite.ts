@@ -277,7 +277,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
         stmt.finalize();
       }
 
-      resolve(trackingNums) ;
+      resolve(trackingNums);
     });
   }
 
@@ -422,7 +422,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
   private queryEntityRecord(trackingId: TrackingID): Entity | undefined {
     let entity: Entity | undefined;
     const stmt = this.db.prepare(`
-      SELECT uuid, id, type, completed, additional, params, creation_time
+      SELECT uuid, id, type, ingestion_mode, completed, additional, params, creation_time
       FROM entities
       WHERE id = ?
     `);
@@ -432,6 +432,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
         uuid: string;
         id: string;
         type: string;
+        ingestionMode: string;
         completed: number;
         additional: string;
         params: string;
@@ -443,6 +444,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
         entity.uuid = row.uuid;
         entity.id = row.id;
         entity.type = row.type;
+        entity.ingestionMode = row.ingestionMode;
         entity.completed = Boolean(row.completed);
         entity.additional = JSON.parse(row.additional);
         entity.params = JSON.parse(row.params);
