@@ -303,22 +303,20 @@ export class Fdx implements OperatorModule {
   }
 
   /**
-   * Creates an array of Entity objects from JSON data.
-   *
-   * @param {Record<string, unknown>} _data - The JSON data object from FedEx containing event information to be converted.
-   * @returns {Promise<{ entities: Entity[], result: Record<string, unknown> }>} A promise that resolves to an object containing:
-   *          - `entities`: An array of Entity objects created from the JSON data
-   *          - `result`: The response data as a key-value record.
    *
    * @remarks
-   * This is currently a placeholder implementation that returns an empty array.
-   * The actual implementation should be based on the specific structure of the input data.
+   * FedEx operates as a pull-based data provider and does not support push operator.
+   * This method is not implemented and will throw an error if called.
+   *
+   * @param _data - The JSON data object from operator containing event information to be converted.
+   *                This parameter is prefixed with underscore as it is intentionally unused.
+   *
+   * @returns An array of Entity objects created from the JSON data.
+   *
+   * @throws {Error} Always throws an error indicating that FedEx does not support push operations.
    */
-  // deno-lint-ignore require-await
-  async processPushData(_data: Record<string, unknown>): Promise<{ entities: Entity[], result: Record<string, unknown> }> {
-    const entities: Entity[] = [];
-    const result: Record<string, unknown> = {success:true};
-    return { entities, result };
+  processPushData(_data: Record<string, unknown>): Entity[] {
+    throw new Error("FedEx is a pull-based operator and does not support push operation.");
   }
 
   /**

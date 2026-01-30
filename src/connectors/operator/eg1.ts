@@ -48,98 +48,136 @@ export class Eg1 implements OperatorModule{
      *          - `result`: The response data as a key-value record.
      *
      */
-    async processPushData(data: Record<string, unknown>): Promise<{ entities: Entity[], result: Record<string, unknown> }> {
+    processPushData(data: Record<string, unknown>): Entity[] {
+        const operatorCode = "eg1";
         const entities: Entity[] = [];
-        const result: Record<string, unknown> = { success: true };
-        try {
-            // Determine if data contains single entity or multiple entities
-            let entityDataList: Array<Record<string, unknown>> = [];
+        const groupedData = this.convertPushDataFormat(data);
+        // Process each group of events and create Entity objects
+        for (const group of groupedData) {
+            const trackingNum = group.trackingNum;
+            const eventsData = group.events;
 
-            if (data["entities"] && Array.isArray(data["entities"])) {
-                // Multiple entities format: { entities: [{ entity: {...}, events: [...] }, ...] }
-                entityDataList = data["entities"] as Array<Record<string, unknown>>;
-            } else {
-                result["success"] = false;
-                result["error"] = "Invalid data format: missing entities attribute";
-                return { entities, result };
+            // Create a new Entity object
+            const entity = new Entity();
+
+            // Generate entity properties
+            entity.uuid = "eg1_" + crypto.randomUUID();
+            entity.id = `${operatorCode}-${trackingNum}`;
+            entity.type = "waybill";
+            entity.params = {};
+            entity.additional = {};
+
+            // Process events array
+            for (const eventData of eventsData) {
+                const event = new Event();
+
+                // Map required event properties
+                if (eventData["status"]) event.status = eventData["status"] as number;
+                if (eventData["what"]) event.what = eventData["what"] as string;
+                if (eventData["whom"]) event.whom = eventData["whom"] as string;
+                if (eventData["when"]) event.when = eventData["when"] as string;
+                if (eventData["where"]) event.where = eventData["where"] as string;
+                if (eventData["notes"]) event.notes = eventData["notes"] as string;
+
+                // Set tracking information
+                event.trackingNum = trackingNum;
+                event.operatorCode = operatorCode;
+                event.dataProvider = eventData["dataProvider"] as string || operatorCode;
+
+                // Handle exception information if present
+                if (eventData["exceptionCode"]) {
+                    event.exceptionCode = eventData["exceptionCode"] as number;
+                }
+                if (eventData["exceptionDesc"]) {
+                    event.exceptionDesc = eventData["exceptionDesc"] as string;
+                }
+
+                // Store updateMethod and updatedAt in additional
+                event.additional = {
+                    updateMethod: "push",
+                    updatedAt: new Date().toISOString(),
+                };
+
+                // Generate eventId if we have the required fields
+                if (event.when && event.status && event.trackingNum && event.operatorCode) {
+                    const date = new Date(event.when);
+                    const secondsSinceEpoch = Math.floor(date.getTime() / 1000);
+                    event.eventId = `ev_${event.operatorCode}-${event.trackingNum}-${secondsSinceEpoch}-${event.status}`;
+                }
+
+                // Set sourceData
+                event.sourceData = (eventData["sourceData"] as Record<string, unknown>) ?? {};
+
+                // Add event to entity if it doesn't already exist
+                if (event.eventId && !entity.isEventIdExist(event.eventId)) {
+                    entity.addEvent(event);
+                }
             }
 
-            // Process each entity
-            for (const entityItem of entityDataList) {
-                const entityData = entityItem["entity"] as Record<string, unknown>;
-                const eventsData = entityItem["events"] as Array<Record<string, unknown>>;
-
-                if (!entityData || !eventsData) {
-                    continue; // Skip invalid entity items
-                }
-
-                // Create a new Entity object
-                const entity = new Entity();
-
-                // Populate entity properties from entityData if available
-                if (entityData["uuid"]) entity.uuid = entityData["uuid"] as string;
-                if (entityData["id"]) entity.id = entityData["id"] as string;
-                if (entityData["type"]) entity.type = entityData["type"] as string;
-                if (entityData["params"]) entity.params = entityData["params"] as Record<string, string>;
-                if (entityData["additional"]) entity.additional = entityData["additional"] as Record<string, unknown>;
-
-                // Process events array
-                for (const eventData of eventsData) {
-                    const event = new Event();
-
-                    // Map event properties
-                    if (eventData["status"]) event.status = eventData["status"] as number;
-                    if (eventData["what"]) event.what = eventData["what"] as string;
-                    if (eventData["whom"]) event.whom = eventData["whom"] as string;
-                    if (eventData["when"]) event.when = eventData["when"] as string;
-                    if (eventData["where"]) event.where = eventData["where"] as string;
-                    if (eventData["notes"]) event.notes = eventData["notes"] as string;
-
-                    // Handle additional data
-                    const additional = eventData["additional"] as Record<string, unknown>;
-                    if (additional) {
-                        if (additional["trackingNum"]) event.trackingNum = additional["trackingNum"] as string;
-                        if (additional["operatorCode"]) event.operatorCode = additional["operatorCode"] as string;
-                        if (additional["dataProvider"]) event.dataProvider = additional["dataProvider"] as string;
-                        if (additional["exceptionCode"]) event.exceptionCode = additional["exceptionCode"] as number;
-                        if (additional["exceptionDesc"]) event.exceptionDesc = additional["exceptionDesc"] as string;
-
-                        // Store updateMethod and updatedAt in additional
-                        event.additional = {
-                            updateMethod: "push",
-                            updatedAt: new Date().toISOString(),
-                        };
-                    }
-
-                    // Generate eventId if not present
-                    if (event.when && event.status && event.trackingNum && event.operatorCode) {
-                        const date = new Date(event.when);
-                        const secondsSinceEpoch = Math.floor(date.getTime() / 1000);
-                        event.eventId = `ev_${event.operatorCode}-${event.trackingNum}-${secondsSinceEpoch}-${event.status}`;
-                    }
-
-                    // Set sourceData
-                    event.sourceData = (eventData["sourceData"] as Record<string, unknown>) ?? {};
-
-                    // Add event to entity if it doesn't already exist
-                    if (event.eventId && !entity.isEventIdExist(event.eventId)) {
-                        entity.addEvent(event);
-                    }
-                }
-
+            // Only add entity if it has events
+            if (entity.events.length > 0) {
                 // Sort events by when timestamp
                 entity.sortEventsByWhen();
-
                 entities.push(entity);
             }
-
-            result["entitiesProcessed"] = entities.length;
-        } catch (error) {
-            result["success"] = false;
-            result["error"] = error instanceof Error ? error.message : "Unknown error occurred";
         }
 
-        return { entities, result };
+        return entities;
+    }
+
+    /**
+     * Converts incoming push data from the API format to a grouped format by tracking number.
+     *
+     * @param {Record<string, unknown>} data - The incoming push data containing eg1DataVersion and events array
+     * @returns {Array<{ trackingNum: string, events: Array<Record<string, unknown>> }>} An array of objects grouped by tracking number
+     * @throws {Error} If the data format is invalid or missing required fields
+     */
+    private convertPushDataFormat(data: Record<string, unknown>): Array<{trackingNum: string, events: Array<Record<string, unknown>>}> {
+        // Validate input data structure
+        if (!data["events"] || !Array.isArray(data["events"])) {
+            throw new Error("Invalid data format: missing or invalid events array");
+        }
+
+        const events = data["events"] as Array<Record<string, unknown>>;
+
+        // Group events by trackingNum
+        const groupedByTrackingNum = new Map<string, Array<Record<string, unknown>>>();
+
+        for (const event of events) {
+            const trackingNum = event["trackingNum"] as string;
+
+            if (!trackingNum) {
+                throw new Error("Invalid event: missing trackingNum");
+            }
+
+            // Create a clean event object without trackingNum (since it's now at the parent level)
+            const cleanEvent: Record<string, unknown> = {};
+
+            // Copy all properties except trackingNum
+            for (const [key, value] of Object.entries(event)) {
+                if (key !== "trackingNum") {
+                    cleanEvent[key] = value;
+                }
+            }
+
+            // Add to grouped map
+            if (!groupedByTrackingNum.has(trackingNum)) {
+                groupedByTrackingNum.set(trackingNum, []);
+            }
+            groupedByTrackingNum.get(trackingNum)!.push(cleanEvent);
+        }
+
+        // Convert map to array format
+        const result: Array<{ trackingNum: string, events: Array<Record<string, unknown>> }> = [];
+
+        for (const [trackingNum, eventsList] of groupedByTrackingNum.entries()) {
+            result.push({
+                trackingNum,
+                events: eventsList
+            });
+        }
+
+        return result;
     }
 
 }

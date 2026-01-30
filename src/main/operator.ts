@@ -23,5 +23,5 @@ export interface OperatorModule {
 
     pullFromSource(trackingIds: TrackingID[], extraParams: Record<string, string>, updateMethod: string): Promise<Entity[]>;
 
-    processPushData(jsonData: Record<string, unknown>): Promise<{entities: Entity[], result: Record<string, unknown>}>;
+    processPushData(jsonData: Record<string, unknown>): Entity[];
 }
