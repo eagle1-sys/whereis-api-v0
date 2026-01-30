@@ -285,7 +285,7 @@ export class PostgresWrapper implements DatabaseWrapper {
     const rows = await this.sql`SELECT id, params
                                 FROM entities
                                 WHERE completed = false
-                                  AND ingestion_model = 'pull';`;
+                                  AND ingestion_mode = 'pull';`;
 
     for (const row of rows) {
       trackingNums[row.id as string] = row.params as Record<string, string>;
