@@ -28,6 +28,7 @@ CREATE TABLE whereis_schema.entities
     extra         jsonb,
     completed     boolean,
     params        jsonb,
+    ingestion_mode varchar(16),
     creation_time varchar(32)
 );
 -- create index on table

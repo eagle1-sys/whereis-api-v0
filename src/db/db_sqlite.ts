@@ -267,7 +267,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
   async getInProcessingTrackingNums(): Promise<Record<string, Record<string, string>>> {
     return await new Promise((resolve, _reject) => {
       const trackingNums: Record<string, Record<string, string>> = {};
-      const stmt = this.db.prepare(`SELECT id, params FROM entities WHERE completed = 0`);
+      const stmt = this.db.prepare(`SELECT id, params FROM entities WHERE completed = 0 AND ingestion_mode='pull'`);
       try {
         const rows = stmt.all();
         for (const row of rows) {
@@ -290,14 +290,15 @@ export class SQLiteWrapper implements DatabaseWrapper {
    */
   private insertEntityRecord(db: Database, entity: Entity): number {
     const insertEntityStmt = db.prepare(
-        `INSERT INTO entities (uuid, id, type, creation_time, completed, additional, params)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO entities (uuid, id, type, ingestion_mode, creation_time, completed, additional, params)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     try {
       insertEntityStmt.run(
           entity.uuid,
           entity.id,
           entity.type,
+          entity.ingestionMode,
           entity.getCreationTime(),
           entity.isCompleted() ? 1 : 0,
           JSON.stringify(entity.additional ?? {}),

@@ -530,6 +530,7 @@ export class Fdx implements OperatorModule {
     entity.id = trackingId.toString();
     entity.params = {};
     entity.type = "waybill";
+    entity.ingestionMode = "pull";
     const shipperAddress = (trackResult["shipperInformation"] as Record<string, unknown>)["address"]  as Record<string, unknown>;
     const recipientAddress = (trackResult["recipientInformation"] as Record<string, unknown>)["address"]  as Record<string, unknown>;
     entity.additional = {
