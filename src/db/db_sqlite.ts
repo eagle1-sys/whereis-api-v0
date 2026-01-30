@@ -432,7 +432,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
         uuid: string;
         id: string;
         type: string;
-        ingestionMode: string;
+        ingestion_mode: string;
         completed: number;
         additional: string;
         params: string;
@@ -444,7 +444,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
         entity.uuid = row.uuid;
         entity.id = row.id;
         entity.type = row.type;
-        entity.ingestionMode = row.ingestionMode;
+        entity.ingestionMode = row.ingestion_mode;
         entity.completed = Boolean(row.completed);
         entity.additional = JSON.parse(row.additional);
         entity.params = JSON.parse(row.params);
