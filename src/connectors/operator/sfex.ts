@@ -332,6 +332,7 @@ export class Sfex implements OperatorModule{
     entity.uuid = "eg1_" + crypto.randomUUID();
     entity.id = trackingId.toString();
     entity.type = "waybill";
+    entity.ingestionMode = "pull";
     entity.params = params;
     entity.additional = {};
 

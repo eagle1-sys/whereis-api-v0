@@ -267,7 +267,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
   async getInProcessingTrackingNums(): Promise<Record<string, Record<string, string>>> {
     return await new Promise((resolve, _reject) => {
       const trackingNums: Record<string, Record<string, string>> = {};
-      const stmt = this.db.prepare(`SELECT id, params FROM entities WHERE completed = 0`);
+      const stmt = this.db.prepare(`SELECT id, params FROM entities WHERE completed = 0 AND ingestion_mode='pull'`);
       try {
         const rows = stmt.all();
         for (const row of rows) {
@@ -277,7 +277,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
         stmt.finalize();
       }
 
-      resolve(trackingNums) ;
+      resolve(trackingNums);
     });
   }
 
@@ -290,14 +290,15 @@ export class SQLiteWrapper implements DatabaseWrapper {
    */
   private insertEntityRecord(db: Database, entity: Entity): number {
     const insertEntityStmt = db.prepare(
-        `INSERT INTO entities (uuid, id, type, creation_time, completed, additional, params)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO entities (uuid, id, type, ingestion_mode, creation_time, completed, additional, params)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     try {
       insertEntityStmt.run(
           entity.uuid,
           entity.id,
           entity.type,
+          entity.ingestionMode,
           entity.getCreationTime(),
           entity.isCompleted() ? 1 : 0,
           JSON.stringify(entity.additional ?? {}),
@@ -421,7 +422,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
   private queryEntityRecord(trackingId: TrackingID): Entity | undefined {
     let entity: Entity | undefined;
     const stmt = this.db.prepare(`
-      SELECT uuid, id, type, completed, additional, params, creation_time
+      SELECT uuid, id, type, ingestion_mode, completed, additional, params, creation_time
       FROM entities
       WHERE id = ?
     `);
@@ -431,6 +432,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
         uuid: string;
         id: string;
         type: string;
+        ingestion_mode: string;
         completed: number;
         additional: string;
         params: string;
@@ -442,6 +444,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
         entity.uuid = row.uuid;
         entity.id = row.id;
         entity.type = row.type;
+        entity.ingestionMode = row.ingestion_mode;
         entity.completed = Boolean(row.completed);
         entity.additional = JSON.parse(row.additional);
         entity.params = JSON.parse(row.params);

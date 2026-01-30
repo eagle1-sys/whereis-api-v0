@@ -282,7 +282,10 @@ export class PostgresWrapper implements DatabaseWrapper {
    */
   async getInProcessingTrackingNums(): Promise<Record<string, Record<string, string>>> {
     const trackingNums: Record<string, Record<string, string>> = {};
-    const rows = await this.sql`SELECT id, params FROM entities WHERE completed = false;`;
+    const rows = await this.sql`SELECT id, params
+                                FROM entities
+                                WHERE completed = false
+                                  AND ingestion_mode = 'pull';`;
 
     for (const row of rows) {
       trackingNums[row.id as string] = row.params as Record<string, string>;
@@ -301,10 +304,11 @@ export class PostgresWrapper implements DatabaseWrapper {
    */
   private async insertEntityRecord(tx: ReturnType<typeof postgres>, entity: Entity): Promise<number> {
     const result = await tx`
-        INSERT INTO entities (uuid, id, type, creation_time, completed, additional, params)
+        INSERT INTO entities (uuid, id, type, ingestion_mode, creation_time, completed, additional, params)
         VALUES (${entity.uuid},
                 ${entity.id},
                 ${entity.type},
+                ${entity.ingestionMode},
                 ${entity.getCreationTime()},
                 ${entity.isCompleted()},
                 ${tx.json(ensureJSONSafe(entity.additional ?? {}))},
@@ -413,6 +417,7 @@ export class PostgresWrapper implements DatabaseWrapper {
         SELECT uuid,
                id,
                type,
+               ingestion_mode,
                completed,
                additional,
                params,
@@ -429,6 +434,7 @@ export class PostgresWrapper implements DatabaseWrapper {
       entity.uuid = row.uuid;
       entity.id = row.id;
       entity.type = row.type;
+      entity.ingestionMode = row.ingestion_mode;
       entity.completed = row.completed;
       entity.additional = row.additional as Record<string, unknown>;
       entity.params = row.params as Record<string, string>;
