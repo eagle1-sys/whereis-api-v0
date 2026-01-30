@@ -218,11 +218,8 @@ app.post("/v0/push/:operator", async (c: Context) => {
 
   // Process valid data and convert to entities
   let entities: Entity[];
-  let result: Record<string, unknown>;
   try {
-    const processResult = await processPushData(operator, requestBody);
-    entities = processResult.entities;
-    result = processResult.result;
+    entities = processPushData(operator, requestBody);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     throw new AppError("500-01", `500AA: server - DATA_PROCESSING_FAILED: ${errorMessage}`);
@@ -238,7 +235,6 @@ app.post("/v0/push/:operator", async (c: Context) => {
       if (eventIdsInDb.length === 0) {
         const changes = await dbClient.insertEntity(entity);
         updated = updated + (changes ?? 0);
-        if (changes !== undefined) updated = updated + 1;
       } else {
         // update the database on-demand
         const {dataChanged, eventIdsNew, eventIdsToBeRemoved} = entity.compare(eventIdsInDb);
@@ -254,8 +250,11 @@ app.post("/v0/push/:operator", async (c: Context) => {
     }
   }
 
-  result.updated = updated;
-  result.failed = failed;
+  const result = {
+    status: "OK",
+    updatedEntities: updated,
+    failedEntities: failed
+  };
   return c.json(result, 200, {
     "Content-Type": "application/json; charset=utf-8",
   });
