@@ -129,15 +129,17 @@ export class SQLiteWrapper implements DatabaseWrapper {
    * @returns A Promise that resolves to 1 if the update was successful, or 0 if an error occurred.
    */
   async updateEntity(entity: Entity, updateMethod: string, eventIdsNew: string[], eventIdsToBeRemoved: string[]): Promise<number> {
+    let changed = 0;
     const updateMethodText = DataUpdateMethod.getDisplayText(updateMethod);
 
     return await new Promise((resolve, _reject) => {
-      const transaction = this.db.transaction(() => {
+      const transaction = this.db.transaction(async () => {
         // step 1: update the entity record ONLY when the entity is completed
         if (entity.isCompleted()) {
           const stmt = this.db.prepare(`UPDATE entities SET completed = 1 WHERE id = ?`);
           try {
             stmt.run(entity.id);
+            changed = changed + this.db.changes;
           } finally {
             stmt.finalize();
           }
@@ -149,7 +151,8 @@ export class SQLiteWrapper implements DatabaseWrapper {
               eventIdsNew.includes(event.eventId)
           );
 
-          this.insertEvents(this.db, events, updateMethodText);
+          const inserted = await this.insertEvents(this.db, events, updateMethodText);
+          changed = changed + (inserted?? 0);
         }
 
         // step 3: remove events that are not in the updated entity
@@ -159,12 +162,13 @@ export class SQLiteWrapper implements DatabaseWrapper {
             for (const eventId of eventIdsToBeRemoved) {
               logger.info(`${updateMethod}: Delete exist event with ID ${eventId}`);
               stmt.run(eventId);
+              changed = changed + this.db.changes;
             }
           } finally {
             stmt.finalize();
           }
         }
-        return 1;
+        return changed > 0 ? 1 : 0;
       });
 
       try {

@@ -237,10 +237,10 @@ app.post("/v0/push/:operator", async (c: Context) => {
         updated = updated + (changes ?? 0);
       } else {
         // update the database on-demand
-        const {dataChanged, eventIdsNew, eventIdsToBeRemoved} = entity.compare(eventIdsInDb);
-        if (dataChanged) {
-          const success = await dbClient.updateEntity(entity, "push", eventIdsNew, eventIdsToBeRemoved);
-          if (success) updated = updated + 1;
+        const {dataChanged, eventIdsNew} = entity.compare(eventIdsInDb);
+        if (dataChanged && eventIdsNew.length > 0) {
+          const updatedNum = await dbClient.updateEntity(entity, "push", eventIdsNew, []);
+          updated = updated + updatedNum;
         }
       }
     } catch (error) {

@@ -132,13 +132,15 @@ export class PostgresWrapper implements DatabaseWrapper {
    * @throws Will throw an error if any database operation fails during the transaction.
    */
   async updateEntity(entity: Entity, updateMethod: string, eventIdsNew: string[], eventIdsToBeRemoved: string[]): Promise<number> {
-    const updateMethodText = DataUpdateMethod.getDisplayText("auto-pull");
+    let changed = 0;
+    const updateMethodText = DataUpdateMethod.getDisplayText(updateMethod);
 
     await this.sql.begin(async (tx: ReturnType<typeof postgres>) => {
       // update the entity record
       // step 1: update the entity record ONLY when the entity is completed
       if (entity.isCompleted()) {
-        await tx`update entities set completed = true where id = ${entity.id as string}`;
+        const result = await tx`update entities set completed = true where id = ${entity.id as string}`;
+        changed = changed + (result.count?? 0);
       }
 
       // step 2: insert new events
@@ -146,19 +148,21 @@ export class PostgresWrapper implements DatabaseWrapper {
         const events: Event[] = (entity.events ?? []).filter((event) =>
             eventIdsNew.includes(event.eventId)
         );
-        await this.insertEvents(tx, events, updateMethodText);
+        const inserted = await this.insertEvents(tx, events, updateMethodText);
+        changed = changed + (inserted ?? 0);
       }
 
       // step 3: remove events that are not in the updated entity
       if (eventIdsToBeRemoved.length > 0) {
         for (const eventId of eventIdsToBeRemoved) {
           logger.info(`${updateMethod}: Delete exist event with ID ${eventId}`);
-          await tx`DELETE FROM events WHERE event_id = ${eventId}`;
+          const result = await tx`DELETE FROM events WHERE event_id = ${eventId}`;
+          changed = changed + (result.count?? 0);
         }
       }
     });
 
-    return 1;
+    return changed > 0 ? 1 : 0;
   }
 
   /**
