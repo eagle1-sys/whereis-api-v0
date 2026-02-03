@@ -228,8 +228,8 @@ export class Entity {
   id: string;
   /** Type of the object. ex: waybill */
   type: string;
-  /** Ingestion mode for the object. ex: pull | push */
-  ingestionMode: string;
+  /** use pull mode for the object. ex: true | false */
+  usePull: boolean;
   /** Indicates if the event related to object is completed */
   completed: boolean;
   /** Indicates the timestamp of the first event */
@@ -248,7 +248,7 @@ export class Entity {
     this.uuid = "";
     this.id = "";
     this.type = "";
-    this.ingestionMode = "";
+    this.usePull = false;
     this.completed = false;
     this.creationTime = "";
     this.additional = {};
