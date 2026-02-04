@@ -64,7 +64,7 @@ export class Eg1 implements OperatorModule{
             entity.uuid = "eg1_" + crypto.randomUUID();
             entity.id = `${operatorCode}-${trackingNum}`;
             entity.type = "waybill";
-            entity.ingestionMode = "push";
+            entity.usePull = false;
             entity.params = {};
             entity.additional = {};
 

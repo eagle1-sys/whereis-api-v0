@@ -137,13 +137,13 @@ export class Fdx implements OperatorModule {
   private static readonly missingEventConfigs = [
     {
       status: 3100,
-      checkMethod: Fdx.isMissing3100.bind(this),
-      getBaseEventMethod: Fdx.get3100BaseEvent.bind(this),
+      checkMethod: Fdx.isMissing3100,
+      getBaseEventMethod: Fdx.get3100BaseEvent,
     },
     {
       status: 3400,
-      checkMethod: Fdx.isMissing3400.bind(this),
-      getBaseEventMethod: Fdx.get3400BaseEvent.bind(this),
+      checkMethod: Fdx.isMissing3400,
+      getBaseEventMethod: Fdx.get3400BaseEvent,
     }
   ];
 
@@ -247,11 +247,11 @@ export class Fdx implements OperatorModule {
   }
 
   validateStoredEntity(_entity: Entity, _params: Record<string, string>): boolean {
-    return true; // Placeholder validation logic
+    return true; // FedEx does not require additional params validation
   }
 
   validateParams(_trackingId: TrackingID, _params: Record<string, string>): boolean {
-    return true; // Placeholder validation logic
+    return true; // FedEx does not require additional params validation
   }
 
   getExtraParams(_params: Record<string, string>): Record<string, string> {
@@ -530,7 +530,7 @@ export class Fdx implements OperatorModule {
     entity.id = trackingId.toString();
     entity.params = {};
     entity.type = "waybill";
-    entity.ingestionMode = "pull";
+    entity.usePull = true;
     const shipperAddress = (trackResult["shipperInformation"] as Record<string, unknown>)["address"]  as Record<string, unknown>;
     const recipientAddress = (trackResult["recipientInformation"] as Record<string, unknown>)["address"]  as Record<string, unknown>;
     entity.additional = {
@@ -613,8 +613,8 @@ export class Fdx implements OperatorModule {
 
     // process notes
     const eventDescription = (scanEvent["eventDescription"] as string).trim();
-    const sourceExceptionDesc = (scanEvent["exceptionDescription"] as string).trim();
-    const notes = sourceExceptionDesc.trim() === "" ? eventDescription : `${eventDescription}: ${sourceExceptionDesc}`;
+    const sourceExceptionDesc = (scanEvent["exceptionDescription"] as string ?? "").trim();
+    const notes = sourceExceptionDesc === "" ? eventDescription : `${eventDescription}: ${sourceExceptionDesc}`;
     event.notes = notes.toLowerCase() === event.what.toLowerCase() ? "" : notes;
     // additional data and source data
     event.additional = {

@@ -99,16 +99,18 @@ export class Sfex implements OperatorModule{
   };
 
   // Define missing event configurations to check and supplement
+  // Note: checkMethod and getBaseEventMethod must remain static
+  // as they are referenced in this static configuration array
   private static readonly missingEventConfigs = [
     {
       status: 3300,
-      checkMethod: Sfex.isMissing3300.bind(this),
-      getBaseEventMethod: Sfex.get3300BaseEvent.bind(this),
+      checkMethod: Sfex.isMissing3300,
+      getBaseEventMethod: Sfex.get3300BaseEvent,
     },
     {
       status: 3400,
-      checkMethod: Sfex.isMissing3400.bind(this),
-      getBaseEventMethod: Sfex.get3400BaseEvent.bind(this),
+      checkMethod: Sfex.isMissing3400,
+      getBaseEventMethod: Sfex.get3400BaseEvent,
     },
   ];
 
@@ -332,7 +334,7 @@ export class Sfex implements OperatorModule{
     entity.uuid = "eg1_" + crypto.randomUUID();
     entity.id = trackingId.toString();
     entity.type = "waybill";
-    entity.ingestionMode = "pull";
+    entity.usePull = true;
     entity.params = params;
     entity.additional = {};
 

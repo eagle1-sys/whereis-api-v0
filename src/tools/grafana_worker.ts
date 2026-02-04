@@ -6,7 +6,7 @@ self.addEventListener("message", async (e) => {
     const data = (e as MessageEvent).data;
     const message = data.msg;
     const level = data.level;
-    const timestampNs = (Date.now() * 1000000).toString(); // Convert to nanoseconds
+    const timestampNs = (BigInt(Date.now()) * 1000000n).toString(); // Convert to nanoseconds
 
     const payload = {
         streams: [
@@ -27,6 +27,9 @@ self.addEventListener("message", async (e) => {
 
     const GRAFANA_USER = Deno.env.get("GRAFANA_USER") || "";
     const GRAFANA_API_KEY = Deno.env.get("GRAFANA_API_KEY") || "";
+    if (!GRAFANA_USER || !GRAFANA_API_KEY) {
+        return; // Skip sending if credentials not configured
+    }
     try {
         const authHeader = 'Basic ' + btoa(`${GRAFANA_USER}:${GRAFANA_API_KEY}`);
         await httpPost(

@@ -25,14 +25,16 @@ CREATE TABLE whereis_schema.entities
     uuid          varchar(64) not null primary key,
     id            varchar(64) not null,
     type          varchar(64),
-    extra         jsonb,
+    additional    jsonb,
     completed     boolean,
     params        jsonb,
-    ingestion_mode varchar(16),
+    use_pull      boolean DEFAULT false,
     creation_time varchar(32)
 );
 -- create index on table
 CREATE INDEX entities_idx_id ON whereis_schema.entities (id);
+CREATE INDEX entities_idx_completed ON whereis_schema.entities (completed);
+CREATE INDEX entities_idx_use_pull ON whereis_schema.entities (use_pull);
 END IF;
 END $$;
 
@@ -60,7 +62,7 @@ CREATE TABLE whereis_schema.events
     exception_desc    varchar(128),
     notification_code integer,
     notification_desc varchar(128),
-    extra             jsonb,
+    additional        jsonb,
     source_data       jsonb
 );
 -- create indexes on events table
@@ -101,9 +103,9 @@ GRANT SELECT, INSERT, UPDATE , DELETE ON ALL TABLES IN SCHEMA whereis_schema TO 
 INSERT INTO whereis_schema.tokens(id, user_id) VALUES ('eagle1', 'test_user');
 
 -- inset test data - fdx waybill
-INSERT INTO whereis_schema.entities (uuid, id, type, ingestion_mode, extra, completed, params, creation_time) VALUES ('eg1_d54ab9d1-4721-4262-bfaa-c1bb0ae6543d', 'eg1-012301230123', 'waybill', 'push', '{"origin": "PACHECO CA, United States", "destination": "London, United Kingdom"}', true, '{}', '2025-07-16T13:58:34-05:00');
+INSERT INTO whereis_schema.entities (uuid, id, type, use_pull, additional, completed, params, creation_time) VALUES ('eg1_d54ab9d1-4721-4262-bfaa-c1bb0ae6543d', 'eg1-012301230123', 'waybill', false, '{"origin": "PACHECO CA, United States", "destination": "London, United Kingdom"}', true, '{}', '2025-07-16T13:58:34-05:00');
 
-insert into whereis_schema.events (event_id, status, what_, whom_, when_, where_, notes, operator_code, tracking_num, data_provider, exception_code, exception_desc, notification_code, notification_desc, extra, source_data)
+insert into whereis_schema.events (event_id, status, what_, whom_, when_, where_, notes, operator_code, tracking_num, data_provider, exception_code, exception_desc, notification_code, notification_desc, additional, source_data)
 values  ('ev_eg1-012301230123-1752692314-3000', 3000, 'Transport Bill Created', 'Eagle1', '2025-07-16T13:58:34-05:00', 'Customer location', 'Shipment information sent to Eagle1', 'eg1', '012301230123', 'Eagle1', null, null, null, null, '{"updatedAt": "2025-07-23T08:28:03.657Z", "updateMethod": "manual-pull"}', '{"date": "2025-07-16T13:58:34-05:00", "eventType": "OC", "locationType": "CUSTOMER", "scanLocation": {"residential": false, "streetLines": [""]}, "derivedStatus": "Label created", "exceptionCode": "", "eventDescription": "Shipment information sent to Eagle1", "derivedStatusCode": "IN", "exceptionDescription": ""}'),
         ('ev_eg1-012301230123-1752696540-3050', 3050, 'Picked Up', 'Eagle1', '2025-07-16T13:09:00-07:00', 'PACHECO CA United States', '', 'eg1', '012301230123', 'Eagle1', null, null, null, null, '{"updatedAt": "2025-07-23T08:28:03.659Z", "updateMethod": "manual-pull"}', '{"date": "2025-07-16T13:09:00-07:00", "eventType": "PU", "locationId": "CCRA", "locationType": "PICKUP_LOCATION", "scanLocation": {"city": "PACHECO", "postalCode": "94553", "countryCode": "US", "countryName": "United States", "residential": false, "streetLines": [""], "stateOrProvinceCode": "CA"}, "derivedStatus": "Picked up", "exceptionCode": "", "eventDescription": "Picked up", "derivedStatusCode": "PU", "exceptionDescription": ""}'),
         ('ev_eg1-012301230123-1752696660-3001', 3001, 'Logistics In-Progress', 'Eagle1', '2025-07-16T13:11:00-07:00', 'PACHECO CA United States', 'Shipment arriving early', 'eg1', '012301230123', 'Eagle1', null, null, null, null, '{"updatedAt": "2025-07-23T08:28:03.659Z", "updateMethod": "manual-pull"}', '{"date": "2025-07-16T13:11:00-07:00", "eventType": "AE", "locationId": "CCRA", "locationType": "PICKUP_LOCATION", "scanLocation": {"city": "PACHECO", "postalCode": "94553", "countryCode": "US", "countryName": "United States", "residential": false, "streetLines": [""], "stateOrProvinceCode": "CA"}, "derivedStatus": "In transit", "exceptionCode": "", "eventDescription": "Shipment arriving early", "derivedStatusCode": "IT", "exceptionDescription": ""}'),
@@ -131,9 +133,9 @@ values  ('ev_eg1-012301230123-1752692314-3000', 3000, 'Transport Bill Created', 
         ('ev_eg1-012301230123-1753271940-3500', 3500, 'Delivered', 'Eagle1', '2025-07-23T12:59:00+01:00', 'United Kingdom', '', 'eg1', '012301230123', 'Eagle1', null, null, null, null, '{"updatedAt": "2025-07-24T07:47:27.744Z", "updateMethod": "auto-pull"}', '{"date": "2025-07-23T12:59:00+01:00", "eventType": "DL", "locationId": "CSAA", "locationType": "DELIVERY_LOCATION", "scanLocation": {"city": "LONDON", "postalCode": "ABC123", "countryCode": "GB", "countryName": "United Kingdom", "residential": false, "streetLines": [""], "stateOrProvinceCode": "CA"}, "derivedStatus": "Delivered", "exceptionCode": "", "eventDescription": "Delivered", "derivedStatusCode": "DL", "exceptionDescription": ""}');
 
 -- insert test data - sfex waybill
-INSERT INTO whereis_schema.entities (uuid, id, type, ingestion_mode, extra, completed, params, creation_time) VALUES ('eg1_eb2c6528-cf30-430a-b822-6200b86ed334', 'eg1-123412341234', 'waybill', 'push', '{}', true, '{}', '2025-05-16T01:15:16+08:00');
+INSERT INTO whereis_schema.entities (uuid, id, type, use_pull, additional, completed, params, creation_time) VALUES ('eg1_eb2c6528-cf30-430a-b822-6200b86ed334', 'eg1-123412341234', 'waybill', false, '{}', true, '{}', '2025-05-16T01:15:16+08:00');
 
-insert into whereis_schema.events (event_id, status, what_, whom_, when_, where_, notes, operator_code, tracking_num, data_provider, exception_code, exception_desc, notification_code, notification_desc, extra, source_data)
+insert into whereis_schema.events (event_id, status, what_, whom_, when_, where_, notes, operator_code, tracking_num, data_provider, exception_code, exception_desc, notification_code, notification_desc, additional, source_data)
 values  ('ev_eg1-123412341234-1747329316-3100', 3100, 'Received by Carrier', 'Eagle1', '2025-05-16T01:15:16+08:00', '三藩市', '顺丰速运 已收取快件，您的期待，我们定竭诚守护，不负所托。', 'eg1', '123412341234', 'Eagle1', null, null, null, null, '{"updatedAt": "2025-07-25T04:11:54.419Z", "updateMethod": "manual-pull"}', '{"opCode": "54", "remark": "顺丰速运 已收取快件，您的期待，我们定竭诚守护，不负所托。", "acceptTime": "2025-05-16 01:15:16", "acceptAddress": "三藩市", "firstStatusCode": "1", "firstStatusName": "已揽收", "secondaryStatusCode": "101", "secondaryStatusName": "已揽收"}'),
         ('ev_eg1-123412341234-1747352417-3001', 3001, 'Logistics In-Progress', 'Eagle1', '2025-05-16T07:40:17+08:00', '三藩市', '快件在【美国三藩市营运中心】完成分拣，准备发往下一站', 'eg1', '123412341234', 'Eagle1', null, null, null, null, '{"updatedAt": "2025-07-25T04:11:54.425Z", "updateMethod": "manual-pull"}', '{"opCode": "30", "remark": "快件在【美国三藩市营运中心】完成分拣，准备发往下一站", "acceptTime": "2025-05-16 07:40:17", "acceptAddress": "三藩市", "firstStatusCode": "2", "firstStatusName": "运送中", "secondaryStatusCode": "201", "secondaryStatusName": "运送中"}'),
         ('ev_eg1-123412341234-1747385100-3250', 3250, 'In-Transit', 'Eagle1', '2025-05-16T16:45:00+08:00', '三藩市', '快件在【旧金山国际机场飞往广州白云国际机场航班上，经停东京羽田国际机场】已起飞', 'eg1', '123412341234', 'Eagle1', null, null, null, null, '{"updatedAt": "2025-07-25T04:11:54.425Z", "updateMethod": "manual-pull"}', '{"opCode": "105", "remark": "快件在【旧金山国际机场飞往广州白云国际机场航班上，经停东京羽田国际机场】已起飞", "acceptTime": "2025-05-16 16:45:00", "acceptAddress": "三藩市", "firstStatusCode": "2", "firstStatusName": "运送中", "secondaryStatusCode": "201", "secondaryStatusName": "运送中"}'),

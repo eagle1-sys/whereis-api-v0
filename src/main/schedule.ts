@@ -81,6 +81,10 @@ async function syncRoutes() {
 
     for (const [operator, trackingNums] of Object.entries(groupedTrackingNums)) {
       const batchSize = OperatorRegistry.getBatchSize(operator)
+      if (batchSize <= 0) {
+        logger.warn(`Invalid batch size for operator ${operator}, skipping`);
+        continue;
+      }
       const trackingIdBatches: Record<string, unknown>[] = getTrackingIdBatches(trackingNums, batchSize);
 
       for (let idx = 0; idx < trackingIdBatches.length; idx++) {

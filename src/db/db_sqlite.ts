@@ -129,15 +129,17 @@ export class SQLiteWrapper implements DatabaseWrapper {
    * @returns A Promise that resolves to 1 if the update was successful, or 0 if an error occurred.
    */
   async updateEntity(entity: Entity, updateMethod: string, eventIdsNew: string[], eventIdsToBeRemoved: string[]): Promise<number> {
+    let changed = 0;
     const updateMethodText = DataUpdateMethod.getDisplayText(updateMethod);
 
     return await new Promise((resolve, _reject) => {
-      const transaction = this.db.transaction(() => {
+      const transaction = this.db.transaction(async () => {
         // step 1: update the entity record ONLY when the entity is completed
         if (entity.isCompleted()) {
           const stmt = this.db.prepare(`UPDATE entities SET completed = 1 WHERE id = ?`);
           try {
             stmt.run(entity.id);
+            changed = changed + this.db.changes;
           } finally {
             stmt.finalize();
           }
@@ -149,7 +151,8 @@ export class SQLiteWrapper implements DatabaseWrapper {
               eventIdsNew.includes(event.eventId)
           );
 
-          this.insertEvents(this.db, events, updateMethodText);
+          const inserted = this.insertEvents(this.db, events, updateMethodText);
+          changed = changed + (inserted?? 0);
         }
 
         // step 3: remove events that are not in the updated entity
@@ -159,12 +162,13 @@ export class SQLiteWrapper implements DatabaseWrapper {
             for (const eventId of eventIdsToBeRemoved) {
               logger.info(`${updateMethod}: Delete exist event with ID ${eventId}`);
               stmt.run(eventId);
+              changed = changed + this.db.changes;
             }
           } finally {
             stmt.finalize();
           }
         }
-        return 1;
+        return changed > 0 ? 1 : 0;
       });
 
       try {
@@ -267,7 +271,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
   async getInProcessingTrackingNums(): Promise<Record<string, Record<string, string>>> {
     return await new Promise((resolve, _reject) => {
       const trackingNums: Record<string, Record<string, string>> = {};
-      const stmt = this.db.prepare(`SELECT id, params FROM entities WHERE completed = 0 AND ingestion_mode='pull'`);
+      const stmt = this.db.prepare(`SELECT id, params FROM entities WHERE completed = 0 AND use_pull= 1`);
       try {
         const rows = stmt.all();
         for (const row of rows) {
@@ -290,7 +294,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
    */
   private insertEntityRecord(db: Database, entity: Entity): number {
     const insertEntityStmt = db.prepare(
-        `INSERT INTO entities (uuid, id, type, ingestion_mode, creation_time, completed, additional, params)
+        `INSERT INTO entities (uuid, id, type, use_pull, creation_time, completed, additional, params)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     try {
@@ -298,7 +302,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
           entity.uuid,
           entity.id,
           entity.type,
-          entity.ingestionMode,
+          entity.usePull,
           entity.getCreationTime(),
           entity.isCompleted() ? 1 : 0,
           JSON.stringify(entity.additional ?? {}),
@@ -311,18 +315,25 @@ export class SQLiteWrapper implements DatabaseWrapper {
   }
 
   /**
-   * Inserts multiple events into the database.
+   * Inserts multiple events into the database within a transaction.
    *
-   * @param db
-   * @param events - An array of Event objects to be inserted.
-   * @param updateMethod - A string indicating the method of update (e.g., "manual-pull" or "auto-pull").
-   * @returns A Promise that resolves to the number of changes made in the database, or 0 if no changes were made.
+   * This method performs a batch insert of event records into the events table.
+   * All insertions are wrapped in a database transaction to ensure atomicity.
+   * If any event fails validation (missing eventId), an error is thrown and the
+   * transaction is rolled back. Individual insert failures are logged but do not
+   * stop the transaction.
+   *
+   * @param db - The SQLite Database instance to execute the insert operations on.
+   * @param events - An array of Event objects to be inserted into the database.
+   * @param updateMethod - A string indicating the method of update (e.g., "manual-pull" or "auto-pull"),
+   *                       used for logging purposes to track the source of the data update.
+   * @returns The total number of rows successfully inserted into the database. Returns 0 if the
+   *          transaction fails or if no events were successfully inserted.
    */
-  private async insertEvents(db: Database, events: Event[], updateMethod:string): Promise<number> {
-    return await new Promise((resolve, _reject) => {
-      const transaction = db.transaction(() => {
-        let changes = 0;
-        const insertEventStmt = db.prepare(`
+  private insertEvents(db: Database, events: Event[], updateMethod:string): number {
+    const transaction = db.transaction(() => {
+      let changes = 0;
+      const insertEventStmt = db.prepare(`
         INSERT INTO events (event_id, status, what_, when_, where_,
                             whom_, notes, operator_code, tracking_num, data_provider,
                             exception_code, exception_desc, notification_code, notification_desc, additional,
@@ -330,60 +341,57 @@ export class SQLiteWrapper implements DatabaseWrapper {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
-        try {
-          for (const event of events) {
-            // Validate input
-            if (!event || !event.eventId) {
-              throw new Error("Invalid event object: eventId is required");
-            }
+      try {
+        for (const event of events) {
+          // Validate input
+          if (!event || !event.eventId) {
+            throw new Error("Invalid event object: eventId is required");
+          }
 
-            logger.info(
-                `${updateMethod}: Insert new event with ID ${event.eventId}`,
+          logger.info(`${updateMethod}: Insert new event with ID ${event.eventId}`);
+
+          try {
+            insertEventStmt.run(
+                event.eventId,
+                event.status,
+                event.what ?? "",
+                event.when ?? "",
+                event.where ?? "",
+                event.whom ?? "",
+                event.notes ?? "",
+                event.operatorCode ?? "",
+                event.trackingNum ?? "",
+                event.dataProvider ?? "",
+                event.exceptionCode || null,
+                event.exceptionDesc || null,
+                event.notificationCode || null,
+                event.notificationDesc || null,
+                JSON.stringify(event.additional ?? {}),
+                JSON.stringify(event.sourceData ?? {}),
             );
 
-            try {
-              const result = insertEventStmt.run(
-                  event.eventId,
-                  event.status,
-                  event.what ?? "",
-                  event.when ?? "",
-                  event.where ?? "",
-                  event.whom ?? "",
-                  event.notes ?? "",
-                  event.operatorCode ?? "",
-                  event.trackingNum ?? "",
-                  event.dataProvider ?? "",
-                  event.exceptionCode || null,
-                  event.exceptionDesc || null,
-                  event.notificationCode || null,
-                  event.notificationDesc || null,
-                  JSON.stringify(event.additional ?? {}),
-                  JSON.stringify(event.sourceData ?? {}),
-              );
-
-              changes = changes + result;
-              if (result !== 1) {
-                // log the info if no event_id was inserted
-                logger.info(`Event with ID ${event.eventId} could not be inserted. `);
-              }
-            } catch (err) {
-              logger.error(`Failed to insert event with ID ${event.eventId}:`, err);
+            const rowsAffected = db.changes;
+            changes = changes + rowsAffected;
+            if (rowsAffected !== 1) {
+              // log the info if no event_id was inserted
+              logger.info(`Event with ID ${event.eventId} could not be inserted. `);
             }
+          } catch (err) {
+            logger.error(`Failed to insert event with ID ${event.eventId}:`, err);
           }
-        } finally {
-          insertEventStmt.finalize();
         }
-
-        return changes;
-      });
-
-      try {
-        const changes = transaction();
-        resolve(changes);
-      } catch (_err) {
-        resolve(0);
+      } finally {
+        insertEventStmt.finalize();
       }
+
+      return changes;
     });
+
+    try {
+      return transaction();
+    } catch (_err) {
+      return 0;
+    }
   }
 
   /**
@@ -422,7 +430,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
   private queryEntityRecord(trackingId: TrackingID): Entity | undefined {
     let entity: Entity | undefined;
     const stmt = this.db.prepare(`
-      SELECT uuid, id, type, ingestion_mode, completed, additional, params, creation_time
+      SELECT uuid, id, type, use_pull, completed, additional, params, creation_time
       FROM entities
       WHERE id = ?
     `);
@@ -432,7 +440,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
         uuid: string;
         id: string;
         type: string;
-        ingestion_mode: string;
+        use_pull: number;
         completed: number;
         additional: string;
         params: string;
@@ -444,7 +452,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
         entity.uuid = row.uuid;
         entity.id = row.id;
         entity.type = row.type;
-        entity.ingestionMode = row.ingestion_mode;
+        entity.usePull = Boolean(row.use_pull);
         entity.completed = Boolean(row.completed);
         entity.additional = JSON.parse(row.additional);
         entity.params = JSON.parse(row.params);

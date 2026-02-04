@@ -106,7 +106,7 @@ export class PostgresWrapper implements DatabaseWrapper {
     await this.sql.begin(async (tx: ReturnType<typeof postgres>) => {
        inserted = await this.insertEntityRecord(tx, entity);
       // insert events
-      if (inserted == 1) {
+      if (inserted === 1) {
         await this.insertEvents(tx, entity.events, DataUpdateMethod.getDisplayText("manual-pull"));
       }
     });
@@ -132,13 +132,15 @@ export class PostgresWrapper implements DatabaseWrapper {
    * @throws Will throw an error if any database operation fails during the transaction.
    */
   async updateEntity(entity: Entity, updateMethod: string, eventIdsNew: string[], eventIdsToBeRemoved: string[]): Promise<number> {
-    const updateMethodText = DataUpdateMethod.getDisplayText("auto-pull");
+    let changed = 0;
+    const updateMethodText = DataUpdateMethod.getDisplayText(updateMethod);
 
     await this.sql.begin(async (tx: ReturnType<typeof postgres>) => {
       // update the entity record
       // step 1: update the entity record ONLY when the entity is completed
       if (entity.isCompleted()) {
-        await tx`update entities set completed = true where id = ${entity.id as string}`;
+        const result = await tx`update entities set completed = true where id = ${entity.id as string}`;
+        changed = changed + (result.count?? 0);
       }
 
       // step 2: insert new events
@@ -146,19 +148,21 @@ export class PostgresWrapper implements DatabaseWrapper {
         const events: Event[] = (entity.events ?? []).filter((event) =>
             eventIdsNew.includes(event.eventId)
         );
-        await this.insertEvents(tx, events, updateMethodText);
+        const inserted = await this.insertEvents(tx, events, updateMethodText);
+        changed = changed + (inserted ?? 0);
       }
 
       // step 3: remove events that are not in the updated entity
       if (eventIdsToBeRemoved.length > 0) {
         for (const eventId of eventIdsToBeRemoved) {
           logger.info(`${updateMethod}: Delete exist event with ID ${eventId}`);
-          await tx`DELETE FROM events WHERE event_id = ${eventId}`;
+          const result = await tx`DELETE FROM events WHERE event_id = ${eventId}`;
+          changed = changed + (result.count?? 0);
         }
       }
     });
 
-    return 1;
+    return changed > 0 ? 1 : 0;
   }
 
   /**
@@ -185,7 +189,7 @@ export class PostgresWrapper implements DatabaseWrapper {
 
       // insert new entity and events
       inserted = await this.insertEntityRecord(tx, entity);
-      if (inserted == 1) {
+      if (inserted === 1) {
         await this.insertEvents(tx, entity.events, DataUpdateMethod.getDisplayText("manual-pull"));
       }
     });
@@ -285,7 +289,7 @@ export class PostgresWrapper implements DatabaseWrapper {
     const rows = await this.sql`SELECT id, params
                                 FROM entities
                                 WHERE completed = false
-                                  AND ingestion_mode = 'pull';`;
+                                  AND use_pull = true;`;
 
     for (const row of rows) {
       trackingNums[row.id as string] = row.params as Record<string, string>;
@@ -304,11 +308,11 @@ export class PostgresWrapper implements DatabaseWrapper {
    */
   private async insertEntityRecord(tx: ReturnType<typeof postgres>, entity: Entity): Promise<number> {
     const result = await tx`
-        INSERT INTO entities (uuid, id, type, ingestion_mode, creation_time, completed, additional, params)
+        INSERT INTO entities (uuid, id, type, use_pull, creation_time, completed, additional, params)
         VALUES (${entity.uuid},
                 ${entity.id},
                 ${entity.type},
-                ${entity.ingestionMode},
+                ${entity.usePull},
                 ${entity.getCreationTime()},
                 ${entity.isCompleted()},
                 ${tx.json(ensureJSONSafe(entity.additional ?? {}))},
@@ -417,7 +421,7 @@ export class PostgresWrapper implements DatabaseWrapper {
         SELECT uuid,
                id,
                type,
-               ingestion_mode,
+               use_pull,
                completed,
                additional,
                params,
@@ -434,7 +438,7 @@ export class PostgresWrapper implements DatabaseWrapper {
       entity.uuid = row.uuid;
       entity.id = row.id;
       entity.type = row.type;
-      entity.ingestionMode = row.ingestion_mode;
+      entity.usePull = row.use_pull;
       entity.completed = row.completed;
       entity.additional = row.additional as Record<string, unknown>;
       entity.params = row.params as Record<string, string>;

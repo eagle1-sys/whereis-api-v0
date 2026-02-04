@@ -11,6 +11,16 @@
 import {crypto} from "@std/crypto";
 import {parse} from "@std/jsonc";
 
+export async function httpGet(url: string, headers: Record<string, string>): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  return await fetch(url, {
+    method: "GET",
+    headers: headers,
+    signal: controller.signal
+  }).finally(() => clearTimeout(timer));
+}
+
 export async function httpPost(url: string, headers: Record<string, string>, body: string| URLSearchParams): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10000);
