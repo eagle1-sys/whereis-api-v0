@@ -102,13 +102,13 @@ export class Sfex implements OperatorModule{
   private static readonly missingEventConfigs = [
     {
       status: 3300,
-      checkMethod: Sfex.isMissing3300.bind(this),
-      getBaseEventMethod: Sfex.get3300BaseEvent.bind(this),
+      checkMethod: Sfex.isMissing3300,
+      getBaseEventMethod: Sfex.get3300BaseEvent,
     },
     {
       status: 3400,
-      checkMethod: Sfex.isMissing3400.bind(this),
-      getBaseEventMethod: Sfex.get3400BaseEvent.bind(this),
+      checkMethod: Sfex.isMissing3400,
+      getBaseEventMethod: Sfex.get3400BaseEvent,
     },
   ];
 

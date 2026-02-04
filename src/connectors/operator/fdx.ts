@@ -137,13 +137,13 @@ export class Fdx implements OperatorModule {
   private static readonly missingEventConfigs = [
     {
       status: 3100,
-      checkMethod: Fdx.isMissing3100.bind(this),
-      getBaseEventMethod: Fdx.get3100BaseEvent.bind(this),
+      checkMethod: Fdx.isMissing3100,
+      getBaseEventMethod: Fdx.get3100BaseEvent,
     },
     {
       status: 3400,
-      checkMethod: Fdx.isMissing3400.bind(this),
-      getBaseEventMethod: Fdx.get3400BaseEvent.bind(this),
+      checkMethod: Fdx.isMissing3400,
+      getBaseEventMethod: Fdx.get3400BaseEvent,
     }
   ];
 
@@ -247,11 +247,11 @@ export class Fdx implements OperatorModule {
   }
 
   validateStoredEntity(_entity: Entity, _params: Record<string, string>): boolean {
-    return true; // Placeholder validation logic
+    return true; // FedEx does not require additional params validation
   }
 
   validateParams(_trackingId: TrackingID, _params: Record<string, string>): boolean {
-    return true; // Placeholder validation logic
+    return true; // FedEx does not require additional params validation
   }
 
   getExtraParams(_params: Record<string, string>): Record<string, string> {
