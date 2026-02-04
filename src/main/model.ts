@@ -784,7 +784,7 @@ export class OperatorRegistry {
   public static getBatchSize(operator: string): number {
     const details = this.instance.data.get(operator);
     if (!details) {
-      return 0;
+      return 1;
     }
 
     const batchSize = details.batchSize;
