@@ -613,8 +613,8 @@ export class Fdx implements OperatorModule {
 
     // process notes
     const eventDescription = (scanEvent["eventDescription"] as string).trim();
-    const sourceExceptionDesc = (scanEvent["exceptionDescription"] as string).trim();
-    const notes = sourceExceptionDesc.trim() === "" ? eventDescription : `${eventDescription}: ${sourceExceptionDesc}`;
+    const sourceExceptionDesc = (scanEvent["exceptionDescription"] as string ?? "").trim();
+    const notes = sourceExceptionDesc === "" ? eventDescription : `${eventDescription}: ${sourceExceptionDesc}`;
     event.notes = notes.toLowerCase() === event.what.toLowerCase() ? "" : notes;
     // additional data and source data
     event.additional = {
