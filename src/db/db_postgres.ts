@@ -106,7 +106,7 @@ export class PostgresWrapper implements DatabaseWrapper {
     await this.sql.begin(async (tx: ReturnType<typeof postgres>) => {
        inserted = await this.insertEntityRecord(tx, entity);
       // insert events
-      if (inserted == 1) {
+      if (inserted === 1) {
         await this.insertEvents(tx, entity.events, DataUpdateMethod.getDisplayText("manual-pull"));
       }
     });
@@ -189,7 +189,7 @@ export class PostgresWrapper implements DatabaseWrapper {
 
       // insert new entity and events
       inserted = await this.insertEntityRecord(tx, entity);
-      if (inserted == 1) {
+      if (inserted === 1) {
         await this.insertEvents(tx, entity.events, DataUpdateMethod.getDisplayText("manual-pull"));
       }
     });
