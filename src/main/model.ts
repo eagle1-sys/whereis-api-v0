@@ -377,7 +377,7 @@ export class Entity {
    *
    * @returns {number[]} An array of missing critical status codes. Returns an empty array if all critical statuses are present.
    */
-  public getMissingMajorStatuses(): number[] {
+  public getMissingCriticalStatuses(): number[] {
     const criticalStatuses = [3100, 3300, 3400];
     const missingStatuses: number[] = [];
 
