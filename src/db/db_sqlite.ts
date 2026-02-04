@@ -151,7 +151,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
               eventIdsNew.includes(event.eventId)
           );
 
-          const inserted = await this.insertEvents(this.db, events, updateMethodText);
+          const inserted = this.insertEvents(this.db, events, updateMethodText);
           changed = changed + (inserted?? 0);
         }
 
@@ -351,7 +351,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
           logger.info(`${updateMethod}: Insert new event with ID ${event.eventId}`);
 
           try {
-            const result = insertEventStmt.run(
+            insertEventStmt.run(
                 event.eventId,
                 event.status,
                 event.what ?? "",
@@ -370,8 +370,9 @@ export class SQLiteWrapper implements DatabaseWrapper {
                 JSON.stringify(event.sourceData ?? {}),
             );
 
-            changes = changes + result;
-            if (result !== 1) {
+            const rowsAffected = db.changes;
+            changes = changes + rowsAffected;
+            if (rowsAffected !== 1) {
               // log the info if no event_id was inserted
               logger.info(`Event with ID ${event.eventId} could not be inserted. `);
             }

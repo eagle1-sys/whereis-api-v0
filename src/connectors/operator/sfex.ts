@@ -99,6 +99,8 @@ export class Sfex implements OperatorModule{
   };
 
   // Define missing event configurations to check and supplement
+  // Note: checkMethod and getBaseEventMethod must remain static
+  // as they are referenced in this static configuration array
   private static readonly missingEventConfigs = [
     {
       status: 3300,

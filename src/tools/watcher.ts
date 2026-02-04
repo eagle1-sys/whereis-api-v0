@@ -344,22 +344,26 @@ async function loadEvents(operator: string, trackingNum: string, phoneNum?:strin
 }
 
 async function loadTrackingDataFromWhereis(trackingId: string, extra: {[key: string]: string | undefined}): Promise<Record<string, unknown>> {
-    const WHEREIS_API_URL = Deno.env.get("WHEREIS_API_URL");
-    let url = `${WHEREIS_API_URL}/v0/whereis/${trackingId}`;
-    if (!WHEREIS_API_URL) {
+    const whereIsApiUrl = Deno.env.get("WHEREIS_API_URL");
+    const whereIsAPIKey = Deno.env.get("WHEREIS_API_KEY");
+    if (!whereIsApiUrl) {
         throw new Error("WHEREIS_API_URL environment variable is not set");
     }
+    if (!whereIsAPIKey) {
+        throw new Error("WHEREIS_API_KEY environment variable is not set");
+    }
+
+    let url = `${whereIsApiUrl}/v0/whereis/${trackingId}`;
     if (Object.keys(extra).length > 0) {
         const params = new URLSearchParams(extra as Record<string, string>);
         url = url + "?" + params.toString();
     }
 
     // issue http request
-    const apiKey = Deno.env.get("WHEREIS_API_KEY");
     const response = await fetch(url, {
         method: "GET",
         headers: {
-            "Authorization": `Bearer ${apiKey}`,
+            "Authorization": `Bearer ${whereIsAPIKey}`,
         },
     });
 

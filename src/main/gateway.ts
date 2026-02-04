@@ -101,7 +101,7 @@ export async function requestWhereIs(operator: string, trackingIds: TrackingID[]
   for (const entity of entities) {
     if (!entity.isStatusExist(3500)) continue;
 
-    const missingStatuses = entity.getMissingMajorStatuses();
+    const missingStatuses = entity.getMissingCriticalStatuses();
     for (const status of missingStatuses) {
       logger.warn(`Entity ${entity.id} missing critical status : ${status}`);
     }
