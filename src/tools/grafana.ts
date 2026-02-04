@@ -1,4 +1,4 @@
-import {httpGet, httpPost} from "./util.ts";
+import {httpGet} from "./util.ts";
 
 interface QueryLogsOptions {
     level?: string;
