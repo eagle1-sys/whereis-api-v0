@@ -315,18 +315,25 @@ export class SQLiteWrapper implements DatabaseWrapper {
   }
 
   /**
-   * Inserts multiple events into the database.
+   * Inserts multiple events into the database within a transaction.
    *
-   * @param db
-   * @param events - An array of Event objects to be inserted.
-   * @param updateMethod - A string indicating the method of update (e.g., "manual-pull" or "auto-pull").
-   * @returns A Promise that resolves to the number of changes made in the database, or 0 if no changes were made.
+   * This method performs a batch insert of event records into the events table.
+   * All insertions are wrapped in a database transaction to ensure atomicity.
+   * If any event fails validation (missing eventId), an error is thrown and the
+   * transaction is rolled back. Individual insert failures are logged but do not
+   * stop the transaction.
+   *
+   * @param db - The SQLite Database instance to execute the insert operations on.
+   * @param events - An array of Event objects to be inserted into the database.
+   * @param updateMethod - A string indicating the method of update (e.g., "manual-pull" or "auto-pull"),
+   *                       used for logging purposes to track the source of the data update.
+   * @returns The total number of rows successfully inserted into the database. Returns 0 if the
+   *          transaction fails or if no events were successfully inserted.
    */
-  private async insertEvents(db: Database, events: Event[], updateMethod:string): Promise<number> {
-    return await new Promise((resolve, _reject) => {
-      const transaction = db.transaction(() => {
-        let changes = 0;
-        const insertEventStmt = db.prepare(`
+  private insertEvents(db: Database, events: Event[], updateMethod:string): number {
+    const transaction = db.transaction(() => {
+      let changes = 0;
+      const insertEventStmt = db.prepare(`
         INSERT INTO events (event_id, status, what_, when_, where_,
                             whom_, notes, operator_code, tracking_num, data_provider,
                             exception_code, exception_desc, notification_code, notification_desc, additional,
@@ -334,60 +341,56 @@ export class SQLiteWrapper implements DatabaseWrapper {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
-        try {
-          for (const event of events) {
-            // Validate input
-            if (!event || !event.eventId) {
-              throw new Error("Invalid event object: eventId is required");
-            }
+      try {
+        for (const event of events) {
+          // Validate input
+          if (!event || !event.eventId) {
+            throw new Error("Invalid event object: eventId is required");
+          }
 
-            logger.info(
-                `${updateMethod}: Insert new event with ID ${event.eventId}`,
+          logger.info(`${updateMethod}: Insert new event with ID ${event.eventId}`);
+
+          try {
+            const result = insertEventStmt.run(
+                event.eventId,
+                event.status,
+                event.what ?? "",
+                event.when ?? "",
+                event.where ?? "",
+                event.whom ?? "",
+                event.notes ?? "",
+                event.operatorCode ?? "",
+                event.trackingNum ?? "",
+                event.dataProvider ?? "",
+                event.exceptionCode || null,
+                event.exceptionDesc || null,
+                event.notificationCode || null,
+                event.notificationDesc || null,
+                JSON.stringify(event.additional ?? {}),
+                JSON.stringify(event.sourceData ?? {}),
             );
 
-            try {
-              const result = insertEventStmt.run(
-                  event.eventId,
-                  event.status,
-                  event.what ?? "",
-                  event.when ?? "",
-                  event.where ?? "",
-                  event.whom ?? "",
-                  event.notes ?? "",
-                  event.operatorCode ?? "",
-                  event.trackingNum ?? "",
-                  event.dataProvider ?? "",
-                  event.exceptionCode || null,
-                  event.exceptionDesc || null,
-                  event.notificationCode || null,
-                  event.notificationDesc || null,
-                  JSON.stringify(event.additional ?? {}),
-                  JSON.stringify(event.sourceData ?? {}),
-              );
-
-              changes = changes + result;
-              if (result !== 1) {
-                // log the info if no event_id was inserted
-                logger.info(`Event with ID ${event.eventId} could not be inserted. `);
-              }
-            } catch (err) {
-              logger.error(`Failed to insert event with ID ${event.eventId}:`, err);
+            changes = changes + result;
+            if (result !== 1) {
+              // log the info if no event_id was inserted
+              logger.info(`Event with ID ${event.eventId} could not be inserted. `);
             }
+          } catch (err) {
+            logger.error(`Failed to insert event with ID ${event.eventId}:`, err);
           }
-        } finally {
-          insertEventStmt.finalize();
         }
-
-        return changes;
-      });
-
-      try {
-        const changes = transaction();
-        resolve(changes);
-      } catch (_err) {
-        resolve(0);
+      } finally {
+        insertEventStmt.finalize();
       }
+
+      return changes;
     });
+
+    try {
+      return transaction();
+    } catch (_err) {
+      return 0;
+    }
   }
 
   /**
