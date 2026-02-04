@@ -1,3 +1,4 @@
+import {httpGet, httpPost} from "./util.ts";
 
 interface QueryLogsOptions {
     level?: string;
@@ -84,19 +85,16 @@ export class Grafana {
 
         try {
             const authHeader = 'Basic ' + btoa(`${this.GRAFANA_USER}:${this.GRAFANA_API_KEY}`);
-            const response = await fetch(`${Grafana.GRAFANA_QUERY_URL}?${params}`, {
-                method: 'GET',
-                headers: {
+            const response = await httpGet(
+                `${Grafana.GRAFANA_QUERY_URL}?${params}`,
+                {
                     'Content-Type': 'application/json',
                     'Authorization': authHeader
-                }
-            });
-
+                });
             if (!response.ok) {
                 console.error('Failed to query logs:', response.status, await response.text());
                 return undefined;
             }
-
             return await response.json();
         } catch (err) {
             console.error('Failed to query logs', err);
