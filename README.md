@@ -53,7 +53,9 @@ const response = await fetch(url, {
     "createdAt": "2024-11-11T14:16:48-06:00",
     "additional": {
       "origin": "San Francisco CA United States",
-      "destination": "CENTRAL  Hong Kong SAR, China"
+      "destination": "CENTRAL  Hong Kong SAR, China",
+      "isCrossBorder": true,
+      "processingTimeMs": 3.7
     }
   },
   "events": [{

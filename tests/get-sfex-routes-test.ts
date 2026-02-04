@@ -34,10 +34,7 @@ export function getRoutesFromSfexTest() {
     for (let i = 0; i < testData.length; i++) {
       const data = testData[i];
       const input = data["input"];
-      const response = await Sfex.getRoute(
-        input["trackingNum"],
-        input["phone"],
-      );
+      const response = await new Sfex().getRoute(input["trackingNum"], input["phone"]);
       const apiResultData = JSON.parse(response["apiResultData"] as string);
       assert(
           apiResultData["success"],

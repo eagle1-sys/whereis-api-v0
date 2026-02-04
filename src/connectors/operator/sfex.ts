@@ -14,11 +14,12 @@ import { logger } from "../../tools/logger.ts";
 import {isOperatorActive} from "../../main/gateway.ts";
 import {DataUpdateMethod, Entity, Event, StatusCode, TrackingID, AppError} from "../../main/model.ts";
 import {getResponseJSON, adjustDateAndFormatWithTimezone, formatTimezoneOffset, httpPost} from "../../tools/util.ts";
+import {OperatorModule} from "../../main/operator.ts";
 
 /**
  * SF Express API client class for tracking shipments and managing route data.
  */
-export class Sfex {
+export class Sfex implements OperatorModule{
 
   // Post statuses for the event '3400: Customs Clearance: Import Released'
   private static readonly POST_3400_STATUSES: number[] = [3004, 3450, 3500] as const;
@@ -101,13 +102,13 @@ export class Sfex {
   private static readonly missingEventConfigs = [
     {
       status: 3300,
-      checkMethod: this.isMissing3300.bind(this),
-      getBaseEventMethod: this.get3300BaseEvent.bind(this),
+      checkMethod: Sfex.isMissing3300,
+      getBaseEventMethod: Sfex.get3300BaseEvent,
     },
     {
       status: 3400,
-      checkMethod: this.isMissing3400.bind(this),
-      getBaseEventMethod: this.get3400BaseEvent.bind(this),
+      checkMethod: Sfex.isMissing3400,
+      getBaseEventMethod: Sfex.get3400BaseEvent,
     },
   ];
 
@@ -118,20 +119,52 @@ export class Sfex {
    * @param {string} checkWord - The application key
    * @returns {string} - The signed digest
    */
-  private static async generateSignature(
-    msgString: string,
-    timestamp: number,
-    checkWord: string,
-  ): Promise<string> {
+  private static async generateSignature(msgString: string, timestamp: number, checkWord: string,): Promise<string> {
     // Encode the input data
     const encoder = new TextEncoder();
-    const data = encoder.encode(
-      encodeURIComponent(msgString + timestamp + checkWord),
-    );
+    const data = encoder.encode(        encodeURIComponent(msgString + timestamp + checkWord));
     const hashBuffer = await crypto.subtle.digest("MD5", data);
     // Output base64 string
     const hashArray = new Uint8Array(hashBuffer);
     return btoa(String.fromCharCode(...hashArray));
+  }
+
+  validateTrackingNum(trackingNum: string): void {
+    if (!/^SF\d{13}$/.test(trackingNum)) {
+      throw new AppError("400-02", "400BE: model - SFEX_FORMAT");
+    }
+  }
+
+  getExtraParams(params: Record<string, string>): Record<string, string> {
+    return {phonenum: params.phonenum ?? ""};
+  }
+
+  /**
+   * Validates parameters for SF Express tracking requests
+   * @param _trackingId - The tracking ID being validated
+   * @param params - Query parameters to validate
+   * @throws AppError if validation fails
+   */
+  validateParams(_trackingId: TrackingID, params: Record<string, string>): boolean {
+    // Validate phone number is present and not empty
+    const phoneNum = params["phonenum"];
+    if (phoneNum === undefined || phoneNum === "") {
+      throw new AppError("400-03", "400AF: sfex - PHONENUM");
+    }
+    return true;
+  }
+
+  /**
+   * Validates stored entity parameters match request parameters
+   * @param entity - The stored entity
+   * @param params - The request parameters
+   * @throws AppError if validation fails
+   */
+  validateStoredEntity(entity: Entity, params: Record<string, string>): boolean {
+    if (entity.params?.phonenum !== params.phonenum) {
+      throw new AppError("400-03", "400AD: sfex - PHONENUM");
+    }
+    return true;
   }
 
   /**
@@ -143,25 +176,21 @@ export class Sfex {
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Promise<Entity | undefined>} A promise that resolves to an object or undefined if no data is found.
    */
-  static async whereIs(
-    trackingIds: TrackingID[],
-    extraParams: Record<string, string>,
-    updateMethod: string,
-  ): Promise<Entity[]> {
-    if(!isOperatorActive("sfex")) {
+  async pullFromSource(trackingIds: TrackingID[], extraParams: Record<string, string>, updateMethod: string,): Promise<Entity[]> {
+    if (!isOperatorActive("sfex")) {
       throw new AppError("500-01", "500BA: sfex - PARTNERID");
     }
 
     const entities: Entity[] = [];
     const trackingId = trackingIds[0];
     const result = await this.getRoute(
-      trackingId.trackingNum,
-      extraParams["phonenum"],
+        trackingId.trackingNum,
+        extraParams["phonenum"],
     );
 
     const resultCode = result["apiResultCode"] as string;
     if (resultCode !== "A1000") {
-      if(resultCode === "A1001" || resultCode === "A1004" || resultCode === "A1006"){
+      if (resultCode === "A1001" || resultCode === "A1004" || resultCode === "A1006") {
         // Invalid or missing data source API credentials
         throw new AppError("500-01", "500BB: sfex - PARTNERID");
       }
@@ -169,10 +198,10 @@ export class Sfex {
     }
 
     const entity: Entity | undefined = this.convert(
-      trackingId,
-      result,
-      extraParams,
-      updateMethod,
+        trackingId,
+        result,
+        extraParams,
+        updateMethod,
     );
 
     if (entity !== undefined) {
@@ -183,22 +212,20 @@ export class Sfex {
   }
 
   /**
-   * Creates an array of Entity objects from JSON data.
-   *
-   * @param {Record<string, unknown>} _data - The JSON data object from SF Express containing event information to be converted.
-   * @returns {Promise<{ entities: Entity[], result: Record<string, unknown> }>} A promise that resolves to an object containing:
-   *        - `entities`: An array of Entity objects created from the JSON data
-   *        - `result`: The response data as a key-value record.
    *
    * @remarks
-   * This is currently a placeholder implementation that returns an empty array.
-   * The actual implementation should be based on the specific structure of the input data.
+   * SF Express operates as a pull-based data provider and does not support push operator.
+   * This method is not implemented and will throw an error if called.
+   *
+   * @param _data - The JSON data object from operator containing event information to be converted.
+   *                This parameter is prefixed with underscore as it is intentionally unused.
+   *
+   * @returns An array of Entity objects created from the JSON data.
+   *
+   * @throws {Error} Always throws an error indicating that SF Express does not support push operations.
    */
-  // deno-lint-ignore require-await
-  static async fromJSON(_data: Record<string, unknown>): Promise<{ entities: Entity[], result: Record<string, unknown> }> {
-    const entities: Entity[] = [];
-    const result: Record<string, unknown> = {success:true};
-    return { entities, result };
+  processPushData(_data: Record<string, unknown>): Entity[] {
+    throw new Error("SF Express is a pull-based operator and does not support push operation.");
   }
 
   /**
@@ -209,10 +236,7 @@ export class Sfex {
    * @param {Record<string, unknown>} sourceData - Additional source data for complex mappings.
    * @returns {number} The corresponding internal event code. Returns 3001 if no specific mapping is found.
    */
-  static getStatusCode(
-    entity: Entity,
-    sourceData: Record<string, unknown>,
-  ): number {
+  static getStatusCode(entity: Entity, sourceData: Record<string, unknown>): number {
     const statusCode = sourceData["secondaryStatusCode"] as string;
     const opCode = sourceData["opCode"] as string;
     const statusMap = Sfex.statusCodeMap[statusCode];
@@ -244,10 +268,7 @@ export class Sfex {
    * @returns {Promise<Record<string, unknown>>} A promise that resolves to the raw API response data.
    * @throws {Error} If the API request fails or an error occurs during fetching.
    */
-  static async getRoute(
-    trackingNumber: string,
-    phoneNo: string,
-  ): Promise<Record<string, unknown>> {
+  async getRoute(trackingNumber: string, phoneNo: string,): Promise<Record<string, unknown>> {
     // live
     const sfexApiUrl = config.sfex.apiUrl ?? "";
     const sfexPartnerId = Deno.env.get("SFEX_PARTNER_ID") ?? "";
@@ -259,11 +280,7 @@ export class Sfex {
     };
     const timestamp = Date.now();
     const msgString = JSON.stringify(msgData);
-    const msgDigest = await Sfex.generateSignature(
-      msgString,
-      timestamp,
-      sfexCheckWord,
-    );
+    const msgDigest = await Sfex.generateSignature(msgString, timestamp, sfexCheckWord);
 
     const response = await httpPost(
         sfexApiUrl,
@@ -296,12 +313,7 @@ export class Sfex {
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Entity} An Entity object represents the shipment data.
    */
-  private static convert(
-    trackingId: TrackingID,
-    result: Record<string, unknown>,
-    params: Record<string, string>,
-    updateMethod: string,
-  ): Entity | undefined {
+  private convert(trackingId: TrackingID, result: Record<string, unknown>, params: Record<string, string>, updateMethod: string): Entity | undefined {
     const apiResult = JSON.parse(result["apiResultData"] as string);
     const routeResp = apiResult["msgData"]["routeResps"][0];
     const routes: [] = routeResp["routes"];
@@ -320,8 +332,9 @@ export class Sfex {
     entity.uuid = "eg1_" + crypto.randomUUID();
     entity.id = trackingId.toString();
     entity.type = "waybill";
+    entity.usePull = true;
     entity.params = params;
-    entity.extra = {};
+    entity.additional = {};
 
     for (const route of routes) {
       const event: Event = this.createEvent(
@@ -457,12 +470,7 @@ export class Sfex {
    * @param updateMethod - The method used to update the tracking information.
    * @returns An Event object containing detailed information about the shipment status.
    */
-  private static createEvent(
-    trackingId: TrackingID,
-    entity: Entity,
-    route: Record<string, unknown>,
-    updateMethod: string,
-  ): Event {
+  private createEvent(trackingId: TrackingID, entity: Entity, route: Record<string, unknown>, updateMethod: string): Event {
     const trackingNum: string = trackingId.trackingNum;
     // Get the original status before future event check
     let status: number = Sfex.getStatusCode(entity, route);
@@ -492,8 +500,7 @@ export class Sfex {
     }
 
     const secondsSinceEpoch = Math.floor(date.getTime() / 1000);
-    event.eventId =
-      `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
+    event.eventId = `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
     event.operatorCode = "sfex";
     event.trackingNum = trackingNum;
     event.status = status;
@@ -506,11 +513,9 @@ export class Sfex {
       event.where = route["acceptAddress"] as string;
     }
     event.whom = "SF Express";
-    event.notes = remark.toLowerCase() === event.what.toLowerCase()
-      ? ""
-      : remark;
+    event.notes = remark.toLowerCase() === event.what.toLowerCase() ? "" : remark;
     event.dataProvider = "SF Express";
-    event.extra = {
+    event.additional = {
       updateMethod: updateMethod,
       updatedAt: new Date().toISOString(),
     };
@@ -530,19 +535,14 @@ export class Sfex {
    * @param where - The location information for the supplementary event.
    * @returns An Event object representing the supplementary tracking event.
    */
-  private static createSupplementEvent(
-    trackingId: TrackingID,
-    status: number,
-    baseEventTime: string,
-    where: string,
-  ): Event {
+  private createSupplementEvent(trackingId: TrackingID, status: number, baseEventTime: string, where: string): Event {
     const event: Event = new Event();
     const date = new Date(baseEventTime);
     const timeZone = config.sfex.dataSourceTimezone;
     const [secondsSinceEpoch, when] = adjustDateAndFormatWithTimezone(date, timeZone);
 
     event.eventId =
-      `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
+        `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
     event.operatorCode = "sfex";
     event.trackingNum = trackingId.trackingNum;
     event.status = status;
@@ -553,7 +553,7 @@ export class Sfex {
     event.whom = "SF Express";
     event.notes = "Supplement event generated by Eagle1";
     event.dataProvider = "Eagle1";
-    event.extra = {
+    event.additional = {
       updateMethod: "system-generated",
       updatedAt: new Date().toISOString(),
     };

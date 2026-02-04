@@ -1,3 +1,5 @@
+import {validateTrackingNum} from "./gateway.ts";
+
 /**
  * @file model.ts
  * @description A singleton class for storing and retrieving key-value pairs where keys are numbers and values are strings.
@@ -206,39 +208,11 @@ export class TrackingID {
       throw new AppError("400-04", `400BC: model - OPERATOR_CODE[${lowerCaseOperator}]`);
     }
 
-    switch (lowerCaseOperator) {
-      case "fdx":
-        this.checkFedExTrackingNum(trackingNum);
-        break;
-      case "sfex":
-        this.checkSFTrackingNum(trackingNum);
-        break;
-    }
+    validateTrackingNum(lowerCaseOperator, trackingNum);
 
     return new TrackingID(lowerCaseOperator, trackingNum);
   }
 
-  /**
-   * Validates a FedEx tracking number.
-   * @param {string} trackingNum - The tracking number to validate.
-   * @returns {string | undefined} An error code if invalid (e.g., "400-02"), or undefined if valid.
-   */
-  static checkFedExTrackingNum(trackingNum: string): void {
-    if (trackingNum.length != 12) {
-      throw new AppError("400-02","400BD: model - FDX_LENGTH");
-    }
-  }
-
-  /**
-   * Validates an SF Express tracking number.
-   * @param {string} trackingNum - The tracking number to validate.
-   * @returns {string | undefined} An error code if invalid (e.g., "400-02"), or undefined if valid.
-   */
-  static checkSFTrackingNum(trackingNum: string): void {
-    if (!/^SF\d{13}$/.test(trackingNum)) {
-          throw new AppError("400-02", "400BE: model - SFEX_FORMAT");
-    }
-  }
 }
 
 /**
@@ -254,12 +228,14 @@ export class Entity {
   id: string;
   /** Type of the object. ex: waybill */
   type: string;
+  /** use pull mode for the object. ex: true | false */
+  usePull: boolean;
   /** Indicates if the event related to object is completed */
   completed: boolean;
   /** Indicates the timestamp of the first event */
   creationTime: string;
   /** Additional metadata for the object */
-  extra: Record<string, string>;
+  additional: Record<string, unknown>;
   /** Parameters associated with the object. ex:{phonenum:'1234'} */
   params: Record<string, string>;
   /** List of events associated with the object */
@@ -272,9 +248,10 @@ export class Entity {
     this.uuid = "";
     this.id = "";
     this.type = "";
+    this.usePull = false;
     this.completed = false;
     this.creationTime = "";
-    this.extra = {};
+    this.additional = {};
     this.params = {};
     this.events = [];
   }
@@ -285,8 +262,7 @@ export class Entity {
    * @returns {Record<string, unknown>} A structured object representing the object and its events.
    */
   public toJSON(fullData: boolean = false): Record<string, unknown> {
-    const extra = this.extra || {};
-    const additional: Record<string, unknown> = {};
+    const additionalData = this.additional || {};
     // sort the events first to ensure getCreationTime()/lastEvent() works correctly
     this.events.sort((a, b) => {
       const dateA = a.when ? new Date(a.when).getTime() : 0;
@@ -294,17 +270,17 @@ export class Entity {
       return dateA - dateB;
     });
 
-    // Add origin and destination if they exist in extra
-    ["origin", "destination"].forEach((key) => {
-      if (key in extra) additional[key] = extra[key];
-    });
+    // Add isCrossBorder if it exists in additional or the status is [3350,3400]
+    if (additionalData.isCrossBorder || this.isStatusExist(3350, 3400)) {
+      additionalData.isCrossBorder = true;
+    }
 
     const entity = {
       id: this.id,
       type: this.type,
       uuid: this.uuid,
       createdAt: this.getCreationTime(),
-      ...(Object.keys(additional).length > 0 && { additional }),
+      ...(Object.keys(additionalData).length > 0 && {additional: additionalData}),
     };
 
     const events = this.events?.map((event) => event.toJSON(fullData)) || [];
@@ -369,14 +345,57 @@ export class Entity {
    * @returns {boolean} True if completed, false otherwise.
    */
   public isCompleted(): boolean {
+    return this.isStatusExist(3500, 3009);
+  }
+
+
+  /**
+   * Checks if an event with any of the specified status codes exists in the entity's event list.
+   *
+   * This method iterates through the events in reverse order (most recent first) to determine
+   * if any event has a status code matching any of the provided values.
+   *
+   * @param {...number} statuses - One or more status codes to search for in the events list.
+   * @returns {boolean} True if an event with any of the specified status codes exists, false otherwise.
+   *                    Returns false if no events exist.
+   */
+  public isStatusExist(...statuses: number[]): boolean {
     if (this.events === undefined) return false;
 
+    const statusSet = new Set(statuses);
     for (let i = this.events.length - 1; i >= 0; i--) {
-      if (this.events[i].status === 3500 || this.events[i].status === 3009) {
+      if (statusSet.has(this.events[i].status)) {
         return true;
       }
     }
     return false;
+  }
+
+  /**
+   * Gets the missing critical status codes by checking whether the entity includes 3100, 3300 and 3400 status.
+   * 3000 & 3200 can be ignored as they are not considered critical status codes.
+   *
+   * @returns {number[]} An array of missing critical status codes. Returns an empty array if all critical statuses are present.
+   */
+  public getMissingMajorStatuses(): number[] {
+    const criticalStatuses = [3100, 3300, 3400];
+    const missingStatuses: number[] = [];
+
+    if (this.events === undefined || this.events.length === 0) {
+      return criticalStatuses;
+    }
+
+    // Create a set of existing status codes for efficient lookup
+    const existingStatuses = new Set(this.events.map(event => event.status));
+
+    // Check each major status
+    for (const status of criticalStatuses) {
+      if (!existingStatuses.has(status)) {
+        missingStatuses.push(status);
+      }
+    }
+
+    return missingStatuses;
   }
 
   /**
@@ -495,14 +514,14 @@ export class Event {
   notificationDesc?: string;
 
   /** Additional metadata for the event */
-  extra?: Record<string, unknown>;
+  additional?: Record<string, unknown>;
   /** Raw source data for the event */
   sourceData: Record<string, unknown>;
 
   constructor() {
     this.eventId = "";
     this.status = -1;
-    this.extra = {};
+    this.additional = {};
     this.sourceData = {};
   }
 
@@ -526,8 +545,8 @@ export class Event {
       trackingNum: this.trackingNum,
       operatorCode: this.operatorCode,
       dataProvider: this.dataProvider,
-      updateMethod: this.extra?.updateMethod,
-      updatedAt: this.extra?.updatedAt,
+      updateMethod: this.additional?.updateMethod,
+      updatedAt: this.additional?.updatedAt,
     };
 
     if (this.exceptionCode != null) {
@@ -543,8 +562,8 @@ export class Event {
       additional.notificationDesc = this.notificationDesc;
     }
 
-    if (this.extra != null && "transitMode" in this.extra) {
-      additional.transitMode = this.extra.transitMode;
+    if (this.additional != null && "transitMode" in this.additional) {
+      additional.transitMode = this.additional.transitMode;
     }
 
     result.additional = additional;
@@ -758,8 +777,23 @@ export class OperatorRegistry {
     this.operators = Array.from(this.instance.data.keys());
   }
 
-  public static include( operator: string): boolean {
+  public static include(operator: string): boolean {
     return this.operators.includes(operator);
+  }
+
+  public static getBatchSize(operator: string): number {
+    const details = this.instance.data.get(operator);
+    if (!details) {
+      return 1;
+    }
+
+    const batchSize = details.batchSize;
+    if (typeof batchSize === 'number' && batchSize > 0) {
+      return batchSize;
+    }
+
+    // Return default batch size if not specified or invalid
+    return 1;
   }
 
   /**

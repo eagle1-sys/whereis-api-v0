@@ -72,13 +72,13 @@ export class PostgresWrapper implements DatabaseWrapper {
     return testResult[0].connection_test === 1;
   }
 
-  async insertToken(apikey: string, userId: string): Promise<boolean> {
+  async insertToken(apikey: string, userId: string): Promise<number> {
     const result = await this.sql`
       INSERT INTO tokens (id, user_id)
       VALUES (${apikey},
               ${userId}) ON CONFLICT(id) DO NOTHING RETURNING 0`;
 
-    return (result.count ?? 0) > 0;
+    return result.count ?? 0;
   }
 
   /**
@@ -88,20 +88,25 @@ export class PostgresWrapper implements DatabaseWrapper {
    * also inserts those events into the database using a manual pull update method.
    *
    * @param entity - The Entity object to be inserted into the database.
-   *                 It should contain all necessary properties such as uuid, id, type, creation time, completion status, extra data, and parameters.
+   *                 It should contain all necessary properties such as uuid, id, type, creation time, completion status, additional data, and parameters.
    *
    * @returns A Promise that resolves to:
-   *          - 1 if the insertion was successful (note: this doesn't necessarily mean the entity was inserted, just that the operation completed)
-   *          - undefined if the operation failed or no insertion occurred
+   *          - 1 if both the entity and its events were successfully inserted
+   *          - 0 if the entity has no events or the insertion failed
    *
    * @throws Will throw an error if the database operation fails.
    */
-  async insertEntity(entity: Entity): Promise<number | undefined> {
+  async insertEntity(entity: Entity): Promise<number> {
     let inserted = 0;
+    if(entity.events === undefined || entity.events.length === 0) {
+      logger.error(`Entity [${entity.id}] has no events`);
+      return 0;
+    }
+
     await this.sql.begin(async (tx: ReturnType<typeof postgres>) => {
        inserted = await this.insertEntityRecord(tx, entity);
       // insert events
-      if (inserted == 1 && entity.events != undefined) {
+      if (inserted == 1) {
         await this.insertEvents(tx, entity.events, DataUpdateMethod.getDisplayText("manual-pull"));
       }
     });
@@ -123,18 +128,19 @@ export class PostgresWrapper implements DatabaseWrapper {
    * @param updateMethod - A string describing the update method (e.g., "auto-pull" or "manual-pull")
    * @param eventIdsNew - An array of event IDs that need to be added to the entity.
    * @param eventIdsToBeRemoved - An array of event IDs that need to be removed from the entity.
-   * @returns A Promise that resolves to true if the update operation is successful.
-   *          Note: The boolean return doesn't indicate success or failure, as errors will throw exceptions.
-   * @throws Will throw an error if any database operation fails.
+   * @returns A Promise that resolves to the number 1 upon successful completion of all update operations.
+   * @throws Will throw an error if any database operation fails during the transaction.
    */
-  async updateEntity(entity: Entity, updateMethod: string, eventIdsNew: string[], eventIdsToBeRemoved: string[]): Promise<boolean> {
-    const updateMethodText = DataUpdateMethod.getDisplayText("auto-pull");
+  async updateEntity(entity: Entity, updateMethod: string, eventIdsNew: string[], eventIdsToBeRemoved: string[]): Promise<number> {
+    let changed = 0;
+    const updateMethodText = DataUpdateMethod.getDisplayText(updateMethod);
 
     await this.sql.begin(async (tx: ReturnType<typeof postgres>) => {
       // update the entity record
       // step 1: update the entity record ONLY when the entity is completed
       if (entity.isCompleted()) {
-        await tx`update entities set completed = true where id = ${entity.id as string}`;
+        const result = await tx`update entities set completed = true where id = ${entity.id as string}`;
+        changed = changed + (result.count?? 0);
       }
 
       // step 2: insert new events
@@ -142,19 +148,21 @@ export class PostgresWrapper implements DatabaseWrapper {
         const events: Event[] = (entity.events ?? []).filter((event) =>
             eventIdsNew.includes(event.eventId)
         );
-        await this.insertEvents(tx, events, updateMethodText);
+        const inserted = await this.insertEvents(tx, events, updateMethodText);
+        changed = changed + (inserted ?? 0);
       }
 
       // step 3: remove events that are not in the updated entity
       if (eventIdsToBeRemoved.length > 0) {
         for (const eventId of eventIdsToBeRemoved) {
           logger.info(`${updateMethod}: Delete exist event with ID ${eventId}`);
-          await tx`DELETE FROM events WHERE event_id = ${eventId}`;
+          const result = await tx`DELETE FROM events WHERE event_id = ${eventId}`;
+          changed = changed + (result.count?? 0);
         }
       }
     });
 
-    return true;
+    return changed > 0 ? 1 : 0;
   }
 
   /**
@@ -163,22 +171,29 @@ export class PostgresWrapper implements DatabaseWrapper {
    *
    * @param trackingId - The unique identifier for tracking the entity. It's used to locate and delete the existing entity.
    * @param entity - The new Entity object containing the updated information to be inserted into the database.
-   * @returns A Promise that resolves to true if the refresh operation is successful.
-   *          The boolean return value doesn't indicate success or failure, as errors will throw exceptions.
-   * @throws Will throw an error if either the delete or insert operation fails.
+   * @returns A Promise that resolves to the number 1 upon successful completion of the refresh
+   *          operation. The return value indicates the operation completed successfully.
+   * @throws Will throw an error if either the delete or insert operation fails during the
+   *         database transaction.
    */
-  async refreshEntity(trackingId: TrackingID, entity: Entity): Promise<boolean> {
+  async refreshEntity(trackingId: TrackingID, entity: Entity): Promise<number> {
+    if(entity.events === undefined || entity.events.length === 0) {
+      logger.error(`Entity [${entity.id}] has no events`);
+      return 0;
+    }
+
+    let inserted = 0;
     await this.sql.begin(async (tx: ReturnType<typeof postgres>) => {
       // delete entity and events
       await this.deleteEntityAndEvents(tx, trackingId);
 
       // insert new entity and events
-      const inserted = await this.insertEntityRecord(tx, entity);
-      if (inserted == 1 && entity.events != undefined) {
+      inserted = await this.insertEntityRecord(tx, entity);
+      if (inserted == 1) {
         await this.insertEvents(tx, entity.events, DataUpdateMethod.getDisplayText("manual-pull"));
       }
     });
-    return true;
+    return inserted;
   }
 
   /**
@@ -271,7 +286,10 @@ export class PostgresWrapper implements DatabaseWrapper {
    */
   async getInProcessingTrackingNums(): Promise<Record<string, Record<string, string>>> {
     const trackingNums: Record<string, Record<string, string>> = {};
-    const rows = await this.sql`SELECT id, params FROM entities WHERE completed = false;`;
+    const rows = await this.sql`SELECT id, params
+                                FROM entities
+                                WHERE completed = false
+                                  AND use_pull = true;`;
 
     for (const row of rows) {
       trackingNums[row.id as string] = row.params as Record<string, string>;
@@ -290,13 +308,14 @@ export class PostgresWrapper implements DatabaseWrapper {
    */
   private async insertEntityRecord(tx: ReturnType<typeof postgres>, entity: Entity): Promise<number> {
     const result = await tx`
-        INSERT INTO entities (uuid, id, type, creation_time, completed, extra, params)
+        INSERT INTO entities (uuid, id, type, use_pull, creation_time, completed, additional, params)
         VALUES (${entity.uuid},
                 ${entity.id},
                 ${entity.type},
+                ${entity.usePull},
                 ${entity.getCreationTime()},
                 ${entity.isCompleted()},
-                ${tx.json(ensureJSONSafe(entity.extra ?? {}))},
+                ${tx.json(ensureJSONSafe(entity.additional ?? {}))},
                 ${tx.json(ensureJSONSafe(entity.params ?? {}))}) `;
 
     return result.count?? 0;
@@ -335,7 +354,7 @@ export class PostgresWrapper implements DatabaseWrapper {
         const result = await tx`
         INSERT INTO events (event_id, status, what_, when_, where_,
                             whom_, notes, operator_code, tracking_num, data_provider,
-                            exception_code, exception_desc, notification_code, notification_desc, extra,
+                            exception_code, exception_desc, notification_code, notification_desc, additional,
                             source_data)
         VALUES (${event.eventId},
                 ${event.status},
@@ -351,7 +370,7 @@ export class PostgresWrapper implements DatabaseWrapper {
                 ${event.exceptionDesc || null},
                 ${event.notificationCode ?? null},
                 ${event.notificationDesc || null},
-                ${tx.json(ensureJSONSafe(event.extra ?? {}))},
+                ${tx.json(ensureJSONSafe(event.additional ?? {}))},
                 ${tx.json(ensureJSONSafe(event.sourceData ?? {}))}
                ) ON CONFLICT(event_id) DO NOTHING RETURNING event_id;
         `;
@@ -402,8 +421,9 @@ export class PostgresWrapper implements DatabaseWrapper {
         SELECT uuid,
                id,
                type,
+               use_pull,
                completed,
-               extra,
+               additional,
                params,
                creation_time
         FROM entities
@@ -418,8 +438,9 @@ export class PostgresWrapper implements DatabaseWrapper {
       entity.uuid = row.uuid;
       entity.id = row.id;
       entity.type = row.type;
+      entity.usePull = row.use_pull;
       entity.completed = row.completed;
-      entity.extra = row.extra as Record<string, string>;
+      entity.additional = row.additional as Record<string, unknown>;
       entity.params = row.params as Record<string, string>;
       entity.creationTime = row.creation_time as string;
     }
@@ -457,7 +478,7 @@ export class PostgresWrapper implements DatabaseWrapper {
                exception_desc,
                notification_code,
                notification_desc,
-               extra,
+               additional,
                source_data
         FROM events
         WHERE operator_code = ${trackingID.operator}
@@ -481,7 +502,7 @@ export class PostgresWrapper implements DatabaseWrapper {
       event.exceptionDesc = row.exception_desc as string;
       event.notificationCode = row.notification_code as number;
       event.notificationDesc = row.notification_desc as string;
-      event.extra = row.extra as Record<string, string>;
+      event.additional = row.additional as Record<string, unknown>;
       event.sourceData = row.source_data as Record<string, string>;
       events.push(event);
     }

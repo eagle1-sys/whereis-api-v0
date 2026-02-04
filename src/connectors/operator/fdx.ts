@@ -13,16 +13,21 @@ import {config} from "../../../config.ts";
 import {logger} from "../../tools/logger.ts";
 import {isOperatorActive} from "../../main/gateway.ts";
 import {getResponseJSON, adjustDateAndFormatWithTimezone, extractTimezone, httpPost} from "../../tools/util.ts";
+import {OperatorModule} from "../../main/operator.ts";
 
 /**
  * A class to interact with the FedEx tracking API and manage shipment tracking information.
  */
-export class Fdx {
+export class Fdx implements OperatorModule {
+
   /** @type {string} The current authentication token for FedEx API requests. */
-  private static token: string;
+  private token: string | undefined;
   /** @type {number} The expiration time of the token in milliseconds since epoch. Initially 0. */
-  private static expireTime: number = 0;
-  private static tokenPromise: Promise<string> | null = null;
+  private expireTime: number = 0;
+  private tokenPromise: Promise<string> | null = null;
+
+  // Post statuses for the event '3400: Customs Clearance: Import Released'
+  private static readonly POST_3400_STATUSES: number[] = [3004, 3450, 3500] as const;
 
   /**
    * A mapping of FedEx status codes and event types to internal event codes or functions.
@@ -132,8 +137,13 @@ export class Fdx {
   private static readonly missingEventConfigs = [
     {
       status: 3100,
-      checkMethod: this.isMissing3100.bind(this),
-      getBaseEventMethod: this.get3100BaseEvent.bind(this),
+      checkMethod: Fdx.isMissing3100,
+      getBaseEventMethod: Fdx.get3100BaseEvent,
+    },
+    {
+      status: 3400,
+      checkMethod: Fdx.isMissing3400,
+      getBaseEventMethod: Fdx.get3400BaseEvent,
     }
   ];
 
@@ -145,7 +155,7 @@ export class Fdx {
    * @returns {Promise<string>} A promise that resolves to the current or newly fetched authentication token.
    * @throws {Error} If the token cannot be retrieved from the FedEx API.
    */
-  static async getToken(): Promise<string> {
+  async getToken(): Promise<string> {
     // If a token fetch is already in progress, return that promise
     if (this.tokenPromise) {
       return this.tokenPromise;
@@ -181,7 +191,7 @@ export class Fdx {
    *
    * @returns {Promise<string>} A promise that resolves to the newly obtained access token.
    */
-  static async fetchNewToken(): Promise<string> {
+  async fetchNewToken(): Promise<string> {
     const fdxApiUrl: string = config.fdx.apiUrl ?? "";
     const fdxClientId = Deno.env.get("FDX_CLIENT_ID");
     const fdxClientSecret = Deno.env.get("FDX_CLIENT_SECRET");
@@ -236,6 +246,24 @@ export class Fdx {
     }
   }
 
+  validateStoredEntity(_entity: Entity, _params: Record<string, string>): boolean {
+    return true; // FedEx does not require additional params validation
+  }
+
+  validateParams(_trackingId: TrackingID, _params: Record<string, string>): boolean {
+    return true; // FedEx does not require additional params validation
+  }
+
+  getExtraParams(_params: Record<string, string>): Record<string, string> {
+    return {};
+  }
+
+  validateTrackingNum(trackingNum: string): void {
+    if (trackingNum.length > 25) {
+      throw new AppError("400-02","400BD: model - FDX_LENGTH");
+    }
+  }
+
   /**
    * Retrieves the current location and tracking details for a given tracking number.
    * @param {TrackingID} trackingIds - The tracking ID(s) defined by eagle1.
@@ -243,12 +271,8 @@ export class Fdx {
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Promise<Entity | undefined>} A promise resolving to the tracking entity or undefined if not found.
    */
-  static async whereIs(
-      trackingIds: TrackingID[],
-      _extraParams: Record<string, string>,
-      updateMethod: string,
-  ): Promise<Entity[]> {
-    if(!isOperatorActive("fdx")) {
+  async pullFromSource(trackingIds: TrackingID[], _extraParams: Record<string, string>, updateMethod: string): Promise<Entity[]> {
+    if (!isOperatorActive("fdx")) {
       throw new AppError("500-01", "500AB: fdx - CLIENT_ID");
     }
 
@@ -257,32 +281,18 @@ export class Fdx {
     const result: Record<string, unknown> = await this.getRoute(trackingNums);
     const output = result["output"] as Record<string, unknown>;
     if (output === undefined) {
-      const trackingIdsStr: string = trackingIds.map((item) => item.toString())
-          .join(", ");
+      const trackingIdsStr: string = trackingIds.map((item) => item.toString()).join(", ");
       // get the display text of the data retrieval method. eg: auto-pull -> Auto-pull
       const updateMethodName = DataUpdateMethod.getDisplayText(updateMethod);
-      logger.warn(
-          `${updateMethodName} -> FDX: Unexpected data received for ${trackingIdsStr}. Missing output{} in the received response: ${
-              JSON.stringify(result)
-          }`,
-      );
+      logger.warn(`${updateMethodName} -> FDX: Unexpected data received for ${trackingIdsStr}. 
+                  Missing output{} in the received response: ${JSON.stringify(result)}`);
       return entities;
     }
 
-    const completeTrackResults = output["completeTrackResults"] as Record<
-        string,
-        unknown
-    >[];
-    completeTrackResults.forEach(
-        (completeTrackResult: Record<string, unknown>) => {
-          const trackingId: TrackingID = TrackingID.parse(
-              "fdx-" + completeTrackResult["trackingNumber"] as string,
-          );
-          const entity: Entity | undefined = Fdx.convert(
-              trackingId,
-              completeTrackResult,
-              updateMethod,
-          );
+    const completeTrackResults = output["completeTrackResults"] as Record<string, unknown>[];
+    completeTrackResults.forEach((completeTrackResult: Record<string, unknown>) => {
+          const trackingId: TrackingID = TrackingID.parse("fdx-" + completeTrackResult["trackingNumber"] as string);
+          const entity: Entity | undefined = Fdx.convert(trackingId, completeTrackResult, updateMethod);
           if (entity !== undefined) {
             entities.push(entity);
           }
@@ -293,22 +303,20 @@ export class Fdx {
   }
 
   /**
-   * Creates an array of Entity objects from JSON data.
-   *
-   * @param {Record<string, unknown>} _data - The JSON data object from FedEx containing event information to be converted.
-   * @returns {Promise<{ entities: Entity[], result: Record<string, unknown> }>} A promise that resolves to an object containing:
-   *          - `entities`: An array of Entity objects created from the JSON data
-   *          - `result`: The response data as a key-value record.
    *
    * @remarks
-   * This is currently a placeholder implementation that returns an empty array.
-   * The actual implementation should be based on the specific structure of the input data.
+   * FedEx operates as a pull-based data provider and does not support push operator.
+   * This method is not implemented and will throw an error if called.
+   *
+   * @param _data - The JSON data object from operator containing event information to be converted.
+   *                This parameter is prefixed with underscore as it is intentionally unused.
+   *
+   * @returns An array of Entity objects created from the JSON data.
+   *
+   * @throws {Error} Always throws an error indicating that FedEx does not support push operations.
    */
-  // deno-lint-ignore require-await
-  static async fromJSON(_data: Record<string, unknown>): Promise<{ entities: Entity[], result: Record<string, unknown> }> {
-    const entities: Entity[] = [];
-    const result: Record<string, unknown> = {success:true};
-    return { entities, result };
+  processPushData(_data: Record<string, unknown>): Entity[] {
+    throw new Error("FedEx is a pull-based operator and does not support push operation.");
   }
 
   /**
@@ -317,10 +325,7 @@ export class Fdx {
    * @param {Record<string, unknown>} sourceData - The raw event data from FedEx.
    * @returns {number} The corresponding internal event code, or 3001 if not found.
    */
-  static getStatusCode(
-      entity: Entity,
-      sourceData: Record<string, unknown>,
-  ): number {
+  static getStatusCode(entity: Entity, sourceData: Record<string, unknown>): number {
     const derivedStatusCode = sourceData["derivedStatusCode"] as string;
     const eventType = sourceData["eventType"] as string;
     const statusMap = Fdx.statusCodeMap[derivedStatusCode];
@@ -338,9 +343,7 @@ export class Fdx {
     return 3001;
   }
 
-  static getExceptionCode(
-      sourceData: Record<string, unknown>,
-  ): number | undefined {
+  static getExceptionCode(sourceData: Record<string, unknown>): number | undefined {
     const code_original = sourceData["exceptionCode"] as string;
     if (!code_original || code_original === "71") {
       return undefined;
@@ -379,8 +382,7 @@ export class Fdx {
    * Checks if a 3100 status event is missing from the entity's event sequence.
    *
    * This function iterates through the entity's events to determine if a 3100 status
-   * event (typically representing "Received by Carrier") is missing where it should
-   * be present in the logical sequence of events.
+   * event is missing where it should be present in the logical sequence of events.
    *
    * @param {Entity} entity - The entity object containing an array of events to check.
    * @returns {boolean} Returns true if a 3100 status event is missing in the expected
@@ -423,17 +425,54 @@ export class Fdx {
   }
 
   /**
+   * Checks if a 3400 status event is missing from the entity's event sequence.
+   *
+   * This function iterates through the entity's events to determine if a 3400 status
+   * event is missing where it should be present in the logical sequence of events.
+   *
+   * @param {Entity} entity - The entity object containing an array of events to check.
+   * @returns {boolean} Returns true if a 3400 status event is missing in the expected
+   *                    sequence, false otherwise.
+   */
+  static isMissing3400(entity: Entity): boolean {
+    if (entity.additional.isCrossBorder) {
+      for (const event of entity.events) {
+        // if a 3400 event is found
+        if (event.status === 3400) return false;
+
+        // if an event with status greater than 3400 is found
+        if (event.status > 3400) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+
+  static get3400BaseEvent(entity: Entity): Event | undefined {
+    for (const event of entity.events) {
+      // if the event status is less than 3350, skip it
+      if (event.status < 3350) {
+        continue;
+      }
+
+      if (Fdx.POST_3400_STATUSES.includes(event.status)) {
+        return event;
+      }
+    }
+    return undefined;
+  }
+
+  /**
    * Fetches the shipment route details for a given tracking number from the FedEx API.
    * @param {string} trackingNumbers - The FedEx tracking number(s).
    * @returns {Promise<Record<string, unknown>>} A promise resolving to the raw API response data.
    * @throws {Error} If the API request fails.
    */
-  static async getRoute(
-      trackingNumbers: string[],
-  ): Promise<Record<string, unknown>> {
+  async getRoute(trackingNumbers: string[]): Promise<Record<string, unknown>> {
     // Prepare the request payload
-    const trackingInfo: { trackingNumberInfo: { trackingNumber: string } }[] =
-        [];
+    const trackingInfo: { trackingNumberInfo: { trackingNumber: string } }[] = [];
     trackingNumbers.forEach((trackingNum) =>
         trackingInfo.push({
           "trackingNumberInfo": {
@@ -474,11 +513,7 @@ export class Fdx {
    * @returns {Entity} An Entity object represents the trackingId's status.
    * @private
    */
-  private static convert(
-      trackingId: TrackingID,
-      completeTrackResult: Record<string, unknown>,
-      updateMethod: string,
-  ): Entity | undefined {
+  private static convert(trackingId: TrackingID, completeTrackResult: Record<string, unknown>, updateMethod: string): Entity | undefined {
     const entity: Entity = new Entity();
     const trackResults = completeTrackResult["trackResults"] as [unknown];
     const trackResult = trackResults[0] as Record<string, unknown>;
@@ -495,19 +530,18 @@ export class Fdx {
     entity.id = trackingId.toString();
     entity.params = {};
     entity.type = "waybill";
-    entity.extra = {
-      origin: Fdx.getAddress(
-          (trackResult["shipperInformation"] as Record<string, unknown>)[
-              "address"
-              ] as Record<string, unknown>,
-      ),
-      destination: Fdx.getAddress(
-          (trackResult["recipientInformation"] as Record<string, unknown>)[
-              "address"
-              ] as Record<string, unknown>,
-      ),
+    entity.usePull = true;
+    const shipperAddress = (trackResult["shipperInformation"] as Record<string, unknown>)["address"]  as Record<string, unknown>;
+    const recipientAddress = (trackResult["recipientInformation"] as Record<string, unknown>)["address"]  as Record<string, unknown>;
+    entity.additional = {
+      origin: Fdx.getAddress(shipperAddress),
+      destination: Fdx.getAddress(recipientAddress)
     };
-
+    const shipperCountry = shipperAddress["countryName"] as string;
+    const recipientCountry = recipientAddress["countryName"] as string;
+    if (shipperCountry.toLowerCase() !== recipientCountry.toLowerCase()) {
+      entity.additional.isCrossBorder = true;
+    }
     const scanEvents = trackResult["scanEvents"] as Record<string, unknown>[];
     for (const scanEvent of scanEvents.reverse()) {
       const event = this.createEvent(
@@ -551,12 +585,7 @@ export class Fdx {
    * @param {string} updateMethod - The method used to update the tracking information.
    * @returns {Event} A new Event object populated with data from the FedEx scan event.
    */
-  private static createEvent(
-      trackingId: TrackingID,
-      entity: Entity,
-      scanEvent: Record<string, unknown>,
-      updateMethod: string,
-  ): Event {
+  private static createEvent(trackingId: TrackingID, entity: Entity, scanEvent: Record<string, unknown>, updateMethod: string): Event {
     const status = Fdx.getStatusCode(entity, scanEvent);
 
     const trackingNum = trackingId.trackingNum;
@@ -565,8 +594,7 @@ export class Fdx {
     const eventTime = scanEvent["date"] as string;
     const date = new Date(eventTime);
     const secondsSinceEpoch = Math.floor(date.getTime() / 1000);
-    event.eventId =
-        `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
+    event.eventId = `ev_${trackingId.toString()}-${secondsSinceEpoch}-${status}`;
     event.status = status;
     event.what = StatusCode.getDesc(status);
     event.whom = "FedEx";
@@ -585,14 +613,11 @@ export class Fdx {
 
     // process notes
     const eventDescription = (scanEvent["eventDescription"] as string).trim();
-    const sourceExceptionDesc = (scanEvent["exceptionDescription"] as string)
-        .trim();
-    const notes = sourceExceptionDesc.trim() === ""
-        ? eventDescription
-        : `${eventDescription}: ${sourceExceptionDesc}`;
+    const sourceExceptionDesc = (scanEvent["exceptionDescription"] as string).trim();
+    const notes = sourceExceptionDesc.trim() === "" ? eventDescription : `${eventDescription}: ${sourceExceptionDesc}`;
     event.notes = notes.toLowerCase() === event.what.toLowerCase() ? "" : notes;
-    // extra data and source data
-    event.extra = {
+    // additional data and source data
+    event.additional = {
       updateMethod: updateMethod,
       updatedAt: new Date().toISOString(),
     };
@@ -601,12 +626,7 @@ export class Fdx {
     return event;
   }
 
-  private static createSupplementEvent(
-      trackingId: TrackingID,
-      status: number,
-      baseEventTime: string,
-      where: string,
-  ): Event {
+  private static createSupplementEvent(trackingId: TrackingID, status: number, baseEventTime: string, where: string,): Event {
     const event: Event = new Event();
     const date = new Date(baseEventTime);
     const timeZone = extractTimezone(baseEventTime);
@@ -623,7 +643,7 @@ export class Fdx {
     event.whom = "FedEx";
     event.notes = "Supplement event generated by Eagle1";
     event.dataProvider = "Eagle1";
-    event.extra = {
+    event.additional = {
       updateMethod: "system-generated",
       updatedAt: new Date().toISOString(),
     };
@@ -633,4 +653,3 @@ export class Fdx {
   }
 
 }
-

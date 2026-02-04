@@ -7,25 +7,15 @@
  * @license BSD 3-Clause License
  */
 
+import { HonoRequest } from "hono/request";
 import { Entity, OperatorRegistry, TrackingID } from "./model.ts";
+import {OperatorModule} from "./operator.ts";
+import {logger} from "../tools/logger.ts";
 
 // Define a type for the operator status
 type OperatorStatus = {
   [key: string]: boolean;
 };
-
-// Define an interface for operator modules
-interface OperatorModule {
-  whereIs(
-      trackingIds: TrackingID[],
-      extraParams: Record<string, string>,
-      updateMethod: string,
-  ): Promise<Entity[]>;
-
-  fromJSON(
-      jsonData: Record<string, unknown>,
-  ): Promise<{ entities: Entity[], result: Record<string, unknown> }>;
-}
 
 // Define the operator status variable
 const operatorStatus: OperatorStatus = {};
@@ -63,11 +53,32 @@ export function setOperatorStatus(operator: string, status: boolean): void {
  * @param {string} operatorCode - The operator code to register
  * @param {OperatorModule} module - The operator module implementing the OperatorModule interface
  */
-export function registerOperatorModule(
-  operatorCode: string,
-  module: OperatorModule,
-): void {
+export function registerOperatorModule(operatorCode: string, module: OperatorModule): void {
   operatorModules[operatorCode] = module;
+}
+
+export function validateTrackingNum(operator: string, trackingNum: string): void {
+  const operatorModule = getOperatorModule(operator);
+
+  operatorModule.validateTrackingNum(trackingNum);
+}
+
+export function getExtraParams(operator: string, req: HonoRequest): Record<string, string> {
+  const operatorModule = getOperatorModule(operator);
+
+  return operatorModule.getExtraParams(req.query());
+}
+
+export function validateParams(operator: string, trackingId: TrackingID, params: Record<string, string>): boolean {
+  const operatorModule = getOperatorModule(operator);
+
+  return operatorModule.validateParams(trackingId, params);
+}
+
+export function validateStoredEntity(operator: string, entity: Entity, params: Record<string, string>): boolean {
+  const operatorModule = getOperatorModule(operator);
+
+  return operatorModule.validateStoredEntity(entity, params);
 }
 
 /**
@@ -81,32 +92,42 @@ export function registerOperatorModule(
  * @returns {Promise<Entity[]>} A promise that resolves to the tracking entities
  * @async
  */
-export async function requestWhereIs(
-  operator: string,
-  trackingIds: TrackingID[],
-  extraParams: Record<string, string>,
-  updateMethod: string,
-): Promise<Entity[]> {
-  const operatorModule = operatorModules[operator];
-  if (!operatorModule) {
-    throw new Error(`Operator module not found: ${operator}`);
-  }
+export async function requestWhereIs(operator: string, trackingIds: TrackingID[], extraParams: Record<string, string>, updateMethod: string,): Promise<Entity[]> {
+  const operatorModule = getOperatorModule(operator);
 
-  return await operatorModule.whereIs(
-    trackingIds,
-    extraParams,
-    updateMethod,
-  );
+  const entities: Entity[] = await operatorModule.pullFromSource(trackingIds, extraParams, updateMethod);
+
+  // whether entity is missing critical status code
+  for (const entity of entities) {
+    if (!entity.isStatusExist(3500)) continue;
+
+    const missingStatuses = entity.getMissingMajorStatuses();
+    for (const status of missingStatuses) {
+      logger.warn(`Entity ${entity.id} missing critical status : ${status}`);
+    }
+  }
+  return entities;
 }
 
-export async function processPushData(
-  operator: string,
-  trackingData: Record<string, unknown>,
-): Promise<{ entities: Entity[], result: Record<string, unknown> }> {
+/**
+ * Processes push data from a carrier's webhook or push notification system.
+ * Delegates the processing to the appropriate operator module to parse and transform
+ * the tracking data into standardized entities.
+ *
+ * @param operator - The carrier code identifying which operator module to use for processing
+ * @param trackingData - The raw tracking data received from the carrier's push notification
+ * @returns An array of parsed Entity objects representing the tracking information
+ */
+export function processPushData(operator: string, trackingData: Record<string, unknown>): Entity[] {
+  const operatorModule = getOperatorModule(operator);
+
+  return operatorModule.processPushData(trackingData);
+}
+
+function getOperatorModule(operator: string): OperatorModule {
   const operatorModule = operatorModules[operator];
   if (!operatorModule) {
     throw new Error(`Operator module not found: ${operator}`);
   }
-
-  return await operatorModule.fromJSON(trackingData);
+  return operatorModule;
 }
