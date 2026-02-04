@@ -26,8 +26,8 @@ export class Grafana {
         this.GRAFANA_API_KEY = Deno.env.get("GRAFANA_API_KEY") || "";
 
         // Validate required environment variables
-        if (!this.GRAFANA_USER || !this.GRAFANA_USER) {
-            throw new Error("Missing required environment variables: GRAFANA_USER, GRAFANA_USER");
+        if (!this.GRAFANA_USER || !this.GRAFANA_API_KEY) {
+            throw new Error("Missing required environment variables: GRAFANA_USER, GRAFANA_API_KEY");
         }
     }
 
