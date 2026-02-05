@@ -246,7 +246,7 @@ app.post("/v0/push/:operator", async (c: Context) => {
     } catch (error) {
       failed = failed + 1;
       const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.warn(`Failed to store entity ${entity.id}: ${errorMessage}`);
+      logger.error(`Failed to store entity ${entity.id}: ${errorMessage}`);
     }
   }
 

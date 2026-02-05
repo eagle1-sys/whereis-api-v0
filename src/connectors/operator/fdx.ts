@@ -519,10 +519,7 @@ export class Fdx implements OperatorModule {
     const trackResult = trackResults[0] as Record<string, unknown>;
 
     if (trackResult["error"] !== undefined) {
-      logger.error(
-          `Error occurs during process ${trackingId.toString()}:` +
-          JSON.stringify(trackResult["error"]),
-      );
+      logger.error(`Error occurs during process ${trackingId.toString()}: ${JSON.stringify(trackResult["error"])}`);
       return undefined;
     }
 

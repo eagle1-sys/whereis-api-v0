@@ -91,8 +91,8 @@ export class SQLiteWrapper implements DatabaseWrapper {
    * @returns A Promise that resolves to the number of changes made in the database, or undefined if no changes were made.
    */
   async insertEntity(entity: Entity): Promise<number> {
-    const updateMethod = DataUpdateMethod.getDisplayText("manual-pull");
-    if(entity.events === undefined || entity.events.length === 0) {
+    const updateMethod = entity.usePull ? "manual-pull" : "push";
+    if (entity.events === undefined || entity.events.length === 0) {
       logger.error(`Entity [${entity.id}] has no events`);
       return 0;
     }
@@ -104,7 +104,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
 
         // insert the events if the entity is completed
         if (changes === 1) {
-          this.insertEvents(this.db, entity.events, updateMethod);
+          this.insertEvents(this.db, entity.events, DataUpdateMethod.getDisplayText(updateMethod));
         }
         return changes;
       });
