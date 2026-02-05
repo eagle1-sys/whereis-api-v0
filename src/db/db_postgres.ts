@@ -98,6 +98,7 @@ export class PostgresWrapper implements DatabaseWrapper {
    */
   async insertEntity(entity: Entity): Promise<number> {
     let inserted = 0;
+    const updateMethod = entity.usePull ? "manual-pull" : "push";
     if(entity.events === undefined || entity.events.length === 0) {
       logger.error(`Entity [${entity.id}] has no events`);
       return 0;
@@ -107,7 +108,7 @@ export class PostgresWrapper implements DatabaseWrapper {
        inserted = await this.insertEntityRecord(tx, entity);
       // insert events
       if (inserted === 1) {
-        await this.insertEvents(tx, entity.events, DataUpdateMethod.getDisplayText("manual-pull"));
+        await this.insertEvents(tx, entity.events, DataUpdateMethod.getDisplayText(updateMethod));
       }
     });
 
@@ -345,9 +346,7 @@ export class PostgresWrapper implements DatabaseWrapper {
         throw new Error("Invalid event object: eventId is required");
       }
 
-      logger.info(
-          `${updateMethod}: Insert new event with ID ${event.eventId}`,
-      );
+      logger.info(`${updateMethod}: Insert new event with ID ${event.eventId}`);
 
       try {
         // SQL statement for inserting
