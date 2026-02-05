@@ -27,7 +27,7 @@ USER deno
 ENV PORT=8037
 
 # Run the app with specified permissions
-CMD ["run", "--allow-run", "--allow-net", "--allow-env", "--allow-read", "src/main/main.ts"]
+CMD ["run", "--allow-run", "--allow-net", "--allow-env", "--allow-read", "--allow-write", "--allow-ffi", "src/main/main.ts"]
 
 # Set up health check to monitor the service process
 HEALTHCHECK --start-period=20s --start-interval=2s --interval=5s --timeout=1s --retries=3 \
