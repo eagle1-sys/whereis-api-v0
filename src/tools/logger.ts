@@ -26,7 +26,7 @@ function getLogLevel(): Severity {
  */
 export class CustomLogger extends LogTransportBase {
   override options: LogTransportBaseOptions;
-  private grafana: Grafana | undefined;
+  private readonly grafana: Grafana | undefined;
 
   constructor(options?: LogTransportBaseOptions) {
     super();
