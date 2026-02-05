@@ -133,7 +133,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
     const updateMethodText = DataUpdateMethod.getDisplayText(updateMethod);
 
     return await new Promise((resolve, _reject) => {
-      const transaction = this.db.transaction(async () => {
+      const transaction = this.db.transaction(() => {
         // step 1: update the entity record ONLY when the entity is completed
         if (entity.isCompleted()) {
           const stmt = this.db.prepare(`UPDATE entities SET completed = 1 WHERE id = ?`);
