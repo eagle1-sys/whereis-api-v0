@@ -95,7 +95,7 @@ async function main() {
 
                 case "exit": {
                     console.log("Goodbye!");
-                    Deno.exit(0);
+                    return;
                 }
 
                 default: {

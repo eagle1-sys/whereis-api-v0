@@ -68,8 +68,17 @@ export class PostgresWrapper implements DatabaseWrapper {
    * @throws {Error} If the database connection fails or the query execution encounters an error.
    */
   async ping(): Promise<boolean> {
-    const testResult = await this.sql`SELECT 1 as connection_test`;
-    return testResult[0].connection_test === 1;
+    const maxRetries = 3;
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const testResult = await this.sql`SELECT 1 as connection_test`;
+        return testResult[0].connection_test === 1;
+      } catch (err) {
+        if (i === maxRetries - 1) throw err;
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    return false;
   }
 
   async insertToken(apikey: string, userId: string): Promise<number> {
