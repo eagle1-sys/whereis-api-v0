@@ -1,6 +1,6 @@
 services:
   whereis-postgres:
-    image: postgres
+    image: postgres:18
     container_name: whereis-postgres
     ports:
       - 5432:5432
