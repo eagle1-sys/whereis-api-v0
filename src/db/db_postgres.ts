@@ -68,8 +68,17 @@ export class PostgresWrapper implements DatabaseWrapper {
    * @throws {Error} If the database connection fails or the query execution encounters an error.
    */
   async ping(): Promise<boolean> {
-    const testResult = await this.sql`SELECT 1 as connection_test`;
-    return testResult[0].connection_test === 1;
+    const maxRetries = 3;
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const testResult = await this.sql`SELECT 1 as connection_test`;
+        return testResult[0].connection_test === 1;
+      } catch (err) {
+        if (i === maxRetries - 1) throw err;
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    return false;
   }
 
   async insertToken(apikey: string, userId: string): Promise<number> {
@@ -98,6 +107,7 @@ export class PostgresWrapper implements DatabaseWrapper {
    */
   async insertEntity(entity: Entity): Promise<number> {
     let inserted = 0;
+    const updateMethod = entity.usePull ? "manual-pull" : "push";
     if(entity.events === undefined || entity.events.length === 0) {
       logger.error(`Entity [${entity.id}] has no events`);
       return 0;
@@ -107,7 +117,7 @@ export class PostgresWrapper implements DatabaseWrapper {
        inserted = await this.insertEntityRecord(tx, entity);
       // insert events
       if (inserted === 1) {
-        await this.insertEvents(tx, entity.events, DataUpdateMethod.getDisplayText("manual-pull"));
+        await this.insertEvents(tx, entity.events, DataUpdateMethod.getDisplayText(updateMethod));
       }
     });
 
@@ -345,9 +355,7 @@ export class PostgresWrapper implements DatabaseWrapper {
         throw new Error("Invalid event object: eventId is required");
       }
 
-      logger.info(
-          `${updateMethod}: Insert new event with ID ${event.eventId}`,
-      );
+      logger.info(`${updateMethod}: Insert new event with ID ${event.eventId}`);
 
       try {
         // SQL statement for inserting

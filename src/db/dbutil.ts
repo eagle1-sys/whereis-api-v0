@@ -45,7 +45,7 @@ async function initPgConnection() : Promise<ReturnType<typeof postgres>> {
       password: Deno.env.get("DB_PASSWORD"),
       max: 20,              // Maximum number of connections in the pool
       max_lifetime: null,   // Max lifetime in seconds (more info below)
-      idle_timeout: 20,     // Idle connection timeout in seconds
+      idle_timeout: 60,     // Idle connection timeout in seconds
       connect_timeout: 30,  // Connect timeout in seconds
     });
 

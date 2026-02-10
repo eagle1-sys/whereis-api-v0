@@ -41,11 +41,18 @@ async function main() {
             switch (command) {
                 case "help":
                     console.log("\nAvailable commands:");
-                    console.log("  help    - Show this help message");
-                    console.log("  log     - Read log from grafana");
-                    console.log("  check   - Check tracking status (usage: check <operator> <trackingNum> [phoneNum])");
-                    console.log("  aicheck - AI-powered tracking check (usage: aicheck <operator> <trackingNum> [phoneNum])");
-                    console.log("  exit    - Exit the program");
+                    console.log("  help                                              - Show this help message");
+                    console.log("  log [level] [--from h<hours>|d<days>] [--offset <hours>] [keyword]");
+                    console.log("                                                    - Read log from grafana");
+                    console.log("                                                      Examples:");
+                    console.log("                                                        log error --from h24");
+                    console.log("                                                        log info --from d2 --offset 12");
+                    console.log("                                                        log error --from h6 timeout");
+                    console.log("  check <operator> <trackingNum> [phoneNum]         - Check tracking status");
+                    console.log("                                                      Example: check sfex SF3182998070266 6993");
+                    console.log("  aicheck <operator> <trackingNum> [phoneNum]       - AI-powered tracking check");
+                    console.log("                                                      Example: aicheck sfex SF3182998070266 6993");
+                    console.log("  exit                                              - Exit the program");
                     console.log();
                     break;
 
