@@ -530,10 +530,15 @@ export class Fdx implements OperatorModule {
     entity.usePull = true;
     const shipperAddress = (trackResult["shipperInformation"] as Record<string, unknown>)["address"]  as Record<string, unknown>;
     const recipientAddress = (trackResult["recipientInformation"] as Record<string, unknown>)["address"]  as Record<string, unknown>;
-    entity.additional = {
-      origin: Fdx.getAddress(shipperAddress),
-      destination: Fdx.getAddress(recipientAddress)
-    };
+    const origin = Fdx.getAddress(shipperAddress);
+    const destination = Fdx.getAddress(recipientAddress);
+    entity.additional = {};
+    if (origin) {
+      entity.additional.origin = origin;
+    }
+    if (destination) {
+      entity.additional.destination = destination;
+    }
     const shipperCountry = shipperAddress["countryName"] as string;
     const recipientCountry = recipientAddress["countryName"] as string;
     if (shipperCountry && recipientCountry && shipperCountry.toLowerCase() !== recipientCountry.toLowerCase()) {
