@@ -536,7 +536,7 @@ export class Fdx implements OperatorModule {
     };
     const shipperCountry = shipperAddress["countryName"] as string;
     const recipientCountry = recipientAddress["countryName"] as string;
-    if (shipperCountry.toLowerCase() !== recipientCountry.toLowerCase()) {
+    if (shipperCountry && recipientCountry && shipperCountry.toLowerCase() !== recipientCountry.toLowerCase()) {
       entity.additional.isCrossBorder = true;
     }
     const scanEvents = trackResult["scanEvents"] as Record<string, unknown>[];
