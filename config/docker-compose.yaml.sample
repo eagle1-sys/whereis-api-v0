@@ -6,7 +6,7 @@ services:
       - 5432:5432
     restart: always
     volumes:
-      - whereis-postgres-data:/var/lib/postgresql/data
+      - whereis-postgres-data:/var/lib/postgresql
     environment:
       POSTGRES_DB: whereis
       POSTGRES_USER: postgres
