@@ -25,11 +25,6 @@ export class Grafana {
     private constructor(grafanaUser: string, grafanaApiKey: string) {
         this.GRAFANA_USER = grafanaUser;
         this.GRAFANA_API_KEY = grafanaApiKey;
-
-        // Validate required environment variables
-        if (!this.GRAFANA_USER || !this.GRAFANA_API_KEY) {
-            throw new Error("Missing required environment variables: GRAFANA_USER, GRAFANA_API_KEY");
-        }
     }
 
     public static getInstance(): Grafana | undefined {
