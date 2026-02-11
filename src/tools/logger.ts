@@ -31,11 +31,7 @@ export class CustomLogger extends LogTransportBase {
   constructor(options?: LogTransportBaseOptions) {
     super();
     this.options = { ...this.defaults, ...options };
-    try {
-      this.grafana = Grafana.getInstance();
-    } catch (e) {
-      console.error("Failed to initialize Grafana instance:", e);
-    }
+    this.grafana = Grafana.getInstance();
   }
 
   override log(level: Severity, scope: string, data: unknown[], _timestamp: Date) {
