@@ -20,7 +20,7 @@ export async function initConnection() {
   const dbType = Deno.env.get("DB_TYPE") || "sqlite";
   if (dbType === "postgres") {
     const sql = await initPgConnection();
-    dbClient = new PostgresWrapper(sql!);
+    dbClient = new PostgresWrapper(sql);
   } else {
     const volume_path = Deno.env.get("DB_FILE_DIR") ?? "../data";
     const db : Database = new Database(join(volume_path, 'whereis.sqlite'));
