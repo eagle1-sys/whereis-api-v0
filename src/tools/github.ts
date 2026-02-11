@@ -17,6 +17,7 @@ export class Github {
 
   // Singleton instance of the Github class.
   private static instance: Github | undefined;
+  private static initialized = false;
 
   // GitHub GraphQL API endpoint
   private static readonly GITHUB_GRAPHQL_API_URL = "https://api.github.com/graphql";
@@ -52,7 +53,8 @@ export class Github {
    * all required environment variables are set, otherwise `undefined`.
    */
   public static getInstance(): Github | undefined {
-    if (!Github.instance) {
+    if (!Github.instance && !Github.initialized) {
+      Github.initialized = true;
       const token = Deno.env.get("GITHUB_TOKEN") || "";
       const owner = Deno.env.get("GITHUB_OWNER") || "";
       const repoId = Deno.env.get("GITHUB_REPO_ID") || "";

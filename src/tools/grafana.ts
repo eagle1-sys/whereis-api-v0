@@ -14,6 +14,7 @@ export class Grafana {
 
     // Singleton instance of the Grafana class.
     private static instance: Grafana | undefined ;
+    private static initialized = false;
 
     // Grafana API endpoint
     private static readonly GRAFANA_QUERY_URL = "https://logs-prod-020.grafana.net/loki/api/v1/query_range";
@@ -28,7 +29,8 @@ export class Grafana {
     }
 
     public static getInstance(): Grafana | undefined {
-        if (!Grafana.instance) {
+        if (!Grafana.instance && !Grafana.initialized) {
+            Grafana.initialized = true;
             const grafanaUser = Deno.env.get("GRAFANA_USER") || "";
             const grafanaApiKey = Deno.env.get("GRAFANA_API_KEY") || "";
             if (grafanaUser && grafanaApiKey) {
