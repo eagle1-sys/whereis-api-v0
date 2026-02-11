@@ -58,7 +58,7 @@ export class Github {
       const repoId = Deno.env.get("GITHUB_REPO_ID") || "";
       const repoName = Deno.env.get("GITHUB_REPO_NAME") || "";
       const categoryId = Deno.env.get("GITHUB_CATEGORY_ID") || "";
-      if (token && owner && repoId && repoName || categoryId) {
+      if (token && owner && repoId && repoName && categoryId) {
         Github.instance = new Github(token, owner, repoId, repoName, categoryId);
       } else {
         console.log("Missing required environment variables: GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO_ID, GITHUB_REPO_NAME or GITHUB_CATEGORY_ID");
