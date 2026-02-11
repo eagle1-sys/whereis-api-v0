@@ -19,7 +19,7 @@ import { join } from '@std/path';
 export async function initConnection() {
   const dbType = Deno.env.get("DB_TYPE") || "sqlite";
   if (dbType === "postgres") {
-    const sql: ReturnType<typeof postgres> = await initPgConnection();
+    const sql = await initPgConnection();
     dbClient = new PostgresWrapper(sql!);
   } else {
     const volume_path = Deno.env.get("DB_FILE_DIR") ?? "../data";
@@ -28,8 +28,8 @@ export async function initConnection() {
   }
 }
 
-async function initPgConnection() : Promise<ReturnType<typeof postgres>> {
-  let sql: ReturnType<typeof postgres>
+async function initPgConnection() : Promise<postgres.Sql> {
+  let sql: postgres.Sql;
   const dbHost = Deno.env.get("DB_HOST");
   const dbPort = Number(Deno.env.get("DB_PORT") ?? "5432")
   if (!dbHost) {
