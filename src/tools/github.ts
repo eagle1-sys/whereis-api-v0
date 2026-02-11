@@ -16,7 +16,7 @@ import {httpPost} from "./util.ts";
 export class Github {
 
   // Singleton instance of the Github class.
-  private static instance: Github | null = null;
+  private static instance: Github | undefined;
 
   // GitHub GraphQL API endpoint
   private static readonly GITHUB_GRAPHQL_API_URL = "https://api.github.com/graphql";
@@ -27,35 +27,42 @@ export class Github {
   private readonly GITHUB_REPO_NAME: string;
   private readonly GITHUB_CATEGORY_ID: string;
 
-  private constructor() {
-    this.GITHUB_TOKEN = Deno.env.get("GITHUB_TOKEN") || "";
-    this.GITHUB_OWNER = Deno.env.get("GITHUB_OWNER") || "";
-    this.GITHUB_REPO_ID = Deno.env.get("GITHUB_REPO_ID") || "";
-    this.GITHUB_REPO_NAME = Deno.env.get("GITHUB_REPO_NAME") || "";
-    this.GITHUB_CATEGORY_ID = Deno.env.get("GITHUB_CATEGORY_ID") || "";
+  private constructor(token: string, owner: string, repoId: string, repoName: string, categoryId: string) {
+    this.GITHUB_TOKEN = token;
+    this.GITHUB_OWNER = owner;
+    this.GITHUB_REPO_ID = repoId;
+    this.GITHUB_REPO_NAME = repoName;
+    this.GITHUB_CATEGORY_ID = categoryId;
 
-    // Validate required environment variables
-    if (!this.GITHUB_TOKEN || !this.GITHUB_OWNER || !this.GITHUB_REPO_ID || !this.GITHUB_REPO_NAME || !this.GITHUB_CATEGORY_ID  ) {
-      throw new Error("Missing required environment variables: GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO_ID, GITHUB_REPO_NAME or GITHUB_CATEGORY_ID");
-    }
   }
 
   /**
    * Gets the singleton instance of the Github class.
-   * 
-   * This method implements the singleton pattern, ensuring only one instance
-   * of the Github class exists throughout the application lifecycle. If an
-   * instance doesn't exist, it creates one; otherwise, it returns the existing instance.
-   * 
-   * @returns {Github} The singleton instance of the Github class with initialized
-   * GitHub API credentials and repository configuration.
-   * 
-   * @throws {Error} Throws an error if required environment variables are not set
-   * (GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO_ID, GITHUB_REPO_NAME or GITHUB_CATEGORY_ID).
+   *
+   * This method implements the singleton pattern, ensuring that only one instance
+   * of the Github class exists. If an instance has not been created, it will
+   * attempt to create one by reading necessary configuration from environment
+   * variables (GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO_ID, GITHUB_REPO_NAME,
+   * GITHUB_CATEGORY_ID).
+   *
+   * If the required environment variables are not fully provided, the instance
+   * will not be created, and the method will return `undefined`.
+   *
+   * @returns {Github | undefined} The singleton instance of the Github class if
+   * all required environment variables are set, otherwise `undefined`.
    */
-  public static getInstance(): Github {
+  public static getInstance(): Github | undefined {
     if (!Github.instance) {
-      Github.instance = new Github();
+      const token = Deno.env.get("GITHUB_TOKEN") || "";
+      const owner = Deno.env.get("GITHUB_OWNER") || "";
+      const repoId = Deno.env.get("GITHUB_REPO_ID") || "";
+      const repoName = Deno.env.get("GITHUB_REPO_NAME") || "";
+      const categoryId = Deno.env.get("GITHUB_CATEGORY_ID") || "";
+      if (token && owner && repoId && repoName || !categoryId) {
+        Github.instance = new Github(token, owner, repoId, repoName, categoryId);
+      } else {
+        console.log("Missing required environment variables: GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO_ID, GITHUB_REPO_NAME or GITHUB_CATEGORY_ID");
+      }
     }
     return Github.instance;
   }
