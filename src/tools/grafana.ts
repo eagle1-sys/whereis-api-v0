@@ -13,7 +13,7 @@ interface QueryLogsOptions {
 export class Grafana {
 
     // Singleton instance of the Grafana class.
-    private static instance: Grafana | null = null;
+    private static instance: Grafana | undefined ;
 
     // Grafana API endpoint
     private static readonly GRAFANA_QUERY_URL = "https://logs-prod-020.grafana.net/loki/api/v1/query_range";
@@ -22,9 +22,9 @@ export class Grafana {
     private readonly GRAFANA_USER: string;
     private readonly GRAFANA_API_KEY: string;
 
-    private constructor() {
-        this.GRAFANA_USER = Deno.env.get("GRAFANA_USER") || "";
-        this.GRAFANA_API_KEY = Deno.env.get("GRAFANA_API_KEY") || "";
+    private constructor(grafanaUser: string, grafanaApiKey: string) {
+        this.GRAFANA_USER = grafanaUser;
+        this.GRAFANA_API_KEY = grafanaApiKey;
 
         // Validate required environment variables
         if (!this.GRAFANA_USER || !this.GRAFANA_API_KEY) {
@@ -32,13 +32,19 @@ export class Grafana {
         }
     }
 
-    public static getInstance(): Grafana {
+    public static getInstance(): Grafana | undefined {
         if (!Grafana.instance) {
-            Grafana.instance = new Grafana();
-            Grafana.instance.worker = new Worker(
-                new URL("./grafana_worker.ts", import.meta.url).href,
-                { type: "module" }
-            )
+            const grafanaUser = Deno.env.get("GRAFANA_USER") || "";
+            const grafanaApiKey = Deno.env.get("GRAFANA_API_KEY") || "";
+            if (grafanaUser && grafanaApiKey) {
+                Grafana.instance = new Grafana(grafanaUser, grafanaApiKey);
+                Grafana.instance.worker = new Worker(
+                    new URL("./grafana_worker.ts", import.meta.url).href,
+                    { type: "module" }
+                )
+            } else {
+                console.info("Missing required environment variables: GRAFANA_USER, GRAFANA_API_KEY");
+            }
         }
         return Grafana.instance;
     }

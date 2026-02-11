@@ -140,6 +140,7 @@ async function analyseLog(args: string[]): Promise<void> {
 
     // step 2: initialize Grafana instance
     const grafana = Grafana.getInstance();
+    if (grafana === undefined) return;
 
     // step 3: query logs from Grafana within the specified time range
     const logs:Record<string, unknown> | undefined = await grafana.queryLog(options);
