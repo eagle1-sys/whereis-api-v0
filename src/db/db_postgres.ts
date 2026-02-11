@@ -409,19 +409,21 @@ export class PostgresWrapper implements DatabaseWrapper {
    */
   private async deleteEntityAndEvents(tx: postgres.TransactionSql, trackingId: TrackingID): Promise<boolean> {
     // delete events
-    await (tx as unknown as postgres.Sql)`
+    const result1 = await (tx as unknown as postgres.Sql)`
       DELETE
       FROM events
       WHERE operator_code = ${trackingId.operator}
         AND tracking_num = ${trackingId.trackingNum}
     `;
+    let deleted = result1.count?? 0;
 
-    await (tx as unknown as postgres.Sql)`
+    const result2 = await (tx as unknown as postgres.Sql)`
       DELETE
       FROM entities
       WHERE id = ${trackingId.toString()}
     `;
-    return true;
+    deleted = deleted + (result2.count?? 0);
+    return deleted > 0;
   }
 
   private async queryEntityRecord(trackingID: TrackingID): Promise<Entity | undefined> {
