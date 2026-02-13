@@ -35,12 +35,16 @@ export class Grafana {
             const grafanaApiKey = Deno.env.get("GRAFANA_API_KEY") || "";
             if (grafanaUser && grafanaApiKey) {
                 Grafana.instance = new Grafana(grafanaUser, grafanaApiKey);
-                Grafana.instance.worker = new Worker(
-                    new URL("./grafana_worker.ts", import.meta.url).href,
-                    { type: "module" }
-                )
+                try {
+                    Grafana.instance.worker = new Worker(
+                        new URL("./grafana_worker.ts", import.meta.url).href,
+                        {type: "module"}
+                    )
+                } catch (e) {
+                    console.error("Failed to start Grafana worker:", e);
+                }
             } else {
-                console.info("Missing required environment variables: GRAFANA_USER, GRAFANA_API_KEY");
+                console.info("Grafana logging disabled: missing environment variables GRAFANA_USER, GRAFANA_API_KEY.");
             }
         }
         return Grafana.instance;
