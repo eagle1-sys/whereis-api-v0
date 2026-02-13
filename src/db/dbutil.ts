@@ -5,10 +5,8 @@
  * @copyright (c) 2025, the Eagle1 authors
  * @license BSD 3-Clause License
  */
-import { Database } from "sqlite";
 import postgres from "postgresjs";
 import { DatabaseWrapper } from "./db_wrapper.ts";
-import { SQLiteWrapper } from "./db_sqlite.ts";
 import { PostgresWrapper } from "./db_postgres.ts";
 
 let dbClient: DatabaseWrapper;
@@ -22,8 +20,11 @@ export async function initConnection() {
     const sql = await initPgConnection();
     dbClient = new PostgresWrapper(sql);
   } else {
+    // Dynamically import SQLite dependencies only when needed
+    const { SQLiteWrapper } = await import("./db_sqlite.ts");
+    const { Database } = await import("sqlite");
     const volume_path = Deno.env.get("DB_FILE_DIR") ?? "../data";
-    const db : Database = new Database(join(volume_path, 'whereis.sqlite'));
+    const db = new Database(join(volume_path, 'whereis.sqlite'));
     dbClient = new SQLiteWrapper(db!);
   }
 }
