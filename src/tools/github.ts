@@ -63,7 +63,7 @@ export class Github {
       if (token && owner && repoId && repoName && categoryId) {
         Github.instance = new Github(token, owner, repoId, repoName, categoryId);
       } else {
-        console.log("Missing required environment variables: GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO_ID, GITHUB_REPO_NAME or GITHUB_CATEGORY_ID");
+        console.info("GitHub reporting disabled: missing environment variables GITHUB_TOKEN, GITHUB_OWNER, GITHUB_REPO_ID, GITHUB_REPO_NAME, or GITHUB_CATEGORY_ID.");
       }
     }
     return Github.instance;
