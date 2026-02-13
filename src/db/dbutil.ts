@@ -25,7 +25,7 @@ export async function initConnection() {
     const { Database } = await import("sqlite");
     const volume_path = Deno.env.get("DB_FILE_DIR") ?? "../data";
     const db = new Database(join(volume_path, 'whereis.sqlite'));
-    dbClient = new SQLiteWrapper(db!);
+    dbClient = new SQLiteWrapper(db);
   }
 }
 
