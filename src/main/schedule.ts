@@ -45,19 +45,13 @@ Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
  * The task runs at 02:00 system local time and pushes the count to GitHub.
  * If GitHub instance initialization fails, the error is logged and the scheduler is not started.
  */
-try {
-  const github = Github.getInstance();
+const github = Github.getInstance();
+if (github !== undefined) {
   Deno.cron("Record active tracking NO", {hour: 2, minute: 0}, async () => {
     await pushActiveTrackingNo(github);
   }).then((_r) => {
     logger.info(`Scheduler started: daily at 02:00 for recording active tracking numbers.`);
   });
-} catch (err) {
-  if (err instanceof Error) {
-    logger.error(`${err.message}`);
-  } else {
-    logger.error(`Unknown error: ${String(err)}`);
-  }
 }
 
 /**

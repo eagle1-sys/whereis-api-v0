@@ -5,10 +5,8 @@
  * @copyright (c) 2025, the Eagle1 authors
  * @license BSD 3-Clause License
  */
-import { Database } from "sqlite";
 import postgres from "postgresjs";
 import { DatabaseWrapper } from "./db_wrapper.ts";
-import { SQLiteWrapper } from "./db_sqlite.ts";
 import { PostgresWrapper } from "./db_postgres.ts";
 
 let dbClient: DatabaseWrapper;
@@ -19,17 +17,20 @@ import { join } from '@std/path';
 export async function initConnection() {
   const dbType = Deno.env.get("DB_TYPE") || "sqlite";
   if (dbType === "postgres") {
-    const sql: ReturnType<typeof postgres> = await initPgConnection();
-    dbClient = new PostgresWrapper(sql!);
+    const sql = await initPgConnection();
+    dbClient = new PostgresWrapper(sql);
   } else {
+    // Dynamically import SQLite dependencies only when needed
+    const { SQLiteWrapper } = await import("./db_sqlite.ts");
+    const { Database } = await import("sqlite");
     const volume_path = Deno.env.get("DB_FILE_DIR") ?? "../data";
-    const db : Database = new Database(join(volume_path, 'whereis.sqlite'));
-    dbClient = new SQLiteWrapper(db!);
+    const db = new Database(join(volume_path, 'whereis.sqlite'));
+    dbClient = new SQLiteWrapper(db);
   }
 }
 
-async function initPgConnection() : Promise<ReturnType<typeof postgres>> {
-  let sql: ReturnType<typeof postgres>
+async function initPgConnection() : Promise<postgres.Sql> {
+  let sql: postgres.Sql;
   const dbHost = Deno.env.get("DB_HOST");
   const dbPort = Number(Deno.env.get("DB_PORT") ?? "5432")
   if (!dbHost) {
