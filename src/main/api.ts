@@ -9,7 +9,8 @@
 import { app } from "./server.ts";
 import {initializeOperatorStatus, loadEnv, loadMetaData} from "./app.ts";
 import {initConnection} from "../db/dbutil.ts";
-import { getLogger  } from "../tools/logger.ts";
+// import { getLogger  } from "../tools/logger.ts";
+import {logger} from "../tools/logger.ts";
 
 
 /**
@@ -23,9 +24,7 @@ import { getLogger  } from "../tools/logger.ts";
 async function main(): Promise<void> {
     await loadEnv(); // load environment variable first
 
-    // Initialize logger after environment is loaded
-    const logger = getLogger();
-    logger.info(`Starting application in ${Deno.env.get("APP_ENV")} mode`);
+    logger.info('{EG1:Startup}', `Starting application in ${Deno.env.get("APP_ENV")} mode`, 'junk');
 
     await loadMetaData(); // load file system data
     await initConnection();
@@ -35,7 +34,6 @@ async function main(): Promise<void> {
 
 // Execute the main function and handle any uncaught errors
 main().catch((err) => {
-    const logger = getLogger();
     logger.error("Failed to start application:", err);
     Deno.exit(1);
 });

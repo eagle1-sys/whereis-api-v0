@@ -9,7 +9,7 @@
  * @license BSD 3-Clause License
  */
 import { dbClient, initConnection } from "../db/dbutil.ts";
-import { getLogger } from "../tools/logger.ts";
+import {logger} from "../tools/logger.ts";
 import { requestWhereIs } from "./gateway.ts";
 import { AppError, Entity, OperatorRegistry, TrackingID } from "./model.ts";
 import { initializeOperatorStatus, loadEnv, loadMetaData } from "./app.ts";
@@ -17,9 +17,6 @@ import { initializeOperatorStatus, loadEnv, loadMetaData } from "./app.ts";
 // load environment variable first
 await loadEnv();
 
-// Initialize logger after environment is loaded
-// Log Level is configed in the environment variable
-const logger = getLogger();
 logger.info(`Starting application in ${Deno.env.get("APP_ENV")} mode`);
 
 await loadMetaData();       // load file system data

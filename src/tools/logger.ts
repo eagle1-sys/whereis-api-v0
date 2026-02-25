@@ -24,7 +24,7 @@ function getLogLevel(): Severity {
 /**
  * Create custom Transport by extending LogTransportBase
  */
-export class CustomLogger extends LogTransportBase {
+class CustomLogger extends LogTransportBase {
   override options: LogTransportBaseOptions;
   private readonly grafana: Grafana | undefined;
 
@@ -54,7 +54,7 @@ export class CustomLogger extends LogTransportBase {
 
 let loggerInstance: Log | null = null;
 
-export function getLogger(): Log {
+function getLogger(): Log {
   if (!loggerInstance) {
     loggerInstance = new Log([
       new CustomLogger({ minimumSeverity: getLogLevel() }),

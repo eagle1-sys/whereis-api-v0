@@ -14,8 +14,8 @@
  */
 import {loadEnv} from "../main/app.ts";
 import {initConnection} from "./dbutil.ts";
-import { getLogger  } from "../tools/logger.ts";
-import { dbClient} from "./dbutil.ts";
+import {logger} from "../tools/logger.ts";
+import {dbClient} from "./dbutil.ts";
 
 async function main(): Promise<void> {
     // step 1: load environment variable first
@@ -30,7 +30,6 @@ async function main(): Promise<void> {
         key = generateApiKey();
     }
 
-    const logger = getLogger();
     // step 3: write API key to the database
     const inserted = await dbClient.insertToken(key, user);
     if (!inserted) {
@@ -69,7 +68,6 @@ function generateApiKey(length: number = 48): string {
 
 // Execute the main function and handle any uncaught errors
 main().catch((err) => {
-    const logger = getLogger();
     logger.error("Failed to start application:", err);
     Deno.exit(1);
 });
