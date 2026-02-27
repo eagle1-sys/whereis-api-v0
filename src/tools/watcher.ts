@@ -170,6 +170,8 @@ async function analyseLog(args: string[]): Promise<void> {
 
 function getOptionsFromArgs(args: string[]): Record<string, unknown> {
     const result = {
+        app: "EG1",
+        type: "",
         level: "error",
         start: 0,
         end: 0,
@@ -189,7 +191,13 @@ function getOptionsFromArgs(args: string[]): Record<string, unknown> {
             continue;
         }
 
-        if (arg === "--from" && i + 1 < args.length) {
+        if (arg === "--app" && i + 1 < args.length) {
+            result.app = args[i + 1];
+            i++;
+        } else if (arg === "--type" && i + 1 < args.length) {
+            result.type = args[i + 1];
+            i++;
+        } else if (arg === "--from" && i + 1 < args.length) {
             const value = args[i + 1];
             if (value.startsWith("h")) {
                 const parsed = Number(value.substring(1));

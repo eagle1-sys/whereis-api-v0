@@ -7,11 +7,9 @@
  * @license BSD 3-Clause License
  */
 import { app } from "./server.ts";
-import {initializeOperatorStatus, loadEnv, loadMetaData} from "./app.ts";
+import {initGrafana, initializeOperatorStatus, loadEnv, loadMetaData} from "./app.ts";
 import {initConnection} from "../db/dbutil.ts";
-// import { getLogger  } from "../tools/logger.ts";
-import {logger} from "../tools/logger.ts";
-
+import {eg1, logger} from "../tools/logger.ts";
 
 /**
  * Main entry point of the application.
@@ -24,7 +22,10 @@ import {logger} from "../tools/logger.ts";
 async function main(): Promise<void> {
     await loadEnv(); // load environment variable first
 
-    logger.info('{EG1:Startup}', `Starting application in ${Deno.env.get("APP_ENV")} mode`, 'junk');
+    logger.info(`${eg1("Startup")} Whereis API release ${Deno.env.get("APP_VERSION")}, build on ${Deno.env.get("BUILD_DATE")} (${Deno.env.get("APP_ENV")})`);
+    logger.info(`${eg1("Startup")} deno ${Deno.version.deno}, setting: ${navigator.hardwareConcurrency} threads.`);
+
+    initGrafana(); // initialize Grafana connection
 
     await loadMetaData(); // load file system data
     await initConnection();
@@ -34,7 +35,7 @@ async function main(): Promise<void> {
 
 // Execute the main function and handle any uncaught errors
 main().catch((err) => {
-    logger.error("Failed to start application:", err);
+    logger.error(`${eg1("Error")} Failed to start application:${err}`);
     Deno.exit(1);
 });
 

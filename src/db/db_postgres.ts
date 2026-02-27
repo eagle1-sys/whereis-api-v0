@@ -13,7 +13,7 @@
 import postgres from "postgresjs";
 import {DatabaseWrapper} from "./db_wrapper.ts";
 
-import { logger } from "../tools/logger.ts";
+import {eg1, logger} from "../tools/logger.ts";
 import { JSONValue } from "../main/model.ts";
 import {DataUpdateMethod,Entity,Event,TrackingID} from "../main/model.ts";
 
@@ -109,7 +109,7 @@ export class PostgresWrapper implements DatabaseWrapper {
     let inserted = 0;
     const updateMethod = entity.usePull ? "manual-pull" : "push";
     if(entity.events === undefined || entity.events.length === 0) {
-      logger.error(`Entity [${entity.id}] has no events`);
+      logger.error(`${eg1("Error")} Entity [${entity.id}] has no events`);
       return 0;
     }
 
@@ -165,7 +165,7 @@ export class PostgresWrapper implements DatabaseWrapper {
       // step 3: remove events that are not in the updated entity
       if (eventIdsToBeRemoved.length > 0) {
         for (const eventId of eventIdsToBeRemoved) {
-          logger.info(`${updateMethod}: Delete exist event with ID ${eventId}`);
+          logger.info(`${eg1("Monitor")} ${updateMethod}: Delete exist event with ID ${eventId}`);
           const result = await (tx as unknown as postgres.Sql)`DELETE FROM events WHERE event_id = ${eventId}`;
           changed = changed + (result.count?? 0);
         }
@@ -188,7 +188,7 @@ export class PostgresWrapper implements DatabaseWrapper {
    */
   async refreshEntity(trackingId: TrackingID, entity: Entity): Promise<number> {
     if(entity.events === undefined || entity.events.length === 0) {
-      logger.error(`Entity [${entity.id}] has no events`);
+      logger.error(`${eg1("Error")} Entity [${entity.id}] has no events`);
       return 0;
     }
 
@@ -355,7 +355,7 @@ export class PostgresWrapper implements DatabaseWrapper {
         throw new Error("Invalid event object: eventId is required");
       }
 
-      logger.info(`${updateMethod}: Insert new event with ID ${event.eventId}`);
+      logger.info(`${eg1("Monitor")} ${updateMethod}: Insert new event with ID ${event.eventId}`);
 
       try {
         // SQL statement for inserting
@@ -385,11 +385,11 @@ export class PostgresWrapper implements DatabaseWrapper {
 
         if (result.count === 0) {
           // log the info if no event_id was inserted
-          logger.info(`Event with ID ${event.eventId} could not be inserted.`);
+          logger.info(`${eg1("Monitor")} Event with ID ${event.eventId} could not be inserted.`);
         }
         insertedNum = insertedNum + result.count;
       } catch (err) {
-        logger.error(`Failed to insert event with ID ${event.eventId}:`, err);
+        logger.error(`${eg1("Error")} Failed to insert event with ID ${event.eventId}:`, err);
       }
     }
     return insertedNum;

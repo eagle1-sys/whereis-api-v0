@@ -9,7 +9,7 @@
  * @license BSD 3-Clause License
  */
 import { dbClient, initConnection } from "../db/dbutil.ts";
-import {logger} from "../tools/logger.ts";
+import {eg1, logger} from "../tools/logger.ts";
 import { requestWhereIs } from "./gateway.ts";
 import { AppError, Entity, OperatorRegistry, TrackingID } from "./model.ts";
 import { initializeOperatorStatus, loadEnv, loadMetaData } from "./app.ts";
@@ -17,7 +17,8 @@ import { initializeOperatorStatus, loadEnv, loadMetaData } from "./app.ts";
 // load environment variable first
 await loadEnv();
 
-logger.info(`Starting application in ${Deno.env.get("APP_ENV")} mode`);
+logger.info(`${eg1("Startup")} Whereis API release ${Deno.env.get("APP_VERSION")}, build on ${Deno.env.get("BUILD_DATE")} (${Deno.env.get("APP_ENV")})`);
+logger.info(`${eg1("Startup")} deno ${Deno.version.deno}, setting: ${navigator.hardwareConcurrency} threads.`);
 
 await loadMetaData();       // load file system data
 await initConnection();     // initialize database connection
@@ -33,7 +34,7 @@ const interval = Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
 Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
   await syncRoutes();
 }).then((_r) => {
-  logger.info(`Scheduler started: every ${interval} minute(s).`);
+  logger.info(`${eg1("Startup")} Scheduler started: every ${interval} minute(s).`);
 });
 
 /**
@@ -45,12 +46,12 @@ Deno.cron("Record active tracking NO", {hour: 2, minute: 0}, async () => {
     const inProcessTrackingNums: Record<string, unknown> = await dbClient.getInProcessingTrackingNums();
     const activeTrackingNo = Object.keys(inProcessTrackingNums).length;
     const comment = `${new Date().toISOString().slice(0, 10)}: Daily ${activeTrackingNo} active tracking numbers`;
-    logger.info(comment);
+    logger.info(`${eg1("Report", "Usage")} ${comment}`);
   } catch (err) {
     handleError(err, 'pushActiveTrackingNo');
   }
 }).then((_r) => {
-  logger.info(`Scheduler started: daily at 02:00 for recording active tracking numbers.`);
+  logger.info(`${eg1("Startup")} Scheduler started: daily at 02:00 for recording active tracking numbers.`);
 });
 
 /**
@@ -187,19 +188,19 @@ function handleError(err: unknown, context: string):void {
   // ignore the UserError
   if (err instanceof AppError) {
     if (err.getHttpStatusCode() >= 500) {
-      logger.error(`${context}: ${err.getMessage()}`);
+      logger.error(`${eg1("Error")} ${context}: ${err.getMessage()}`);
     }
   } else {
     if (err instanceof Error) {
       logger.error(`${context}: ${err.message}`);
       if (err.stack) {
-        logger.error(`Stack trace: ${err.stack}`);
+        logger.error(`${eg1("Error")} Stack trace: ${err.stack}`);
       }
       if (err.cause) {
-        logger.error(`Caused by: ${err.cause}`);
+        logger.error(`${eg1("Error")} Caused by: ${err.cause}`);
       }
     } else {
-      logger.error(`Unknown error in ${context}: ${String(err)}`);
+      logger.error(`${eg1("Error")} Unknown error in ${context}: ${String(err)}`);
     }
   }
 }

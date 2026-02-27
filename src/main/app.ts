@@ -22,6 +22,8 @@ import {
   StatusCode,
 } from "./model.ts";
 import {registerOperatorModule, setOperatorStatus} from "./gateway.ts";
+import {setGrafana} from "../tools/logger.ts";
+import {Grafana} from "../tools/grafana.ts";
 
 /**
  * Loads environment variables from a `.env` file and sets them in `Deno.env`.
@@ -30,6 +32,18 @@ import {registerOperatorModule, setOperatorStatus} from "./gateway.ts";
  * @throws {Error} If the `.env` file cannot be loaded or parsed.
  */
 export async function loadEnv(): Promise<void> {
+  try {
+    const denoJson = JSON.parse(await Deno.readTextFile("deno.json"));
+    if (denoJson.version) {
+      Deno.env.set("APP_VERSION", denoJson.version);
+    }
+    if (denoJson.buildDate) {
+      Deno.env.set("BUILD_DATE", denoJson.buildDate);
+    }
+  } catch (_err) {
+    // The deno.json file may not exist.
+  }
+
   // Set environment variables from the `.env` file if not already set
   const env = await load({ envPath: "./.env" });
   for (const [key, value] of Object.entries(env)) {
@@ -94,6 +108,13 @@ export async function loadMetaData(): Promise<void> {
     "./metadata/error-codes.jsonc",
   );
   ErrorRegistry.initialize(errors);
+}
+
+export function initGrafana(): void {
+  const grafana: Grafana | undefined  = Grafana.getInstance();
+  if(grafana) {
+    setGrafana(grafana);
+  }
 }
 
 /**
