@@ -322,7 +322,8 @@ export class Sfex implements OperatorModule{
     if (routes.length == 0) {
       // get the display text of the data retrieval method. eg: auto-pull -> Auto-pull
       const updateMethodName = DataUpdateMethod.getDisplayText(updateMethod);
-      logger.info(`${eg1("Monitor")} ${updateMethodName} -> SFEX: Unexpected data received for ${trackingId.toString()}. Empty routes[] in the received response: ${JSON.stringify(result)}`);
+      const apiResultCode = String(result["apiResultCode"] ?? "unknown");
+      logger.warn(`${eg1("Monitor")} ${updateMethodName} -> SFEX: Unexpected data for ${trackingId.toString()} (empty routes[], apiResultCode=${apiResultCode}).`);
       return undefined;
     }
 
