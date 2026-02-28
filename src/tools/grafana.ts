@@ -79,9 +79,11 @@ export class Grafana {
         const safeKeyword = escapeLogQL(keyword);
 
         // Compose label selector
-        let labelSelector = `{app="${app}"`;
-        if (type) {
-            labelSelector += `, type="${type}"`;
+        const safeApp = escapeLogQL(app);
+        const safeType = escapeLogQL(type);
+        let labelSelector = `{app="${safeApp}"`;
+        if (safeType) {
+            labelSelector += `, type="${safeType}"`;
         }
         labelSelector = labelSelector + "}";
         // Compose LogQL query with label selector and level filter
