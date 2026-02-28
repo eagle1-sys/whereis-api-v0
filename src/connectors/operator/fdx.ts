@@ -284,8 +284,8 @@ export class Fdx implements OperatorModule {
       const trackingIdsStr: string = trackingIds.map((item) => item.toString()).join(", ");
       // get the display text of the data retrieval method. eg: auto-pull -> Auto-pull
       const updateMethodName = DataUpdateMethod.getDisplayText(updateMethod);
-      logger.error(`${eg1("Error")} ${updateMethodName} -> FDX: Unexpected data received for ${trackingIdsStr}. 
-                  Missing output{} in the received response: ${JSON.stringify(result)}`);
+      const transactionId = String((result["transactionId"] ?? "unknown"));
+      logger.error(`${eg1("Error")} ${updateMethodName} -> FDX: Unexpected data for ${trackingIdsStr}. Missing output{} (transactionId=${transactionId}).`);
       return entities;
     }
 
