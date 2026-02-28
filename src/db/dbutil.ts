@@ -61,7 +61,7 @@ async function initPgConnection() : Promise<postgres.Sql> {
     if (err instanceof Error) {
       const errorMessage = err.message;
       if (/connection refused/i.test(errorMessage)) {
-        logger.error(`${eg1("Error")} DB connection: Connection refused - check if the db service is running1`);
+        logger.error(`${eg1("Error")} DB connection: Connection refused - check if the db service is running`);
       } else if (/connect_timeout/i.test(errorMessage)) {
         logger.error(`${eg1("Error")} DB connection: Connect timeout - check if the db host/port is correct`);
       } else if (/failed to lookup address/i.test(errorMessage)) {
