@@ -33,11 +33,11 @@ async function main(): Promise<void> {
     // step 3: write API key to the database
     const inserted = await dbClient.insertToken(key, user);
     if (!inserted) {
-        logger.warn(`${eg1("Monitor")} Token ${key} already exists or could not be inserted.`);
+        console.log(`${eg1("Monitor")} Token ${key} already exists or could not be inserted.`);
         return;
     } else {
         // output the API key to the console or log
-        logger.info(`${eg1("Monitor")} API key ${key} has been saved to the database.`);
+        console.log(`${eg1("Monitor")} API key ${key} has been saved to the database.`);
     }
 }
 
