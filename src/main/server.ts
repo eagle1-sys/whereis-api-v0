@@ -10,7 +10,7 @@ import { cors } from "hono/cors";
 import { Context, Hono, HonoRequest, Next } from "hono";
 import { ContentfulStatusCode } from "hono/utils/http-status";
 import { dbClient} from "../db/dbutil.ts";
-import { logger } from "../tools/logger.ts";
+import {eg1, logger} from "../tools/logger.ts";
 import {getExtraParams, processPushData, requestWhereIs, validateParams, validateStoredEntity} from "./gateway.ts";
 import {ApiParams, Entity, OperatorRegistry, TrackingID, AppError,} from "./model.ts";
 
@@ -246,7 +246,7 @@ app.post("/v0/push/:operator", async (c: Context) => {
     } catch (error) {
       failed = failed + 1;
       const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error(`Failed to store entity ${entity.id}: ${errorMessage}`);
+      logger.error(`${eg1("Error")} Failed to store entity ${entity.id}: ${errorMessage}`);
     }
   }
 
@@ -292,12 +292,12 @@ app.get("/app-health", async (c: Context) => {
 app.onError((err: unknown, c: Context) => {
   if (err instanceof AppError) {
     const statusCode = err.getHttpStatusCode();
-    if(statusCode < 500){
-      logger.info(`Request URL: ${c.req.url}`);
-      logger.info(`Error detail: ${err.getMessage()}`);
+    if (statusCode < 500) {
+      logger.info(`${eg1("Monitor")} URL: ${c.req.url}`);
+      logger.info(`${eg1("Monitor")} Message: ${err.getMessage()}`);
     } else {
-      logger.error(`Request URL: ${c.req.url}`);
-      logger.error(`Error detail: ${err.getMessage()}`);
+      logger.error(`${eg1("Error")} URL: ${c.req.url}`);
+      logger.error(`${eg1("Error")} Message: ${err.getMessage()}`);
     }
     return c.sendError(err);
   }
@@ -305,11 +305,10 @@ app.onError((err: unknown, c: Context) => {
   const errorMessage = err instanceof Error ? err.message : String(err);
   const errorStack = err instanceof Error ? err.stack : undefined;
   const errorCause = err instanceof Error ? err.cause : undefined;
-
-  logger.error(`Request URL: ${c.req.url}`);
-  logger.error(`Error detail: ${errorMessage}`);
-  if (errorStack) logger.error(`Stack trace: ${errorStack}`);
-  if (errorCause) logger.error(`Caused by: ${errorCause}`);
+  logger.error(`${eg1("Error")} URL: ${c.req.url}`);
+  logger.error(`${eg1("Error")} Message: ${errorMessage}`);
+  if (errorStack) logger.error(`${eg1("Error")} Stack trace: ${errorStack}`);
+  if (errorCause) logger.error(`${eg1("Error")} Caused by: ${errorCause}`);
 
   return c.json({
     message: "Internal Server Error",

@@ -10,7 +10,7 @@
 
 import { crypto } from "@std/crypto";
 import { config } from "../../../config.ts";
-import { logger } from "../../tools/logger.ts";
+import {eg1, logger} from "../../tools/logger.ts";
 import {isOperatorActive} from "../../main/gateway.ts";
 import {DataUpdateMethod, Entity, Event, StatusCode, TrackingID, AppError} from "../../main/model.ts";
 import {getResponseJSON, adjustDateAndFormatWithTimezone, formatTimezoneOffset, httpPost} from "../../tools/util.ts";
@@ -322,7 +322,8 @@ export class Sfex implements OperatorModule{
     if (routes.length == 0) {
       // get the display text of the data retrieval method. eg: auto-pull -> Auto-pull
       const updateMethodName = DataUpdateMethod.getDisplayText(updateMethod);
-      logger.warn(`${updateMethodName} -> SFEX: Unexpected data received for ${trackingId.toString()}. Empty routes[] in the received response: ${JSON.stringify(result)}`);
+      const apiResultCode = String(result["apiResultCode"] ?? "unknown");
+      logger.warn(`${eg1("Monitor")} ${updateMethodName} -> SFEX: Unexpected data for ${trackingId.toString()} (empty routes[], apiResultCode=${apiResultCode}).`);
       return undefined;
     }
 
@@ -491,7 +492,7 @@ export class Sfex implements OperatorModule{
       // Log the future event detection for monitoring
       const updateMethodName = DataUpdateMethod.getDisplayText(updateMethod);
       logger.info(
-          `${updateMethodName} -> SFEX: Future event detected for ${trackingId.toString()}. ` +
+          `${eg1("Monitor")} ${updateMethodName} -> SFEX: Future event detected for ${trackingId.toString()}. ` +
           `Event time: ${eventTime}, Current time(UTC): ${new Date().toISOString()}. ` +
           `Assigning status 3005 (Information Received).`
       );

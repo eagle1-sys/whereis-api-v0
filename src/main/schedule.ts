@@ -9,8 +9,7 @@
  * @license BSD 3-Clause License
  */
 import { dbClient, initConnection } from "../db/dbutil.ts";
-import { getLogger } from "../tools/logger.ts";
-import { Github } from "../tools/github.ts";
+import {eg1, logger} from "../tools/logger.ts";
 import { requestWhereIs } from "./gateway.ts";
 import { AppError, Entity, OperatorRegistry, TrackingID } from "./model.ts";
 import { initializeOperatorStatus, loadEnv, loadMetaData } from "./app.ts";
@@ -18,10 +17,8 @@ import { initializeOperatorStatus, loadEnv, loadMetaData } from "./app.ts";
 // load environment variable first
 await loadEnv();
 
-// Initialize logger after environment is loaded
-// Log Level is configed in the environment variable
-const logger = getLogger();
-logger.info(`Starting application in ${Deno.env.get("APP_ENV")} mode`);
+logger.info(`${eg1("Startup")} Whereis API release ${Deno.env.get("APP_VERSION")}, build on ${Deno.env.get("BUILD_DATE")} (${Deno.env.get("APP_ENV")})`);
+logger.info(`${eg1("Startup")} deno ${Deno.version.deno}, setting: ${navigator.hardwareConcurrency} threads.`);
 
 await loadMetaData();       // load file system data
 await initConnection();     // initialize database connection
@@ -37,22 +34,25 @@ const interval = Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
 Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
   await syncRoutes();
 }).then((_r) => {
-  logger.info(`Scheduler started: every ${interval} minute(s).`);
+  logger.info(`${eg1("Startup")} Scheduler started: every ${interval} minute(s).`);
 });
 
 /**
  * Starts a daily scheduler that records active tracking numbers.
- * The task runs at 02:00 system local time and pushes the count to GitHub.
- * If GitHub instance initialization fails, the error is logged and the scheduler is not started.
+ * The task runs at 02:00 system local time and write the count to Log.
  */
-const github = Github.getInstance();
-if (github !== undefined) {
-  Deno.cron("Record active tracking NO", {hour: 2, minute: 0}, async () => {
-    await pushActiveTrackingNo(github);
-  }).then((_r) => {
-    logger.info(`Scheduler started: daily at 02:00 for recording active tracking numbers.`);
-  });
-}
+Deno.cron("Record active tracking NO", {hour: 2, minute: 0}, async () => {
+  try {
+    const inProcessTrackingNums: Record<string, unknown> = await dbClient.getInProcessingTrackingNums();
+    const activeTrackingNo = Object.keys(inProcessTrackingNums).length;
+    const comment = `${new Date().toISOString().slice(0, 10)}: Daily ${activeTrackingNo} active tracking numbers`;
+    logger.info(`${eg1("Report", "Usage")} ${comment}`);
+  } catch (err) {
+    handleError(err, 'pushActiveTrackingNo');
+  }
+}).then((_r) => {
+  logger.info(`${eg1("Startup")} Scheduler started: daily at 02:00 for recording active tracking numbers.`);
+});
 
 /**
  * Synchronizes tracking routes by fetching in-process tracking numbers,
@@ -173,38 +173,6 @@ async function processTrackingIds(operator: string, trackingIds: TrackingID[], p
 }
 
 /**
- * Retrieves the count of active tracking numbers and posts it as a comment to GitHub.
- *
- * This function queries the database for all in-process tracking numbers, counts them,
- * and publishes the count along with a timestamp to GitHub as a comment. If an error
- * occurs during database retrieval, it is handled gracefully and the count defaults to 0.
- *
- * @param github - The GitHub instance used to post the comment containing the active tracking count
- * @returns A promise that resolves when the comment has been successfully posted to GitHub
- *
- */
-async function pushActiveTrackingNo(github: Github): Promise<void> {
-  try {
-    const inProcessTrackingNums: Record<string, unknown> = await dbClient.getInProcessingTrackingNums();
-    const activeTrackingNo = Object.keys(inProcessTrackingNums).length;
-
-    if (activeTrackingNo > 0) {
-      const comment = `**Auto-update @ ${
-          new Date().toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC')
-      }**\n\nActive tracking numbers: ${activeTrackingNo}`;
-
-      try {
-        await github.putComment(comment);
-      } catch (githubErr) {
-        handleError(githubErr, 'pushActiveTrackingNo');
-      }
-    }
-  } catch (dbErr) {
-    handleError(dbErr, 'pushActiveTrackingNo');
-  }
-}
-
-/**
  * Centralized error handler for scheduled tasks.
  *
  * This function handles different types of errors appropriately:
@@ -220,19 +188,19 @@ function handleError(err: unknown, context: string):void {
   // ignore the UserError
   if (err instanceof AppError) {
     if (err.getHttpStatusCode() >= 500) {
-      logger.error(`${context}: ${err.getMessage()}`);
+      logger.error(`${eg1("Error")} ${context}: ${err.getMessage()}`);
     }
   } else {
     if (err instanceof Error) {
       logger.error(`${context}: ${err.message}`);
       if (err.stack) {
-        logger.error(`Stack trace: ${err.stack}`);
+        logger.error(`${eg1("Error")} Stack trace: ${err.stack}`);
       }
       if (err.cause) {
-        logger.error(`Caused by: ${err.cause}`);
+        logger.error(`${eg1("Error")} Caused by: ${err.cause}`);
       }
     } else {
-      logger.error(`Unknown error in ${context}: ${String(err)}`);
+      logger.error(`${eg1("Error")} Unknown error in ${context}: ${String(err)}`);
     }
   }
 }

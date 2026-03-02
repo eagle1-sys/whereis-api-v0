@@ -42,12 +42,13 @@ async function main() {
                 case "help":
                     console.log("\nAvailable commands:");
                     console.log("  help                                              - Show this help message");
-                    console.log("  log [level] [--from h<hours>|d<days>] [--offset <hours>] [keyword]");
+                    console.log("  log [level] [--app <app>] [--type <type>] [--from h<hours>|d<days>] [--offset <hours>] [keyword]");
                     console.log("                                                    - Read log from grafana");
                     console.log("                                                      Examples:");
                     console.log("                                                        log error --from h24");
                     console.log("                                                        log info --from d2 --offset 12");
                     console.log("                                                        log error --from h6 timeout");
+                    console.log("                                                        log error --app EG1 --type Monitor --from h24 Missing");
                     console.log("  check <operator> <trackingNum> [phoneNum]         - Check tracking status");
                     console.log("                                                      Example: check sfex SF3182998070266 6993");
                     console.log("  aicheck <operator> <trackingNum> [phoneNum]       - AI-powered tracking check");
@@ -170,6 +171,8 @@ async function analyseLog(args: string[]): Promise<void> {
 
 function getOptionsFromArgs(args: string[]): Record<string, unknown> {
     const result = {
+        app: "EG1",
+        type: "",
         level: "error",
         start: 0,
         end: 0,
@@ -189,7 +192,13 @@ function getOptionsFromArgs(args: string[]): Record<string, unknown> {
             continue;
         }
 
-        if (arg === "--from" && i + 1 < args.length) {
+        if (arg === "--app" && i + 1 < args.length) {
+            result.app = args[i + 1];
+            i++;
+        } else if (arg === "--type" && i + 1 < args.length) {
+            result.type = args[i + 1];
+            i++;
+        } else if (arg === "--from" && i + 1 < args.length) {
             const value = args[i + 1];
             if (value.startsWith("h")) {
                 const parsed = Number(value.substring(1));
