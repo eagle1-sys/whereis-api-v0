@@ -1,6 +1,9 @@
 import {httpGet} from "./util.ts";
+import {eg1, logger} from "./logger.ts";
 
 interface QueryLogsOptions {
+    app?: string;
+    type?: string;
     level?: string;
     keyword?: string;
     start?: number;
@@ -41,24 +44,26 @@ export class Grafana {
                         {type: "module"}
                     )
                 } catch (e) {
-                    console.error("Failed to start Grafana worker:", e);
+                    logger.error(`${eg1("Startup")} Failed to start Grafana worker: ${e}`);
                 }
             } else {
-                console.info("Grafana logging disabled: missing environment variables GRAFANA_USER, GRAFANA_API_KEY.");
+                logger.info(`${eg1("Startup")} Grafana logging disabled: missing environment variables GRAFANA_USER, GRAFANA_API_KEY.`);
             }
         }
         return Grafana.instance;
     }
 
-    log(message: string, level: string): void {
+    log(app: string, type: string, message: string, level: string): void {
         if (this.worker) {
-            this.worker.postMessage({ msg: message, level: level });
+            this.worker.postMessage({app: app, type: type, msg: message, level: level});
         }
     }
 
     async queryLog(options: QueryLogsOptions = {}): Promise<Record<string, unknown> | undefined> {
         const {
-            level = 'info',
+            app = "",
+            type = "",
+            level = '',
             keyword = '',
             start = Date.now() - 3600000,
             end = Date.now(),
@@ -73,11 +78,19 @@ export class Grafana {
         const safeLevel = escapeLogQL(level);
         const safeKeyword = escapeLogQL(keyword);
 
-        // Filter by level only
-        let query: string = `{app="whereis"} |= "${safeLevel}"`;
+        // Compose label selector
+        const safeApp = escapeLogQL(app);
+        const safeType = escapeLogQL(type);
+        let labelSelector = `{app="${safeApp}"`;
+        if (safeType) {
+            labelSelector += `, type="${safeType}"`;
+        }
+        labelSelector = labelSelector + "}";
+        // Compose LogQL query with label selector and level filter
+        let query: string = labelSelector + ` |= "${safeLevel}"`;
         if (keyword) {
-            // Filter by both level and keyword
-            query = `{app="whereis"} |= "${safeLevel}" |= "${safeKeyword}"`;
+            // Filter by keyword
+            query = query + ` |= "${safeKeyword}"`;
         }
 
         const startNs = (Number(start) * 1000000).toString();
