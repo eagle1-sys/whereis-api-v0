@@ -22,8 +22,20 @@ import {
   StatusCode,
 } from "./model.ts";
 import {registerOperatorModule, setOperatorStatus} from "./gateway.ts";
-import {setGrafana} from "../tools/logger.ts";
-import {Grafana} from "../tools/grafana.ts";
+import {eg1, logger} from "../tools/logger.ts";
+import {initConnection} from "../db/dbutil.ts";
+
+export async function initApp(): Promise<void> {
+  await loadEnv(); // load environment variable first
+
+  logger.info(`${eg1("Startup")} Whereis API release ${Deno.env.get("APP_VERSION")}, build on ${Deno.env.get("BUILD_DATE")} (${Deno.env.get("APP_ENV")})`);
+  logger.info(`${eg1("Startup")} deno ${Deno.version.deno}, setting: ${navigator.hardwareConcurrency} threads.`);
+
+  await loadMetaData(); // load file system data
+  await initConnection();
+
+  initializeOperatorStatus(); // initialize operator status
+}
 
 /**
  * Loads environment variables from a `.env` file and sets them in `Deno.env`.
@@ -108,13 +120,6 @@ export async function loadMetaData(): Promise<void> {
     "./metadata/error-codes.jsonc",
   );
   ErrorRegistry.initialize(errors);
-}
-
-export function initGrafana(): void {
-  const grafana: Grafana | undefined  = Grafana.getInstance();
-  if(grafana) {
-    setGrafana(grafana);
-  }
 }
 
 /**

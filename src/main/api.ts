@@ -7,8 +7,7 @@
  * @license BSD 3-Clause License
  */
 import { app } from "./server.ts";
-import {initGrafana, initializeOperatorStatus, loadEnv, loadMetaData} from "./app.ts";
-import {initConnection} from "../db/dbutil.ts";
+import {initApp} from "./app.ts";
 import {eg1, logger} from "../tools/logger.ts";
 
 /**
@@ -20,17 +19,7 @@ import {eg1, logger} from "../tools/logger.ts";
  * @throws {Error} If any step in the initialization process fails.
  */
 async function main(): Promise<void> {
-    await loadEnv(); // load environment variable first
-
-    logger.info(`${eg1("Startup")} Whereis API release ${Deno.env.get("APP_VERSION")}, build on ${Deno.env.get("BUILD_DATE")} (${Deno.env.get("APP_ENV")})`);
-    logger.info(`${eg1("Startup")} deno ${Deno.version.deno}, setting: ${navigator.hardwareConcurrency} threads.`);
-
-    initGrafana(); // initialize Grafana connection
-
-    await loadMetaData(); // load file system data
-    await initConnection();
-
-    initializeOperatorStatus(); // initialize operator status
+    await initApp();
 }
 
 // Execute the main function and handle any uncaught errors

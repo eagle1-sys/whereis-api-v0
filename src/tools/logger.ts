@@ -38,34 +38,37 @@ class CustomLogger extends LogTransportBase {
   constructor(options?: LogTransportBaseOptions) {
     super();
     this.options = { ...this.defaults, ...options };
-  }
-
-  public setGrafana(grafana: Grafana | undefined) {
-    this.grafana = grafana;
+    this.grafana = Grafana.getInstance();
   }
 
   override log(level: Severity, _scope: string, data: unknown[], _timestamp: Date) {
     if (this.shouldLog(level)) {
-      let formattedMessage;
+      let prefix;
+      let logMessage;
       const message = data.join(" ");
       if (message.startsWith("{EG1:")) {
         const idx = message.indexOf("}");
-        const prefix = message.slice(0, idx + 1);
+        prefix = message.slice(0, idx + 1);
         // eg: {EG1:Startup} Info Whereis API Release 0.3
-        formattedMessage = `${prefix} ${level} ${message.substring(idx + 1).trim()}`;
+        logMessage = message;
       } else {
-        formattedMessage = `{EG1:Unknow} ${level} ${message}`;
+        prefix = `{EG1:Unknow}`;
+        logMessage = prefix + " " + message;
       }
       if (level === Severity.Error) {
-        console.error(formattedMessage);
-      } else {
-        console.log(formattedMessage);
+        console.error(logMessage);
+      } else if (level === Severity.Warn) {
+        console.warn(logMessage);
+      } else if (level === Severity.Info) {
+        console.info(logMessage);
+      } else if (level === Severity.Debug) {
+        console.debug(logMessage);
       }
 
       // Send log to Grafana
       if (this.grafana !== undefined) {
-        const { app, type} = parsePrefix(formattedMessage);
-        this.grafana.log(app, type, formattedMessage, level);
+        const { app, type} = parsePrefix(prefix);
+        this.grafana.log(app, type, level, logMessage);
       }
     }
   }
@@ -99,19 +102,6 @@ function getLogger(): Log {
  */
 export function eg1(type: string, tag?: string): string {
   return `{EG1:${type}${tag ? `:${tag}` : ""}}`;
-}
-
-/**
- * Sets the Grafana instance for the custom logger.
- * This allows the logger to send logs to Grafana Loki. If the custom logger
- * has not been initialized yet, this function will have no effect until the logger is initialized.
- *
- * @param grafana The Grafana instance to use for sending logs.
- */
-export function setGrafana(grafana: Grafana) {
-  if (customLogger) {
-    customLogger.setGrafana(grafana);
-  }
 }
 
 /**
