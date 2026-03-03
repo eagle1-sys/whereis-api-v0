@@ -8,21 +8,13 @@
  * @copyright (c) 2025, the Eagle1 authors
  * @license BSD 3-Clause License
  */
-import { dbClient, initConnection } from "../db/dbutil.ts";
+import { dbClient } from "../db/dbutil.ts";
 import {eg1, logger} from "../tools/logger.ts";
 import { requestWhereIs } from "./gateway.ts";
 import { AppError, Entity, OperatorRegistry, TrackingID } from "./model.ts";
-import { initializeOperatorStatus, loadEnv, loadMetaData } from "./app.ts";
+import {initApp} from "./app.ts";
 
-// load environment variable first
-await loadEnv();
-
-logger.info(`${eg1("Startup")} Whereis API release ${Deno.env.get("APP_VERSION")}, build on ${Deno.env.get("BUILD_DATE")} (${Deno.env.get("APP_ENV")})`);
-logger.info(`${eg1("Startup")} deno ${Deno.version.deno}, setting: ${navigator.hardwareConcurrency} threads.`);
-
-await loadMetaData();       // load file system data
-await initConnection();     // initialize database connection
-initializeOperatorStatus(); // initialize operator status
+await initApp();
 
 /**
  * Starts a scheduler that periodically synchronizes tracking routes.
