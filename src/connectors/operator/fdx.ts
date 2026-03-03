@@ -62,16 +62,23 @@ export class Fdx implements OperatorModule {
       ): number {
         const locationType = sourceData["locationType"] as string;
         const eventDescription = sourceData["eventDescription"] as string;
-        if (
-            locationType === "SORT_FACILITY" &&
-            /destination/i.test(eventDescription)
-        ) {
-          return 3300; // At destination sort facility
+        if (_entity.additional.isCrossBorder) {
+          if (locationType === "DESTINATION_FEDEX_FACILITY" ||
+              (locationType === "SORT_FACILITY" && /destination/i.test(eventDescription))) {
+            return 3300;            // At destination sort facility
+          }
+
+          // Check for arrival in the destination country for cross-border shipments
+          const scanLocation = sourceData["scanLocation"] as Record<string, unknown> | null;
+          const destAddress = _entity.additional.destination as string | undefined;
+          const destCountryName = scanLocation?.["countryName"] as string | undefined;
+          if (/arrived/i.test(eventDescription) && destAddress && destCountryName && destAddress.endsWith(destCountryName)) {
+            return 3300; // Arrived at Destination
+          }
         }
 
         const locationTypeMap: { [key: string]: number } = {
-          "ORIGIN_FEDEX_FACILITY": 3100, // Received by Carrier (just in case)
-          "DESTINATION_FEDEX_FACILITY": 3300, // At local FedEx facility
+          "ORIGIN_FEDEX_FACILITY": 3100               // Received by Carrier (just in case)
         };
         return locationTypeMap[locationType] ?? 3002; // Arrived, In-Transit (default)
       },
