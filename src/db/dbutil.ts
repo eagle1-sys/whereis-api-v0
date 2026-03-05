@@ -66,11 +66,13 @@ async function initPgConnection() : Promise<postgres.Sql> {
         logger.error(`${whereIsAPI("exception")} DB connection: Connect timeout - check if the db host/port is correct`);
       } else if (/failed to lookup address/i.test(errorMessage)) {
         logger.error(`${whereIsAPI("exception")} DB connection: Unknown server name - check if the db server name is correct`);
+      } else {
+        logger.error(`${whereIsAPI("exception")} Error initializing database connection pool: ${errorMessage}`);
       }
     } else {
       logger.error(`${whereIsAPI("exception")} Error initializing database connection pool: ${err}`);
     }
-    throw new Error("Failed to initialize database connection pool", { cause: err });
+    throw new Error("Failed to initialize database connection pool", {cause: err});
   }
 }
 
