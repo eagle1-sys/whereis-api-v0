@@ -10,7 +10,7 @@
 
 import { Database } from "sqlite";
 
-import {eg1, logger} from "../tools/logger.ts";
+import {whereIsAPI, logger} from "../tools/logger.ts";
 import { DatabaseWrapper } from "./db_wrapper.ts";
 import { DataUpdateMethod, Entity, Event, TrackingID } from "../main/model.ts";
 
@@ -93,7 +93,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
   async insertEntity(entity: Entity): Promise<number> {
     const updateMethod = entity.usePull ? "manual-pull" : "push";
     if (entity.events === undefined || entity.events.length === 0) {
-      logger.error(`${eg1("Error")} Entity [${entity.id}] has no events`);
+      logger.error(`${whereIsAPI("alert")} Entity [${entity.id}] has no events`);
       return 0;
     }
 
@@ -160,7 +160,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
           const stmt = this.db.prepare(`DELETE FROM events WHERE event_id = ?`);
           try {
             for (const eventId of eventIdsToBeRemoved) {
-              logger.info(`${eg1("Monitor")} ${updateMethod}: Delete exist event with ID ${eventId}`);
+              logger.info(`${whereIsAPI("data_monitor")} ${updateMethod}: Delete exist event with ID ${eventId}`);
               stmt.run(eventId);
               changed = changed + this.db.changes;
             }
@@ -191,7 +191,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
   async refreshEntity(trackingId: TrackingID, entity: Entity): Promise<number> {
     const updateMethod = DataUpdateMethod.getDisplayText("manual-pull");
     if(entity.events === undefined || entity.events.length === 0) {
-      logger.error(`${eg1("Error")} Entity [${entity.id}] has no events`);
+      logger.error(`${whereIsAPI("alert")} Entity [${entity.id}] has no events`);
       return 0;
     }
 
@@ -348,7 +348,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
             throw new Error("Invalid event object: eventId is required");
           }
 
-          logger.info(`${eg1("Monitor")} ${updateMethod}: Insert new event with ID ${event.eventId}`);
+          logger.info(`${whereIsAPI("data_monitor")} ${updateMethod}: Insert new event with ID ${event.eventId}`);
 
           try {
             insertEventStmt.run(
@@ -374,10 +374,10 @@ export class SQLiteWrapper implements DatabaseWrapper {
             changes = changes + rowsAffected;
             if (rowsAffected !== 1) {
               // log the info if no event_id was inserted
-              logger.info(`${eg1("Monitor")} Event with ID ${event.eventId} could not be inserted. `);
+              logger.info(`${whereIsAPI("data_monitor")} Event with ID ${event.eventId} could not be inserted. `);
             }
           } catch (err) {
-            logger.error(`${eg1("Error")} Failed to insert event with ID ${event.eventId}:`, err);
+            logger.error(`${whereIsAPI("exception")} Failed to insert event with ID ${event.eventId}:`, err);
           }
         }
       } finally {

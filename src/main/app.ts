@@ -22,14 +22,14 @@ import {
   StatusCode,
 } from "./model.ts";
 import {registerOperatorModule, setOperatorStatus} from "./gateway.ts";
-import {eg1, logger} from "../tools/logger.ts";
+import {whereIsAPI, logger} from "../tools/logger.ts";
 import {initConnection} from "../db/dbutil.ts";
 
 export async function initApp(): Promise<void> {
   await loadEnv(); // load environment variable first
 
-  logger.info(`${eg1("Startup")} Whereis API release ${Deno.env.get("APP_VERSION")}, build on ${Deno.env.get("BUILD_DATE")} (${Deno.env.get("APP_ENV")})`);
-  logger.info(`${eg1("Startup")} deno ${Deno.version.deno}, setting: ${navigator.hardwareConcurrency} threads.`);
+  logger.info(`${whereIsAPI("startup")} Whereis API release ${Deno.env.get("APP_VERSION")}, build on ${Deno.env.get("BUILD_DATE")} (${Deno.env.get("APP_ENV")})`);
+  logger.info(`${whereIsAPI("startup")} deno ${Deno.version.deno}, setting: ${navigator.hardwareConcurrency} threads.`);
 
   await loadMetaData(); // load file system data
   await initConnection();

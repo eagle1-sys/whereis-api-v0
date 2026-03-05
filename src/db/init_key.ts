@@ -14,7 +14,7 @@
  */
 import {loadEnv} from "../main/app.ts";
 import {initConnection} from "./dbutil.ts";
-import {eg1, logger} from "../tools/logger.ts";
+import {whereIsAPI, logger} from "../tools/logger.ts";
 import {dbClient} from "./dbutil.ts";
 
 async function main(): Promise<void> {
@@ -32,12 +32,11 @@ async function main(): Promise<void> {
 
     // step 3: write API key to the database
     const inserted = await dbClient.insertToken(key, user);
+    // Just output the API key to console (Avoid writing to grafana)
     if (!inserted) {
-        console.log(`${eg1("Monitor")} Token ${key} already exists or could not be inserted.`);
-        return;
+        console.log(`Token ${key} already exists or could not be inserted.`);
     } else {
-        // output the API key to the console or log
-        console.log(`${eg1("Monitor")} API key ${key} has been saved to the database.`);
+        console.log(`API key ${key} has been saved to the database.`);
     }
 }
 
@@ -68,6 +67,6 @@ function generateApiKey(length: number = 48): string {
 
 // Execute the main function and handle any uncaught errors
 main().catch((err) => {
-    logger.error(`${eg1("Error")} Failed to start application:${err}`);
+    logger.error(`${whereIsAPI("exception")} Failed to start application:${err}`);
     Deno.exit(1);
 });

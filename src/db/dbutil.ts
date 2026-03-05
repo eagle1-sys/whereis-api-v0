@@ -11,7 +11,7 @@ import { PostgresWrapper } from "./db_postgres.ts";
 
 let dbClient: DatabaseWrapper;
 
-import {eg1, logger} from "../tools/logger.ts";
+import {whereIsAPI, logger} from "../tools/logger.ts";
 import { join } from '@std/path';
 
 export async function initConnection() {
@@ -53,7 +53,7 @@ async function initPgConnection() : Promise<postgres.Sql> {
     // Test the connection by executing a simple query
     const testResult = await sql`SELECT 1 as connection_test`;
     if (testResult[0].connection_test === 1) {
-      logger.info(`${eg1("Startup")} DB connection pool to ${dbHost}:${dbPort} initialized successfully.`);
+      logger.info(`${whereIsAPI("startup")} DB connection pool to ${dbHost}:${dbPort} initialized successfully.`);
     }
 
     return sql;
@@ -61,14 +61,14 @@ async function initPgConnection() : Promise<postgres.Sql> {
     if (err instanceof Error) {
       const errorMessage = err.message;
       if (/connection refused/i.test(errorMessage)) {
-        logger.error(`${eg1("Error")} DB connection: Connection refused - check if the db service is running`);
+        logger.error(`${whereIsAPI("exception")} DB connection: Connection refused - check if the db service is running`);
       } else if (/connect_timeout/i.test(errorMessage)) {
-        logger.error(`${eg1("Error")} DB connection: Connect timeout - check if the db host/port is correct`);
+        logger.error(`${whereIsAPI("exception")} DB connection: Connect timeout - check if the db host/port is correct`);
       } else if (/failed to lookup address/i.test(errorMessage)) {
-        logger.error(`${eg1("Error")} DB connection: Unknown server name - check if the db server name is correct`);
+        logger.error(`${whereIsAPI("exception")} DB connection: Unknown server name - check if the db server name is correct`);
       }
     } else {
-      logger.error(`${eg1("Error")} Error initializing database connection pool: ${err}`);
+      logger.error(`${whereIsAPI("exception")} Error initializing database connection pool: ${err}`);
     }
     throw new Error("Failed to initialize database connection pool", { cause: err });
   }

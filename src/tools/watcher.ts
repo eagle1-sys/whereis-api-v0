@@ -48,7 +48,7 @@ async function main() {
                     console.log("                                                        log error --from h24");
                     console.log("                                                        log info --from d2 --offset 12");
                     console.log("                                                        log error --from h6 timeout");
-                    console.log("                                                        log error --app EG1 --type Monitor --from h24 Missing");
+                    console.log("                                                        log warn --app whereis-api --type data_monitor --from h24 missing");
                     console.log("  check <operator> <trackingNum> [phoneNum]         - Check tracking status");
                     console.log("                                                      Example: check sfex SF3182998070266 6993");
                     console.log("  aicheck <operator> <trackingNum> [phoneNum]       - AI-powered tracking check");

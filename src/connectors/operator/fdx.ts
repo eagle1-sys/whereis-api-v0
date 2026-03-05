@@ -10,7 +10,7 @@
 
 import {AppError, DataUpdateMethod, Entity, Event, ExceptionCode, StatusCode, TrackingID,} from "../../main/model.ts";
 import {config} from "../../../config.ts";
-import {eg1, logger} from "../../tools/logger.ts";
+import {whereIsAPI, logger} from "../../tools/logger.ts";
 import {isOperatorActive} from "../../main/gateway.ts";
 import {getResponseJSON, adjustDateAndFormatWithTimezone, extractTimezone, httpPost} from "../../tools/util.ts";
 import {OperatorModule} from "../../main/operator.ts";
@@ -292,7 +292,7 @@ export class Fdx implements OperatorModule {
       // get the display text of the data retrieval method. eg: auto-pull -> Auto-pull
       const updateMethodName = DataUpdateMethod.getDisplayText(updateMethod);
       const transactionId = String((result["transactionId"] ?? "unknown"));
-      logger.error(`${eg1("Error")} ${updateMethodName} -> FDX: Unexpected data for ${trackingIdsStr}. Missing output{} (transactionId=${transactionId}).`);
+      logger.error(`${whereIsAPI("exception")} ${updateMethodName} -> FDX: Unexpected data for ${trackingIdsStr}. Missing output{} (transactionId=${transactionId}).`);
       return entities;
     }
 
@@ -526,7 +526,7 @@ export class Fdx implements OperatorModule {
     const trackResult = trackResults[0] as Record<string, unknown>;
 
     if (trackResult["error"] !== undefined) {
-      logger.error(`${eg1("Error")} Error occurs during process ${trackingId.toString()}: ${JSON.stringify(trackResult["error"])}`);
+      logger.error(`${whereIsAPI("exception")} Error occurs during process ${trackingId.toString()}: ${JSON.stringify(trackResult["error"])}`);
       return undefined;
     }
 

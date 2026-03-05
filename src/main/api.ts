@@ -8,7 +8,7 @@
  */
 import { app } from "./server.ts";
 import {initApp} from "./app.ts";
-import {eg1, logger} from "../tools/logger.ts";
+import {whereIsAPI, logger} from "../tools/logger.ts";
 
 /**
  * Main entry point of the application.
@@ -24,7 +24,7 @@ async function main(): Promise<void> {
 
 // Execute the main function and handle any uncaught errors
 main().catch((err) => {
-    logger.error(`${eg1("Error")} Failed to start application:${err}`);
+    logger.error(`${whereIsAPI("exception")} Failed to start application:${err}`);
     Deno.exit(1);
 });
 
