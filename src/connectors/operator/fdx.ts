@@ -400,17 +400,19 @@ export class Fdx implements OperatorModule {
   static isMissing3100(entity: Entity): boolean {
     let hasPreEventOccurred: boolean = false;
     for (const event of entity.events) {
+      // if a 3100 event is found
+      if (event.status === 3100) return false;
+
       if (event.status <= 3050 && event.status % 50 === 0) {
         hasPreEventOccurred = true;
       } else if (hasPreEventOccurred) {
-        // if a 3100 event is found
-        if (event.status === 3100) return false;
-        // if an event status is greater than 3100 is found
-        if (event.status > 3100) return true;
+        // if an event with status 3001-3004 or greater than 3100 is found
+        if ((event.status >= 3001 && event.status <= 3004) || event.status > 3100) {
+          return true;
+        }
       }
     }
-    // if no 3100 event is found in the expected sequence, return true
-    return true;
+    return false;
   }
 
   /**
