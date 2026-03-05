@@ -109,6 +109,7 @@ export const logger = new Proxy({} as Log, {
       const customLogger: CustomLogger = new CustomLogger();
       loggerInstance = new Log([customLogger]);
     }
-    return loggerInstance[prop as keyof Log];
+    const value = Reflect.get(loggerInstance, prop);
+    return typeof value === "function" ? value.bind(loggerInstance) : value;
   }
 });
