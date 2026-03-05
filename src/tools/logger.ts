@@ -67,7 +67,7 @@ let loggerInstance: Log | null = null;
 
 /**
  * Generates a standardized log prefix string for Eagle1-specific logs.
- * This prefix helps in categorizing and filtering logs. The format is `{EG1:type}` or `{EG1:type:tag}`.
+ * This prefix helps in categorizing and filtering logs. The format is `{whereis-api:type}` or `{whereis-api:type:tag}`.
  *
  * @param type A string representing the category or type of the log (e.g., "Startup", "API").
  * @param tag An optional string for additional context or sub-categorization.
@@ -79,7 +79,7 @@ export function whereIsAPI(type: string, tag?: string): string {
 
 /**
  * Parses a log message to extract the application, type, and an optional tag from a prefix.
- * The prefix is expected to be in the format `{EG1:type:tag}`.
+ * The prefix is expected to be in the format `{whereis-api:type:tag}`.
  *
  * @param prefix The log message string to parse.
  * @returns An object containing the parsed `app`, `type`, and optional `tag`.
