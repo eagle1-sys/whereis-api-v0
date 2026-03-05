@@ -1,7 +1,8 @@
 import {httpGet} from "./util.ts";
 
 interface QueryLogsOptions {
-    app?: string;
+    service?: string;
+    env?: string;
     type?: string;
     level?: string;
     keyword?: string;
@@ -18,7 +19,7 @@ export class Grafana {
     private static instance: Grafana | undefined ;
     private static initialized = false;
 
-    private worker: Worker | undefined;
+    private readonly worker: Worker | undefined;
     private readonly GRAFANA_USER: string;
     private readonly GRAFANA_API_KEY: string;
     private readonly GRAFANA_SOURCE: string;
@@ -75,7 +76,8 @@ export class Grafana {
 
     async queryLog(options: QueryLogsOptions = {}): Promise<Record<string, unknown> | undefined> {
         const {
-            app = "",
+            service = "",
+            env = "",
             type = "",
             level = '',
             keyword = '',
@@ -91,12 +93,15 @@ export class Grafana {
         };
 
         // Compose label selector
-        const safeApp = escapeLogQL(app);
+        const safeService = escapeLogQL(service);
+        const safeEnv = escapeLogQL(env);
         const safeType = escapeLogQL(type);
         const safeLevel = escapeLogQL(level);
         const safeKeyword = escapeLogQL(keyword);
-
-        let labelSelector = `{app="${safeApp}"`;
+        let labelSelector = `{service_name="${safeService}"`;
+        if (safeEnv) {
+            labelSelector += `, env="${safeEnv}"`;
+        }
         if (safeType) {
             labelSelector += `, type="${safeType}"`;
         }
@@ -107,7 +112,6 @@ export class Grafana {
 
         // Compose LogQL query with label selector
         let query: string = labelSelector;
-
         if (keyword) {
             // Filter by keyword
             query = query + ` |= "${safeKeyword}"`;
