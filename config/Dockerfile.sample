@@ -21,9 +21,6 @@ deno check .
 deno lint
 CMD
 
-# Switch to non-root user for security
-USER deno
-
 ENV PORT=8037
 
 # Run the app with specified permissions

@@ -10,7 +10,7 @@
 import { HonoRequest } from "hono/request";
 import { Entity, OperatorRegistry, TrackingID } from "./model.ts";
 import {OperatorModule} from "./operator.ts";
-import {eg1, logger} from "../tools/logger.ts";
+import {whereIsAPI, logger} from "../tools/logger.ts";
 
 // Define a type for the operator status
 type OperatorStatus = {
@@ -103,7 +103,7 @@ export async function requestWhereIs(operator: string, trackingIds: TrackingID[]
 
     const missingStatuses = entity.getMissingCriticalStatuses();
     for (const status of missingStatuses) {
-      logger.warn(`${eg1("Monitor")} Entity ${entity.id} missing critical status : ${status}`);
+      logger.warn(`${whereIsAPI("data_monitor")} Entity ${entity.id} missing critical status : ${status}`);
     }
   }
   return entities;

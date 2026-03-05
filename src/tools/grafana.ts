@@ -1,8 +1,8 @@
 import {httpGet} from "./util.ts";
-import {eg1} from "./logger.ts";
 
 interface QueryLogsOptions {
-    app?: string;
+    service?: string;
+    env?: string;
     type?: string;
     level?: string;
     keyword?: string;
@@ -19,49 +19,65 @@ export class Grafana {
     private static instance: Grafana | undefined ;
     private static initialized = false;
 
-    // Grafana API endpoint
-    private static readonly GRAFANA_QUERY_URL = "https://logs-prod-020.grafana.net/loki/api/v1/query_range";
-
-    private worker: Worker | undefined;
+    private readonly worker: Worker | undefined;
     private readonly GRAFANA_USER: string;
     private readonly GRAFANA_API_KEY: string;
+    private readonly GRAFANA_SOURCE: string;
+    // Grafana API endpoint
+    private readonly GRAFANA_QUERY_URL: string;
 
-    private constructor(grafanaUser: string, grafanaApiKey: string) {
+    private constructor(grafanaUser: string, grafanaApiKey: string, grafanaURL: string, grafanaSource: string) {
         this.GRAFANA_USER = grafanaUser;
         this.GRAFANA_API_KEY = grafanaApiKey;
+        this.GRAFANA_QUERY_URL = grafanaURL + "loki/api/v1/query_range";
+        this.GRAFANA_SOURCE = grafanaSource;
+
+        // Initialize the worker
+        try {
+            this.worker = new Worker(
+                new URL("./grafana_worker.ts", import.meta.url).href,
+                { type: "module" }
+            );
+        } catch (error) {
+            console.error("Failed to initialize Grafana worker:", error);
+            this.worker = undefined;
+        }
     }
 
     public static getInstance(): Grafana | undefined {
         if (!Grafana.instance && !Grafana.initialized) {
-            Grafana.initialized = true;
+            const grafanaURL = Deno.env.get("GRAFANA_URL") || "";
             const grafanaUser = Deno.env.get("GRAFANA_USER") || "";
             const grafanaApiKey = Deno.env.get("GRAFANA_API_KEY") || "";
-            if (grafanaUser && grafanaApiKey) {
-                Grafana.instance = new Grafana(grafanaUser, grafanaApiKey);
-                try {
-                    Grafana.instance.worker = new Worker(
-                        new URL("./grafana_worker.ts", import.meta.url).href,
-                        {type: "module"}
-                    )
-                } catch (e) {
-                    console.error(`${eg1("Startup")} Failed to start Grafana worker: ${e}`);
-                }
+            if (grafanaURL && grafanaUser && grafanaApiKey) {
+                Grafana.instance = new Grafana(grafanaUser, grafanaApiKey, grafanaURL, Deno.hostname());
             } else {
-                console.info(`${eg1("Startup")} Grafana logging disabled: missing environment variables GRAFANA_USER, GRAFANA_API_KEY.`);
+                console.info(`Grafana logging disabled: missing environment variables GRAFANA_URL, GRAFANA_USER and GRAFANA_API_KEY.`);
             }
+            Grafana.initialized = true;
         }
         return Grafana.instance;
     }
 
-    log(app: string, type: string, level: string, message: string): void {
+    log(serviceName: string, env: string, type: string, level: string, message: string): void {
         if (this.worker) {
-            this.worker.postMessage({app: app, type: type, level: level, msg: message});
+            this.worker.postMessage({
+                serviceName: serviceName,
+                env: env,
+                type: type,
+                level: level,
+                source: this.GRAFANA_SOURCE,
+                message: message
+            });
+        } else {
+            console.warn("Grafana worker not initialized, log not sent:", message);
         }
     }
 
     async queryLog(options: QueryLogsOptions = {}): Promise<Record<string, unknown> | undefined> {
         const {
-            app = "",
+            service = "",
+            env = "",
             type = "",
             level = '',
             keyword = '',
@@ -77,12 +93,15 @@ export class Grafana {
         };
 
         // Compose label selector
-        const safeApp = escapeLogQL(app);
+        const safeService = escapeLogQL(service);
+        const safeEnv = escapeLogQL(env);
         const safeType = escapeLogQL(type);
         const safeLevel = escapeLogQL(level);
         const safeKeyword = escapeLogQL(keyword);
-
-        let labelSelector = `{app="${safeApp}"`;
+        let labelSelector = `{service_name="${safeService}"`;
+        if (safeEnv) {
+            labelSelector += `, env="${safeEnv}"`;
+        }
         if (safeType) {
             labelSelector += `, type="${safeType}"`;
         }
@@ -93,7 +112,6 @@ export class Grafana {
 
         // Compose LogQL query with label selector
         let query: string = labelSelector;
-
         if (keyword) {
             // Filter by keyword
             query = query + ` |= "${safeKeyword}"`;
@@ -112,7 +130,7 @@ export class Grafana {
         try {
             const authHeader = 'Basic ' + btoa(`${this.GRAFANA_USER}:${this.GRAFANA_API_KEY}`);
             const response = await httpGet(
-                `${Grafana.GRAFANA_QUERY_URL}?${params}`,
+                `${this.GRAFANA_QUERY_URL}?${params}`,
                 {
                     'Content-Type': 'application/json',
                     'Authorization': authHeader

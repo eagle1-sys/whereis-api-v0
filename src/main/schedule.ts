@@ -9,7 +9,7 @@
  * @license BSD 3-Clause License
  */
 import { dbClient } from "../db/dbutil.ts";
-import {eg1, logger} from "../tools/logger.ts";
+import {whereIsAPI, logger} from "../tools/logger.ts";
 import { requestWhereIs } from "./gateway.ts";
 import { AppError, Entity, OperatorRegistry, TrackingID } from "./model.ts";
 import {initApp} from "./app.ts";
@@ -26,7 +26,7 @@ const interval = Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
 Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
   await syncRoutes();
 }).then((_r) => {
-  logger.info(`${eg1("Startup")} Scheduler started: every ${interval} minute(s).`);
+  logger.info(`${whereIsAPI("startup")} Scheduler started: every ${interval} minute(s).`);
 });
 
 /**
@@ -38,12 +38,12 @@ Deno.cron("Record active tracking NO", {hour: 2, minute: 0}, async () => {
     const inProcessTrackingNums: Record<string, unknown> = await dbClient.getInProcessingTrackingNums();
     const activeTrackingNo = Object.keys(inProcessTrackingNums).length;
     const comment = `${new Date().toISOString().slice(0, 10)}: Daily ${activeTrackingNo} active tracking numbers`;
-    logger.info(`${eg1("Report", "Usage")} ${comment}`);
+    logger.info(`${whereIsAPI("usage_report", "Usage")} ${comment}`);
   } catch (err) {
     handleError(err, 'pushActiveTrackingNo');
   }
 }).then((_r) => {
-  logger.info(`${eg1("Startup")} Scheduler started: daily at 02:00 for recording active tracking numbers.`);
+  logger.info(`${whereIsAPI("startup")} Scheduler started: daily at 02:00 for recording active tracking numbers.`);
 });
 
 /**
@@ -180,19 +180,19 @@ function handleError(err: unknown, context: string):void {
   // ignore the UserError
   if (err instanceof AppError) {
     if (err.getHttpStatusCode() >= 500) {
-      logger.error(`${eg1("Error")} ${context}: ${err.getMessage()}`);
+      logger.error(`${whereIsAPI("exception")} ${context}: ${err.getMessage()}`);
     }
   } else {
     if (err instanceof Error) {
       logger.error(`${context}: ${err.message}`);
       if (err.stack) {
-        logger.error(`${eg1("Error")} Stack trace: ${err.stack}`);
+        logger.error(`${whereIsAPI("exception")} Stack trace: ${err.stack}`);
       }
       if (err.cause) {
-        logger.error(`${eg1("Error")} Caused by: ${err.cause}`);
+        logger.error(`${whereIsAPI("exception")} Caused by: ${err.cause}`);
       }
     } else {
-      logger.error(`${eg1("Error")} Unknown error in ${context}: ${String(err)}`);
+      logger.error(`${whereIsAPI("exception")} Unknown error in ${context}: ${String(err)}`);
     }
   }
 }

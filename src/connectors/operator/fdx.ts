@@ -10,7 +10,7 @@
 
 import {AppError, DataUpdateMethod, Entity, Event, ExceptionCode, StatusCode, TrackingID,} from "../../main/model.ts";
 import {config} from "../../../config.ts";
-import {eg1, logger} from "../../tools/logger.ts";
+import {whereIsAPI, logger} from "../../tools/logger.ts";
 import {isOperatorActive} from "../../main/gateway.ts";
 import {getResponseJSON, adjustDateAndFormatWithTimezone, extractTimezone, httpPost} from "../../tools/util.ts";
 import {OperatorModule} from "../../main/operator.ts";
@@ -292,7 +292,7 @@ export class Fdx implements OperatorModule {
       // get the display text of the data retrieval method. eg: auto-pull -> Auto-pull
       const updateMethodName = DataUpdateMethod.getDisplayText(updateMethod);
       const transactionId = String((result["transactionId"] ?? "unknown"));
-      logger.error(`${eg1("Error")} ${updateMethodName} -> FDX: Unexpected data for ${trackingIdsStr}. Missing output{} (transactionId=${transactionId}).`);
+      logger.error(`${whereIsAPI("exception")} ${updateMethodName} -> FDX: Unexpected data for ${trackingIdsStr}. Missing output{} (transactionId=${transactionId}).`);
       return entities;
     }
 
@@ -386,40 +386,51 @@ export class Fdx implements OperatorModule {
   }
 
   /**
-   * Checks if a 3100 status event is missing from the entity's event sequence.
+   * Checks if a 3100 ('Received by Carrier') status event is missing from the entity's event sequence.
    *
-   * This function iterates through the entity's events to determine if a 3100 status
-   * event is missing where it should be present in the logical sequence of events.
+   * @remarks
+   * This function determines a missing 3100 event by checking if an event with a status
+   * greater than 3100 occurs after an initial pickup or creation event (status <= 3050)
+   * without a 3100 event appearing in between.
    *
-   * @param {Entity} entity - The entity object containing an array of events to check.
-   * @returns {boolean} Returns true if a 3100 status event is missing in the expected
-   *                    sequence, false otherwise.
+   * @param {Entity} entity - The entity object containing a sorted array of events to check.
+   * @returns {boolean} Returns `true` if a 3100 status event is missing in the expected
+   *                    logical sequence, `false` otherwise.
    */
   static isMissing3100(entity: Entity): boolean {
+    let hasPreEventOccurred: boolean = false;
     for (const event of entity.events) {
       // if a 3100 event is found
       if (event.status === 3100) return false;
 
-      // if an event with status greater than 3100 is found
-      if (event.status > 3100) {
-        return true;
+      if (event.status <= 3050 && event.status % 50 === 0) {
+        hasPreEventOccurred = true;
+      } else if (hasPreEventOccurred) {
+        // if an event with status 3001-3004 or greater than 3100 is found
+        if ((event.status >= 3001 && event.status <= 3004) || event.status > 3100) {
+          return true;
+        }
       }
     }
     return false;
   }
 
   /**
-   * Retrieves the base event for status code 3100 from the entity's events.
-   * Scans chronologically, skipping pre‑milestones (<=3050 and multiples of 50) and stopping at the next milestone (>3100 and multiple of 50).
-   * Returns the earliest event with status in [3001..3004] (inclusive) to serve as the base for creating a 3100 event.
-   * @param {Entity} entity - The entity containing the events to search through.
-   * @returns {Event | undefined} The earliest event with status 3001–3004 if found, otherwise undefined.
-   *                              This event is used as a base for creating a 3100 status event.
+   * Retrieves a base event for creating a supplementary 3100 status event.
+   *
+   * This function searches for the first event that logically follows the initial pickup
+   * or creation phase (status <= 3050) but occurs before any event with a status greater
+   * than 3100. This base event is used to infer the time and location for a missing
+   * 3100 ("Received by Carrier") event.
+   *
+   * @param {Entity} entity - The entity object containing the sorted list of events.
+   * @returns {Event | undefined} The first suitable event to serve as a base for a
+   *          supplementary 3100 event, or undefined if no such event is found.
    */
   static get3100BaseEvent(entity: Entity): Event | undefined {
     for (const event of entity.events) {
-      // if the event status is less than 3100, skip it
-      if (event.status < 3100) {
+      // if the event status is less than or equal to 3050, skip it
+      if (event.status <= 3050 && event.status % 50 === 0) {
         continue;
       }
 
@@ -526,7 +537,7 @@ export class Fdx implements OperatorModule {
     const trackResult = trackResults[0] as Record<string, unknown>;
 
     if (trackResult["error"] !== undefined) {
-      logger.error(`${eg1("Error")} Error occurs during process ${trackingId.toString()}: ${JSON.stringify(trackResult["error"])}`);
+      logger.error(`${whereIsAPI("exception")} Error occurs during process ${trackingId.toString()}: ${JSON.stringify(trackResult["error"])}`);
       return undefined;
     }
 
