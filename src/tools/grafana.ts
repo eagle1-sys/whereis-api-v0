@@ -52,7 +52,7 @@ export class Grafana {
             if (grafanaURL && grafanaUser && grafanaApiKey) {
                 Grafana.instance = new Grafana(grafanaUser, grafanaApiKey, grafanaURL, Deno.hostname());
             } else {
-                console.info(`Grafana logging disabled: missing environment variables GRAFANA_USER, GRAFANA_API_KEY.`);
+                console.info(`Grafana logging disabled: missing environment variables GRAFANA_URL, GRAFANA_USER and GRAFANA_API_KEY.`);
             }
             Grafana.initialized = true;
         }
