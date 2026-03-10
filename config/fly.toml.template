@@ -48,8 +48,8 @@ DB_PASSWORD = "_CHANGEME_"
 WHEREIS_API_URL = "https://_CHANGEME_.fly.dev"
 WHEREIS_API_KEY = "eagle1"
 
-# GRAFANA_USER =
-# GRAFANA_URL =
-# GRAFANA_API_KEY =
+# GRAFANA_USER = "_CHANGEME_"
+# GRAFANA_URL = "https://grafana.example.com/"
+# GRAFANA_API_KEY = "_CHANGEME_"
 
 # - EOF -
