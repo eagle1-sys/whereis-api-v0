@@ -38,6 +38,9 @@ services:
       DB_PASSWORD: _CHANGEME_
       WHEREIS_API_URL: http://whereis-api-v0:8037
       WHEREIS_API_KEY: eagle1
+      # GRAFANA_USER: _CHANGEME_
+      # GRAFANA_URL: https://grafana.example.com/
+      # GRAFANA_API_KEY: _CHANGEME_
     networks:
       - whereis_net
 networks:

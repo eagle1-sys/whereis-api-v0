@@ -45,7 +45,11 @@ APP_ENV = "qa"
 DB_HOST = "_CHANGEME_.internal"
 DB_USER = "whereis_user"
 DB_PASSWORD = "_CHANGEME_"
-TESTING_URL = "https://_CHANGME_.fly.dev"
-TESTING_TOKEN = "eagle1"
+WHEREIS_API_URL = "https://_CHANGEME_.fly.dev"
+WHEREIS_API_KEY = "eagle1"
+
+# GRAFANA_USER = "_CHANGEME_"
+# GRAFANA_URL = "https://grafana.example.com/"
+# GRAFANA_API_KEY = "_CHANGEME_"
 
 # - EOF -
