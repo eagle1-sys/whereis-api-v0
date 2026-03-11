@@ -172,7 +172,7 @@ async function analyseLog(args: string[]): Promise<void> {
 function getOptionsFromArgs(args: string[]): Record<string, unknown> {
     const result = {
         service: "whereis-api",
-        env: "prod",
+        env: "",
         type: "",
         level: "error",
         start: 0,
@@ -195,6 +195,9 @@ function getOptionsFromArgs(args: string[]): Record<string, unknown> {
 
         if (arg === "--service" && i + 1 < args.length) {
             result.service = args[i + 1];
+            i++;
+        } else if (arg === "--env" && i + 1 < args.length) {
+            result.env = args[i + 1];
             i++;
         } else if (arg === "--type" && i + 1 < args.length) {
             result.type = args[i + 1];
