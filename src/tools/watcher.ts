@@ -42,7 +42,7 @@ async function main() {
                 case "help":
                     console.log("\nAvailable commands:");
                     console.log("  help                                              - Show this help message");
-                    console.log("  log [level] [--service <service_name>] [--type <type>] [--from h<hours>|d<days>] [--offset <hours>] [keyword]");
+                    console.log("  log [level] [--service <service_name>] [--env <env>] [--type <type>] [--from h<hours>|d<days>] [--offset <hours>] [keyword]");
                     console.log("                                                    - Read log from grafana");
                     console.log("                                                      Examples:");
                     console.log("                                                        log error --from h24");
@@ -172,7 +172,7 @@ async function analyseLog(args: string[]): Promise<void> {
 function getOptionsFromArgs(args: string[]): Record<string, unknown> {
     const result = {
         service: "whereis-api",
-        env: "",
+        env: "prod",
         type: "",
         level: "error",
         start: 0,
