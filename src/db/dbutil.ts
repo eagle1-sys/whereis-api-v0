@@ -13,6 +13,7 @@ let dbClient: DatabaseWrapper;
 
 import {whereIsAPI, logger} from "../tools/logger.ts";
 import { join } from '@std/path';
+import { exists } from "@std/fs/exists";
 
 export async function initConnection() {
   const dbType = Deno.env.get("DB_TYPE") || "sqlite";
@@ -24,7 +25,13 @@ export async function initConnection() {
     const { SQLiteWrapper } = await import("./db_sqlite.ts");
     const { Database } = await import("sqlite");
     const volume_path = Deno.env.get("DB_FILE_DIR") ?? "../data";
-    const db = new Database(join(volume_path, 'whereis.sqlite'));
+    const db_file = join(volume_path, 'whereis.sqlite');
+    if (!await exists(db_file)) {
+      logger.info(`${whereIsAPI("startup")} Init SQLite database file at ${db_file}`);
+      const src_file = 'config/whereis.sqlite';
+      await Deno.copyFile(src_file, db_file);
+    }
+    const db = new Database(db_file);
     dbClient = new SQLiteWrapper(db);
   }
 }

@@ -42,7 +42,7 @@ async function main() {
                 case "help":
                     console.log("\nAvailable commands:");
                     console.log("  help                                              - Show this help message");
-                    console.log("  log [level] [--service <service_name>] [--type <type>] [--from h<hours>|d<days>] [--offset <hours>] [keyword]");
+                    console.log("  log [level] [--service <service_name>] [--env <env>] [--type <type>] [--from h<hours>|d<days>] [--offset <hours>] [keyword]");
                     console.log("                                                    - Read log from grafana");
                     console.log("                                                      Examples:");
                     console.log("                                                        log error --from h24");
@@ -195,6 +195,9 @@ function getOptionsFromArgs(args: string[]): Record<string, unknown> {
 
         if (arg === "--service" && i + 1 < args.length) {
             result.service = args[i + 1];
+            i++;
+        } else if (arg === "--env" && i + 1 < args.length) {
+            result.env = args[i + 1];
             i++;
         } else if (arg === "--type" && i + 1 < args.length) {
             result.type = args[i + 1];
