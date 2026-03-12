@@ -61,14 +61,13 @@ async function syncRoutes() {
   let inProcessTrackingNums: Record<string, unknown>;
   try {
     inProcessTrackingNums = await dbClient.getInProcessingTrackingNums();
-
     // Group tracking numbers by operator
     const groupedTrackingNums = groupTrackingNumsByOperator(inProcessTrackingNums);
 
     for (const [operator, trackingNums] of Object.entries(groupedTrackingNums)) {
       const batchSize = OperatorRegistry.getBatchSize(operator)
       if (batchSize <= 0) {
-        logger.warn(`Invalid batch size for operator ${operator}, skipping`);
+        logger.error(`${whereIsAPI("exception")} Invalid batch size for operator ${operator}, skipping`);
         continue;
       }
       const trackingIdBatches: Record<string, unknown>[] = getTrackingIdBatches(trackingNums, batchSize);
@@ -79,6 +78,7 @@ async function syncRoutes() {
         if (Object.keys(trackingIds).length === 1) {
           // Process tracking numbers one by one(eg: sfex)
           const [id] = Object.keys(trackingIds);
+          logger.info(`${whereIsAPI("data_monitor")} Process auto-pull for trackingId: ${id}`);
           await processTrackingIds(operator, [TrackingID.parse(id)], trackingIds[id] as Record<string, string>);
         } else {
           // Process tracking numbers in batches(eg: fdx)
