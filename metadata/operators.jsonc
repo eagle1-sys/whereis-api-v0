@@ -4,7 +4,7 @@
   "fdx": {
     "name": "FedEx",
     "active": true,
-    "batchSize": 10
+    "batchSize": 30
   },
   "sfex": {
     "name": "SF Express",

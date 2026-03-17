@@ -33,7 +33,7 @@ Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
  * Starts a daily scheduler that records active tracking numbers.
  * The task runs at 02:00 system local time and write the count to Log.
  */
-Deno.cron("Record active tracking NO", {hour: 2, minute: 0}, async () => {
+Deno.cron("Record active tracking NO", {hour:2, minute:0}, async () => {
   try {
     const inProcessTrackingNums: Record<string, unknown> = await dbClient.getInProcessingTrackingNums();
     const activeTrackingNo = Object.keys(inProcessTrackingNums).length;
@@ -53,7 +53,7 @@ Deno.cron("Record active tracking NO", {hour: 2, minute: 0}, async () => {
  *
  *  * Different operators are processed differently:
  *  * - SFEX: Processed individually with their specific params (e.g., phone number)
- *  * - FDX: Processed in batches of up to 10, with no additional params required
+ *  * - FDX: Processed in batches of up to 30, with no additional params required
  *  *
  * @throws {Error} If an error occurs during database operations or external requests.
  */
@@ -61,9 +61,10 @@ async function syncRoutes() {
   let inProcessTrackingNums: Record<string, unknown>;
   try {
     inProcessTrackingNums = await dbClient.getInProcessingTrackingNums();
+    logger.info(`${whereIsAPI("data_monitor")} Fetching in-process tracking numbers: ${Object.keys(inProcessTrackingNums).length} tracking numbers`);
+
     // Group tracking numbers by operator
     const groupedTrackingNums = groupTrackingNumsByOperator(inProcessTrackingNums);
-
     for (const [operator, trackingNums] of Object.entries(groupedTrackingNums)) {
       const batchSize = OperatorRegistry.getBatchSize(operator)
       if (batchSize <= 0) {
