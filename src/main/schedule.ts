@@ -53,7 +53,7 @@ Deno.cron("Record active tracking NO", {hour:2, minute:0}, async () => {
  *
  *  * Different operators are processed differently:
  *  * - SFEX: Processed individually with their specific params (e.g., phone number)
- *  * - FDX: Processed in batches of up to 10, with no additional params required
+ *  * - FDX: Processed in batches of up to 30, with no additional params required
  *  *
  * @throws {Error} If an error occurs during database operations or external requests.
  */
