@@ -358,30 +358,18 @@ async function getEntityFromDbOrProvider(trackingID: TrackingID, parsedParams: R
  *          - undefined if no status is found.
  * @throws Will throw an error if there's an issue with database operations.
  */
-async function getStatus(
-  trackingID: TrackingID,
-  queryParams: Record<string, string>,
-): Promise<Record<string, unknown> | undefined> {
+async function getStatus(trackingID: TrackingID, queryParams: Record<string, string>): Promise<Record<string, unknown> | undefined> {
   // Try to get entity from database first
   const entity = await dbClient.queryEntity(trackingID);
   if (entity) {
-    if (
-      trackingID.operator === "sfex" &&
-      entity.params?.phonenum !== queryParams.phonenum
-    ) {
-      throw new AppError("400-03", "ERR-SERVER-J: PHONENUM");
-    }
+    // Throws AppError if validation fails
+    validateStoredEntity(trackingID.operator, entity, queryParams);
+    // Return the last status if found
     return entity.getLastStatus();
   }
 
   // If not in database, request from data provider
-  const result: Entity[] = await requestWhereIs(
-    trackingID.operator,
-    [trackingID],
-    queryParams,
-    "manual-pull",
-  );
-
+  const result: Entity[] = await requestWhereIs(trackingID.operator, [trackingID], queryParams, "manual-pull");
   if (result.length === 0) {
     throw new AppError("404-01", `ERR-SERVER-K: Received empty data from source ${trackingID.operator}`); // Not found in data provider
   }
