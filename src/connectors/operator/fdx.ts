@@ -203,7 +203,7 @@ export class Fdx implements OperatorModule {
     const fdxClientId = Deno.env.get("FDX_CLIENT_ID");
     const fdxClientSecret = Deno.env.get("FDX_CLIENT_SECRET");
     if (!fdxClientId || !fdxClientSecret) {
-      throw new AppError("500-01", "500AA: fdx - CLIENT_ID/SECRET");
+      throw new AppError("500-01", "ERR-FDX-A: CLIENT_ID/SECRET");
     }
 
     const response = await httpPost(
@@ -246,7 +246,7 @@ export class Fdx implements OperatorModule {
       const code = errors[0]?.code ?? "";
       if(code==="BAD.REQUEST.ERROR" || code==="NOT.AUTHORIZED.ERROR") {
         // Invalid or missing data source API credentials
-        throw new AppError("500-01", `500AA: fdx - ${code}`);
+        throw new AppError("500-01", `ERR-FDX-B: ${code}`);
       } else {
         throw new Error(`Unexpected error code from FedEx API: ${code} [500AE - getToken]`);
       }
@@ -267,7 +267,7 @@ export class Fdx implements OperatorModule {
 
   validateTrackingNum(trackingNum: string): void {
     if (trackingNum.length > 25) {
-      throw new AppError("400-02","400BD: model - FDX_LENGTH");
+      throw new AppError("400-02","ERR-FDX-D: FDX_LENGTH");
     }
   }
 
@@ -280,7 +280,7 @@ export class Fdx implements OperatorModule {
    */
   async pullFromSource(trackingIds: TrackingID[], _extraParams: Record<string, string>, updateMethod: string): Promise<Entity[]> {
     if (!isOperatorActive("fdx")) {
-      throw new AppError("500-01", "500AB: fdx - CLIENT_ID");
+      throw new AppError("500-01", "ERR-FDX-C: CLIENT_ID");
     }
 
     const entities: Entity[] = [];

@@ -36,13 +36,13 @@ const RESTRICTED_CLIENT_TOKEN = "eagle1";
 const customBearerAuth = async (c: Context, next: Next) => {
   const authHeader = c.req.header("Authorization");
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    throw new AppError("401-01", "401AA: server - AUTH_HEADER");
+    throw new AppError("401-01", "ERR-SERVER-F: AUTH_HEADER");
   }
 
   const token = authHeader.split(" ")[1];
   const isValidToken = await dbClient.isTokenValid(token); // verify the token
   if (!isValidToken) {
-    throw new AppError("401-02", "401AB: server - TOKEN_VALIDATION");
+    throw new AppError("401-02", "ERR-SERVER-G: TOKEN_VALIDATION");
   }
 
   if (token === RESTRICTED_CLIENT_TOKEN) {
@@ -58,12 +58,12 @@ const customBearerAuth = async (c: Context, next: Next) => {
         const operatorCode = trackingId.substring(0, idx);
         if (operatorCode !== 'eg1') {
           // The client API key is not authorized for this request.
-          throw new AppError("403-01", "403AA: server - CLIENT_AUTHORIZATION");
+          throw new AppError("403-01", "ERR-SERVER-H: CLIENT_AUTHORIZATION");
         }
       }
     } else if (isPushPath) {
       // The client API key is not authorized for this request.
-      throw new AppError("403-01", "403AB: server - CLIENT_AUTHORIZATION");
+      throw new AppError("403-01", "ERR-SERVER-I: CLIENT_AUTHORIZATION");
     }
   }
 
@@ -106,7 +106,7 @@ app.use("*", async (c: Context, next: Next) => {
     pathName.endsWith("/status/") ||
     pathName.endsWith("/status")
   ) {
-    throw new AppError("400-01", "400AC: server - TRACKING_ID");
+    throw new AppError("400-01", "ERR-SERVER-E: TRACKING_ID");
   }
   await next();
 });
@@ -163,7 +163,7 @@ app.get("/v0/whereis/:id", async (c: Context) => {
       : await getEntityFromDbOrProvider(trackingID, extraParams);
 
   if (!entity) {
-    throw new AppError("404-01", `404AA: Received empty data from source ${trackingID.operator}`);
+    throw new AppError("404-01", `ERR-SERVER-D: Received empty data from source ${trackingID.operator}`);
   }
 
   const elapsed = performance.now() - start;
@@ -204,7 +204,7 @@ app.post("/v0/push/:operator", async (c: Context) => {
   const operator = c.req.param("operator");
   // Validate operator
   if (!operator || !OperatorRegistry.getActiveOperatorCodes().includes(operator)) {
-    throw new AppError("400-02", `400AG: server - INVALID_OPERATOR: ${operator}`);
+    throw new AppError("400-02", `ERR-SERVER-C: INVALID_OPERATOR: ${operator}`);
   }
 
   // Parse request body
@@ -213,7 +213,7 @@ app.post("/v0/push/:operator", async (c: Context) => {
     requestBody = await c.req.json();
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    throw new AppError("400-04", `400AH: server - INVALID_JSON: ${errorMessage}`);
+    throw new AppError("400-04", `ERR-SERVER-A: INVALID_JSON: ${errorMessage}`);
   }
 
   // Process valid data and convert to entities
@@ -222,7 +222,7 @@ app.post("/v0/push/:operator", async (c: Context) => {
     entities = processPushData(operator, requestBody);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    throw new AppError("500-01", `500AA: server - DATA_PROCESSING_FAILED: ${errorMessage}`);
+    throw new AppError("500-01", `ERR-SERVER-B: DATA_PROCESSING_FAILED: ${errorMessage}`);
   }
 
   let updated = 0;
@@ -358,32 +358,20 @@ async function getEntityFromDbOrProvider(trackingID: TrackingID, parsedParams: R
  *          - undefined if no status is found.
  * @throws Will throw an error if there's an issue with database operations.
  */
-async function getStatus(
-  trackingID: TrackingID,
-  queryParams: Record<string, string>,
-): Promise<Record<string, unknown> | undefined> {
+async function getStatus(trackingID: TrackingID, queryParams: Record<string, string>): Promise<Record<string, unknown> | undefined> {
   // Try to get entity from database first
   const entity = await dbClient.queryEntity(trackingID);
   if (entity) {
-    if (
-      trackingID.operator === "sfex" &&
-      entity.params?.phonenum !== queryParams.phonenum
-    ) {
-      throw new AppError("400-03", "400AE: sfex - PHONENUM");
-    }
+    // Throws AppError if validation fails
+    validateStoredEntity(trackingID.operator, entity, queryParams);
+    // Return the last status if found
     return entity.getLastStatus();
   }
 
   // If not in database, request from data provider
-  const result: Entity[] = await requestWhereIs(
-    trackingID.operator,
-    [trackingID],
-    queryParams,
-    "manual-pull",
-  );
-
+  const result: Entity[] = await requestWhereIs(trackingID.operator, [trackingID], queryParams, "manual-pull");
   if (result.length === 0) {
-    throw new AppError("404-01", `404AB: Received empty data from source ${trackingID.operator}`); // Not found in data provider
+    throw new AppError("404-01", `ERR-SERVER-K: Received empty data from source ${trackingID.operator}`); // Not found in data provider
   }
 
   await dbClient.insertEntity(result[0] as Entity);
@@ -414,7 +402,7 @@ function parseURL(req: HonoRequest): [TrackingID, Record<string, string>, Record
     const validParamsSet: string[] = ApiParams.getParamNames("whereis", trackingID.operator);
     const invalidParams = validateQueryParams(queryParams, new Set(validParamsSet));
     if (invalidParams.length > 0) {
-      throw new AppError("400-03", "400AA: server - " + invalidParams.join(","));
+      throw new AppError("400-03", "ERR-SERVER-L: " + invalidParams.join(","));
     }
   }
 
