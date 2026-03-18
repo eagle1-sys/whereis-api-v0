@@ -195,17 +195,17 @@ export class TrackingID {
   static parse(strTrackingID: string): TrackingID {
     const trimmedID = strTrackingID.trim();
     if (trimmedID === "") {
-      throw new AppError("400-01","400BA: model - TRACKING_ID");
+      throw new AppError("400-01","ERR-MODEL-A: TRACKING_ID");
     }
 
     const [operator, trackingNum] = trimmedID.split("-");
     if (!operator || !trackingNum) {
-      throw new AppError("400-05","400BB: model - URL_FORMAT");
+      throw new AppError("400-05","ERR-MODEL-B: URL_FORMAT");
     }
 
     const lowerCaseOperator = operator.toLowerCase();
     if (!OperatorRegistry.include(lowerCaseOperator)) {
-      throw new AppError("400-04", `400BC: model - OPERATOR_CODE[${lowerCaseOperator}]`);
+      throw new AppError("400-04", `ERR-MODEL-C: OPERATOR_CODE[${lowerCaseOperator}]`);
     }
 
     validateTrackingNum(lowerCaseOperator, trackingNum);

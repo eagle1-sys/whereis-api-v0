@@ -133,7 +133,7 @@ export class Sfex implements OperatorModule{
 
   validateTrackingNum(trackingNum: string): void {
     if (!/^SF\d{13}$/.test(trackingNum)) {
-      throw new AppError("400-02", "400BE: model - SFEX_FORMAT");
+      throw new AppError("400-02", "ERR-SFEX-E: SFEX_FORMAT");
     }
   }
 
@@ -151,7 +151,7 @@ export class Sfex implements OperatorModule{
     // Validate phone number is present and not empty
     const phoneNum = params["phonenum"];
     if (phoneNum === undefined || phoneNum === "") {
-      throw new AppError("400-03", "400AF: sfex - PHONENUM");
+      throw new AppError("400-03", "ERR-SFEX-C: PHONENUM");
     }
     return true;
   }
@@ -164,7 +164,7 @@ export class Sfex implements OperatorModule{
    */
   validateStoredEntity(entity: Entity, params: Record<string, string>): boolean {
     if (entity.params?.phonenum !== params.phonenum) {
-      throw new AppError("400-03", "400AD: sfex - PHONENUM");
+      throw new AppError("400-03", "ERR-SFEX-D: PHONENUM");
     }
     return true;
   }
@@ -180,7 +180,7 @@ export class Sfex implements OperatorModule{
    */
   async pullFromSource(trackingIds: TrackingID[], extraParams: Record<string, string>, updateMethod: string,): Promise<Entity[]> {
     if (!isOperatorActive("sfex")) {
-      throw new AppError("500-01", "500BA: sfex - PARTNERID");
+      throw new AppError("500-01", "ERR-SFEX-A: PARTNERID");
     }
 
     const entities: Entity[] = [];
@@ -194,7 +194,7 @@ export class Sfex implements OperatorModule{
     if (resultCode !== "A1000") {
       if (resultCode === "A1001" || resultCode === "A1004" || resultCode === "A1006") {
         // Invalid or missing data source API credentials
-        throw new AppError("500-01", "500BB: sfex - PARTNERID");
+        throw new AppError("500-01", "ERR-SFEX-B: PARTNERID");
       }
       throw new Error(`${resultCode}: ${result["apiErrorMsg"]}`);
     }
@@ -493,8 +493,7 @@ export class Sfex implements OperatorModule{
       const updateMethodName = DataUpdateMethod.getDisplayText(updateMethod);
       logger.info(
           `${whereIsAPI("data_monitor")} ${updateMethodName} -> SFEX: Future event detected for ${trackingId.toString()}. ` +
-          `Event time: ${eventTime}, Current time(UTC): ${new Date().toISOString()}. ` +
-          `Assigning status 3005 (Information Received).`
+          `Event time: ${eventTime}, Current time(UTC): ${new Date().toISOString()}. Assigning status 3005 (Information Received).`
       );
     }
 
