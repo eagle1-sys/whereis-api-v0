@@ -220,7 +220,7 @@ export class Sfex implements OperatorModule {
    * @throws {Error} Always throws an error indicating that SF Express does not support push operations.
    */
   processPushData(_data: Record<string, unknown>): Entity[] {
-    throw new AppError("400-02", "ERR-SFEX-A: SFEX");
+    throw new AppError("404-02", "ERR-SFEX-A: SFEX");
   }
 
   /**

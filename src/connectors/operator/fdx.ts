@@ -303,7 +303,7 @@ export class Fdx implements OperatorModule {
    * @throws {Error} Always throws an error indicating that FedEx does not support push operations.
    */
   processPushData(_data: Record<string, unknown>): Entity[] {
-    throw new AppError("400-02", "ERR-FDX-C: FedEx");
+    throw new AppError("404-02", "ERR-FDX-C: FedEx");
   }
 
   /**
