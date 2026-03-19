@@ -7,7 +7,7 @@
  * @license BSD 3-Clause License
  */
 
-import {Entity, Event, TrackingID,} from "../../main/model.ts";
+import {AppError, Entity, Event, TrackingID,} from "../../main/model.ts";
 import {OperatorModule} from "../../main/operator.ts";
 
 /**
@@ -36,7 +36,7 @@ export class Eg1 implements OperatorModule{
      * @returns {Promise<Entity | undefined>} A promise resolving to the tracking entity or undefined if not found.
      */
     async pullFromSource(_trackingIds: TrackingID[], _extraParams: Record<string, string>, _updateMethod: string): Promise<Entity[]> {
-        throw new Error("eg1 is a push-based operator and does not support whereIs queries");
+        throw new AppError("404-03", "ERR-EG1-A: NO_DATA_SOURCE");
     }
 
     /**
@@ -182,4 +182,3 @@ export class Eg1 implements OperatorModule{
     }
 
 }
-

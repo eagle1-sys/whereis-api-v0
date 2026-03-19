@@ -8,7 +8,7 @@
  */
 
 import { HonoRequest } from "hono/request";
-import { Entity, OperatorRegistry, TrackingID } from "./model.ts";
+import {AppError, Entity, OperatorRegistry, TrackingID} from "./model.ts";
 import {OperatorModule} from "./operator.ts";
 import {whereIsAPI, logger} from "../tools/logger.ts";
 
@@ -124,10 +124,13 @@ export function processPushData(operator: string, trackingData: Record<string, u
   return operatorModule.processPushData(trackingData);
 }
 
-function getOperatorModule(operator: string): OperatorModule {
+export function getOperatorModule(operator: string): OperatorModule {
   const operatorModule = operatorModules[operator];
   if (!operatorModule) {
     throw new Error(`Operator module not found: ${operator}`);
+  }
+  if (!isOperatorActive(operator)) {
+    throw new AppError("500-01", "ERR-GATEWAY-A: INACTIVE_OPERATOR");
   }
   return operatorModule;
 }
