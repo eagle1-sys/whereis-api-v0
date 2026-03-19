@@ -11,7 +11,6 @@
 import {AppError, DataUpdateMethod, Entity, Event, ExceptionCode, StatusCode, TrackingID,} from "../../main/model.ts";
 import {config} from "../../../config.ts";
 import {whereIsAPI, logger} from "../../tools/logger.ts";
-import {isOperatorActive} from "../../main/gateway.ts";
 import {getResponseJSON, adjustDateAndFormatWithTimezone, extractTimezone, httpPost} from "../../tools/util.ts";
 import {OperatorModule} from "../../main/operator.ts";
 
@@ -39,27 +38,21 @@ export class Fdx implements OperatorModule {
     },
     IT: {
       DR: 3250, // In-Transit
-      DP: function (
-          _entity: Entity,
-          sourceData: Record<string, unknown>,
-      ): number {
+      DP: function (_entity: Entity, sourceData: Record<string, unknown>): number {
         const locationType = sourceData.locationType as string;
         const eventDescription = sourceData.eventDescription as string;
 
         if (locationType === "ORIGIN_FEDEX_FACILITY") {
-          return 3100; // Received by Carrier
+          return 3100;  // Received by Carrier
         }
 
         if (/Departed FedEx hub/i.test(eventDescription)) {
-          return 3250; // In-Transit
+          return 3250;  // In-Transit
         }
 
-        return 3004; // Departed, In-Transit
+        return 3004;    // Departed, In-Transit
       },
-      AR: function (
-          _entity: Entity,
-          sourceData: Record<string, unknown>,
-      ): number {
+      AR: function (_entity: Entity, sourceData: Record<string, unknown>): number {
         const locationType = sourceData["locationType"] as string;
         const eventDescription = sourceData["eventDescription"] as string;
         if (_entity.additional.isCrossBorder) {
@@ -82,10 +75,7 @@ export class Fdx implements OperatorModule {
         };
         return locationTypeMap[locationType] ?? 3002; // Arrived, In-Transit (default)
       },
-      IT: function (
-          _entity: Entity,
-          sourceData: Record<string, unknown>,
-      ): number {
+      IT: function (_entity: Entity, sourceData: Record<string, unknown>): number {
         const exceptionCode = sourceData["exceptionCode"];
         if (exceptionCode == "67") {
           return 3450; // Final Delivery In-Progress
@@ -94,10 +84,7 @@ export class Fdx implements OperatorModule {
         }
       },
       AF: 3001, // Logistics In-Progress
-      CC: function (
-          _entity: Entity,
-          sourceData: Record<string, unknown>,
-      ): number | undefined {
+      CC: function (_entity: Entity, sourceData: Record<string, unknown>): number | undefined {
         const desc = sourceData["eventDescription"] as string;
         if (/Export/i.test(desc)) {
           return 3200; // Customs Clearance: Export Released
@@ -109,10 +96,7 @@ export class Fdx implements OperatorModule {
       RR: 3450, // Delivery option requested
     },
     CD: {
-      CD: function (
-          _entity: Entity,
-          sourceData: Record<string, unknown>,
-      ): number | undefined {
+      CD: function (_entity: Entity, sourceData: Record<string, unknown>): number | undefined {
         const desc = sourceData["eventDescription"] as string;
         if (/Import/i.test(desc)) {
           return 3350; // Customs Clearance: Import In-Progress
@@ -279,10 +263,6 @@ export class Fdx implements OperatorModule {
    * @returns {Promise<Entity | undefined>} A promise resolving to the tracking entity or undefined if not found.
    */
   async pullFromSource(trackingIds: TrackingID[], _extraParams: Record<string, string>, updateMethod: string): Promise<Entity[]> {
-    if (!isOperatorActive("fdx")) {
-      throw new AppError("500-01", "ERR-FDX-C: CLIENT_ID");
-    }
-
     const entities: Entity[] = [];
     const trackingNums: string[] = trackingIds.map((item) => item.trackingNum);
     const result: Record<string, unknown> = await this.getRoute(trackingNums);
@@ -323,7 +303,7 @@ export class Fdx implements OperatorModule {
    * @throws {Error} Always throws an error indicating that FedEx does not support push operations.
    */
   processPushData(_data: Record<string, unknown>): Entity[] {
-    throw new Error("FedEx is a pull-based operator and does not support push operation.");
+    throw new AppError("400-02", "ERR-FDX-C: FedEx");
   }
 
   /**
@@ -333,10 +313,11 @@ export class Fdx implements OperatorModule {
    * @returns {number} The corresponding internal event code, or 3001 if not found.
    */
   static getStatusCode(entity: Entity, sourceData: Record<string, unknown>): number {
+    const DEFAULT_STATUS_CODE = 3001;
     const derivedStatusCode = sourceData["derivedStatusCode"] as string;
     const eventType = sourceData["eventType"] as string;
     const statusMap = Fdx.statusCodeMap[derivedStatusCode];
-    if (!statusMap) return 3001;
+    if (!statusMap) return DEFAULT_STATUS_CODE;
 
     const value = statusMap[eventType];
 
@@ -344,10 +325,10 @@ export class Fdx implements OperatorModule {
 
     if (typeof value === "function") {
       const result = value(entity, sourceData);
-      return typeof result === "number" ? result : 3001;
+      return typeof result === "number" ? result : DEFAULT_STATUS_CODE;
     }
 
-    return 3001;
+    return DEFAULT_STATUS_CODE;
   }
 
   static getExceptionCode(sourceData: Record<string, unknown>): number | undefined {
@@ -517,10 +498,10 @@ export class Fdx implements OperatorModule {
         JSON.stringify(payload)
     );
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status} [500AD - getRoute]`);
+      throw new Error(`HTTP error! status: ${response.status} [ERR-FDX-E - getRoute]`);
     }
 
-    return await getResponseJSON(response, "500AD - getRoute");
+    return await getResponseJSON(response, "ERR-FDX-F - getRoute");
   }
 
   /**
@@ -564,12 +545,7 @@ export class Fdx implements OperatorModule {
     }
     const scanEvents = trackResult["scanEvents"] as Record<string, unknown>[];
     for (const scanEvent of scanEvents.reverse()) {
-      const event = this.createEvent(
-          trackingId,
-          entity,
-          scanEvent,
-          updateMethod,
-      );
+      const event = this.createEvent(trackingId, entity, scanEvent, updateMethod);
       if (event && !entity.isEventIdExist(event.eventId)) {
         entity.addEvent(event);
       }
@@ -608,7 +584,6 @@ export class Fdx implements OperatorModule {
   private static createEvent(trackingId: TrackingID, entity: Entity, scanEvent: Record<string, unknown>, updateMethod: string): Event {
     const status = Fdx.getStatusCode(entity, scanEvent);
 
-    const trackingNum = trackingId.trackingNum;
     const event = new Event();
     // isoString
     const eventTime = scanEvent["date"] as string;
@@ -621,7 +596,7 @@ export class Fdx implements OperatorModule {
     event.when = eventTime;
     event.where = Fdx.getWhere(scanEvent);
     event.operatorCode = trackingId.operator;
-    event.trackingNum = trackingNum;
+    event.trackingNum = trackingId.trackingNum;
     event.dataProvider = "FedEx";
 
     // process exception code if exists

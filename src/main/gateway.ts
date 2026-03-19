@@ -8,7 +8,7 @@
  */
 
 import { HonoRequest } from "hono/request";
-import { Entity, OperatorRegistry, TrackingID } from "./model.ts";
+import {AppError, Entity, OperatorRegistry, TrackingID} from "./model.ts";
 import {OperatorModule} from "./operator.ts";
 import {whereIsAPI, logger} from "../tools/logger.ts";
 
@@ -93,6 +93,10 @@ export function validateStoredEntity(operator: string, entity: Entity, params: R
  * @async
  */
 export async function requestWhereIs(operator: string, trackingIds: TrackingID[], extraParams: Record<string, string>, updateMethod: string,): Promise<Entity[]> {
+  if (!isOperatorActive(operator)) {
+    throw new AppError("500-01", "ERR-GATEWAY-A: INACTIVE_OPERATOR");
+  }
+
   const operatorModule = getOperatorModule(operator);
 
   const entities: Entity[] = await operatorModule.pullFromSource(trackingIds, extraParams, updateMethod);
