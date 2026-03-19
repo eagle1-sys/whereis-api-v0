@@ -217,13 +217,7 @@ app.post("/v0/push/:operator", async (c: Context) => {
   }
 
   // Process valid data and convert to entities
-  let entities: Entity[];
-  try {
-    entities = processPushData(operator, requestBody);
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    throw new AppError("500-01", `ERR-SERVER-B: DATA_PROCESSING_FAILED: ${errorMessage}`);
-  }
+  const entities: Entity[] = processPushData(operator, requestBody);
 
   let updated = 0;
   let failed = 0;

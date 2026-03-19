@@ -36,7 +36,7 @@ export class Eg1 implements OperatorModule{
      * @returns {Promise<Entity | undefined>} A promise resolving to the tracking entity or undefined if not found.
      */
     async pullFromSource(_trackingIds: TrackingID[], _extraParams: Record<string, string>, _updateMethod: string): Promise<Entity[]> {
-        throw new AppError("404-01", "ERR-EG1-A: QUERY_SOURCE_NOT_SUPPORTED");
+        throw new AppError("404-03", "ERR-EG1-A: NO_DATA_SOURCE");
     }
 
     /**

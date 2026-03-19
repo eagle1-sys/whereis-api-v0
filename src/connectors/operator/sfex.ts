@@ -26,7 +26,7 @@ export class Sfex implements OperatorModule {
 
   // If the entity contains 3250 and the subsequent statuses include [3002, 3003, 3004, 3350, 3400, 3500],
   // then it is considered that 3300 is missing.
-  private static readonly POST_3300_STATUSES: number[] = [3002, 3003, 3004, 3350, 3400, 3500] as const;
+  private static readonly POST_3300_STATUSES: number[] = [3002, 3003, 3004, 3350, 3400, 3450, 3500] as const;
 
   /**
    * Mapping of SF Express status codes and operation codes to internal event codes.

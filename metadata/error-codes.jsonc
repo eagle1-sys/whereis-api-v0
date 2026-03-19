@@ -14,6 +14,7 @@
 
   "404-01": "Whereis API could not retrieve tracking information from the data source provider.",
   "404-02": "The specified operator does not support the Push API.",
+  "404-03": "The specified operator does not have a backend data source.",
 
   "429-01": "Too many requests.",
 

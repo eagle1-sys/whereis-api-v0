@@ -93,10 +93,6 @@ export function validateStoredEntity(operator: string, entity: Entity, params: R
  * @async
  */
 export async function requestWhereIs(operator: string, trackingIds: TrackingID[], extraParams: Record<string, string>, updateMethod: string,): Promise<Entity[]> {
-  if (!isOperatorActive(operator)) {
-    throw new AppError("500-01", "ERR-GATEWAY-A: INACTIVE_OPERATOR");
-  }
-
   const operatorModule = getOperatorModule(operator);
 
   const entities: Entity[] = await operatorModule.pullFromSource(trackingIds, extraParams, updateMethod);
@@ -128,10 +124,13 @@ export function processPushData(operator: string, trackingData: Record<string, u
   return operatorModule.processPushData(trackingData);
 }
 
-function getOperatorModule(operator: string): OperatorModule {
+export function getOperatorModule(operator: string): OperatorModule {
   const operatorModule = operatorModules[operator];
   if (!operatorModule) {
     throw new Error(`Operator module not found: ${operator}`);
+  }
+  if (!isOperatorActive(operator)) {
+    throw new AppError("500-01", "ERR-GATEWAY-A: INACTIVE_OPERATOR");
   }
   return operatorModule;
 }
