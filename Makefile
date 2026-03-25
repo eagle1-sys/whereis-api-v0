@@ -19,6 +19,8 @@ else
     COMPOSE_FILE = docker-compose.yaml
     COMPOSE_SERVICES = whereis-api-v0
     COMPOSE_DB_SERVICE =
+else
+    $(error Unsupported DB_TYPE '$(DB_TYPE)'; expected 'sqlite' or 'postgres')
 endif
 
 # --- Setup ---
@@ -72,7 +74,7 @@ whereis: check_docker config/*.sample ## Initial setup: create configs, initiali
 	done
 	@if [ "$(DB_TYPE)" = "postgres" ]; then \
 		echo "=> DB_TYPE is postgres, initializing database..."; \
-		$(MAKE) init_db; \
+		$(MAKE) init_db; \ || exit $$?; \
 	fi; \
 	$(MAKE) update
 
