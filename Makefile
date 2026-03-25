@@ -15,7 +15,7 @@ ifeq ($(DB_TYPE),postgres)
     COMPOSE_FILE = docker-compose-pg.yaml
     COMPOSE_SERVICES = whereis-api-v0 whereis-postgres
     COMPOSE_DB_SERVICE = whereis-postgres
-else
+else ifeq ($(DB_TYPE),sqlite)
     COMPOSE_FILE = docker-compose.yaml
     COMPOSE_SERVICES = whereis-api-v0
     COMPOSE_DB_SERVICE =
@@ -74,7 +74,7 @@ whereis: check_docker config/*.sample ## Initial setup: create configs, initiali
 	done
 	@if [ "$(DB_TYPE)" = "postgres" ]; then \
 		echo "=> DB_TYPE is postgres, initializing database..."; \
-		$(MAKE) init_db; \ || exit $$?; \
+		$(MAKE) init_db || exit $$?; \
 	fi; \
 	$(MAKE) update
 
