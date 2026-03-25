@@ -33,6 +33,7 @@ export async function initConnection() {
     }
     const db = new Database(db_file);
     dbClient = new SQLiteWrapper(db);
+    logger.info(`${whereIsAPI("startup")} SQLite database is ready`);
   }
 }
 

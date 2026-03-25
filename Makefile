@@ -7,8 +7,21 @@ IMAGE_NAME ?= whereis-api-v0
 IMAGE_TAG  ?= latest
 IMAGE      := local/$(IMAGE_NAME):$(IMAGE_TAG)
 
-# Name of the database service in docker-compose.yaml
-COMPOSE_DB_SERVICE = whereis-postgres
+# Database type: 'sqlite' (default) or 'postgres'. Controls DB initialization.
+DB_TYPE ?= sqlite
+
+# Determine which compose file to use
+ifeq ($(DB_TYPE),postgres)
+    COMPOSE_FILE = docker-compose-pg.yaml
+    COMPOSE_SERVICES = whereis-api-v0 whereis-postgres
+    COMPOSE_DB_SERVICE = whereis-postgres
+else ifeq ($(DB_TYPE),sqlite)
+    COMPOSE_FILE = docker-compose.yaml
+    COMPOSE_SERVICES = whereis-api-v0
+    COMPOSE_DB_SERVICE =
+else
+    $(error Unsupported DB_TYPE '$(DB_TYPE)'; expected 'sqlite' or 'postgres')
+endif
 
 # --- Setup ---
 # Use bash for more advanced shell features
@@ -25,7 +38,12 @@ MAKEFLAGS += --no-print-directory
 # --- Targets ---
 
 help: ## Show this help message
-	@echo "Usage: make <target>"
+	@echo "Usage: make <target> [DB_TYPE=sqlite|postgres]"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make whereis                   # Use SQLite (default)"
+	@echo "  make whereis DB_TYPE=postgres  # Use PostgreSQL"
+	@echo "  make start DB_TYPE=postgres    # Start with PostgreSQL"
 	@echo ""
 	@(\
 		grep -E '^whereis:.*?## .*$$' $(MAKEFILE_LIST); \
@@ -54,7 +72,10 @@ whereis: check_docker config/*.sample ## Initial setup: create configs, initiali
 			cp "$$f" "$$target_file"; \
 		fi; \
 	done
-	$(MAKE) init_db
+	@if [ "$(DB_TYPE)" = "postgres" ]; then \
+		echo "=> DB_TYPE is postgres, initializing database..."; \
+		$(MAKE) init_db || exit $$?; \
+	fi; \
 	$(MAKE) update
 
 check_docker: # -- Check if Docker is installed and the daemon is running
@@ -64,7 +85,7 @@ check_docker: # -- Check if Docker is installed and the daemon is running
 
 init_db: check_docker config/create-whereis-db.sql # -- Initialize the postgres container and load initial data
 	@echo "=> Starting up database service '$(COMPOSE_DB_SERVICE)'..."
-	@docker compose up $(COMPOSE_DB_SERVICE) -d
+	@docker compose -f $(COMPOSE_FILE) up $(COMPOSE_DB_SERVICE) -d
 	@echo "=> Waiting for database to become healthy..."
 	@until [ "$$(docker inspect -f '{{.State.Health.Status}}' $(COMPOSE_DB_SERVICE) 2>/dev/null)" = "healthy" ]; do \
 		echo "  -> Still waiting..."; \
@@ -75,19 +96,17 @@ init_db: check_docker config/create-whereis-db.sql # -- Initialize the postgres 
 	@echo "=> Database initialization complete."
 
 build: check_docker Dockerfile docker-compose.yaml ## Build whereis-api docker image
-	@echo "=> Building Docker image with tag: $(IMAGE)"
+	@echo "=> Building Docker image with tag: $(IMAGE) for DB_TYPE=$(DB_TYPE)"
 	@docker build -t $(IMAGE) .
 
 start: check_docker ## Start api and postgres services
-	@echo "=> Starting all services in the background..."
-	@docker compose up -d
-	@echo "=> Checking active whereis containers ..."
+	@echo "=> Starting services for DB_TYPE=$(DB_TYPE) using $(COMPOSE_FILE)..."
+	@docker compose -f $(COMPOSE_FILE) up $(COMPOSE_SERVICES) -d
 	@$(MAKE) status
 
 update: build ## Build whereis-api docker image and restart api and postgres services
-	@echo "=> Restarting all services..."
-	@docker compose up -d
-	@echo "=> Checking active whereis containers ..."
+	@echo "=> Restarting services for DB_TYPE=$(DB_TYPE) using $(COMPOSE_FILE)..."
+	@docker compose -f $(COMPOSE_FILE) up $(COMPOSE_SERVICES) -d
 	@$(MAKE) status
 
 test: check_docker ## Run 'deno task test' in the api container
@@ -96,21 +115,28 @@ test: check_docker ## Run 'deno task test' in the api container
 	@echo "=> Running 'deno task test' within api container ..."
 	@docker exec -it whereis-api-v0 deno task test
 
+initkey: check_docker ## Run 'deno task initkey' in the api container. Usage: make initkey key=xxx user=xxx
+	@echo "=> Checking deno version"
+	@docker exec -it whereis-api-v0 deno --version
+	@echo "=> Running 'deno task initkey' within api container ..."
+	@ARGS=""; \
+	if [ -n "$(key)" ]; then ARGS="$$ARGS --key=$(key)"; fi; \
+	if [ -n "$(user)" ]; then ARGS="$$ARGS --user=$(user)"; fi; \
+	docker exec -it whereis-api-v0 deno task initkey $$ARGS
+
 status: check_docker ## Show the status of the api and postgres containers
 	@docker ps -a --format "table {{.Image}}\t{{.Status}}\t{{.Ports}}\t{{.Names}}" --filter "name=whereis"
 
 stop: check_docker ## Stop and remove api and postgres service containers
 	@echo "=> Stopping and removing whereis containers..."
-	@docker compose down
-	@echo "=> Containers stopped and removed."
-	@echo "=> Note: Volumes still exist. Use 'make stop-remove' to remove all data."
+	@docker compose -f $(COMPOSE_FILE) down
 
 stop-remove: check_docker ## Caution: stop services and permanently delete all containers and associated data volumes
 	@echo "=> [WARNING] This will permanently remove whereis containers and data volumes."
 	@read -p "Are you sure you want to proceed? (Y/n) " -n 1 -r; \
 	echo; \
 	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
-		docker compose down -v --remove-orphans; \
+		docker compose -f $(COMPOSE_FILE) down -v --remove-orphans; \
 		echo "=> All 'whereis' containers and volumes removed."; \
 	else \
 		echo "=> Aborted."; \
@@ -122,7 +148,7 @@ prune: ## Remove all unused Docker data (dangling images, build cache)
 
 logs: check_docker ## Follow the logs from the api and postgres services
 	@echo "=> Tailing logs (press Ctrl+C to stop)..."
-	@docker compose logs -f
+	@docker compose -f $(COMPOSE_FILE) logs -f
 
 
 # - EOF -
