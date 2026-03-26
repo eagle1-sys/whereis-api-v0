@@ -1,0 +1,413 @@
+openapi: 3.0.3
+info:
+  title: Whereis API v0
+  description: Package tracking and status API for multiple logistics providers
+  version: 0.1.0
+servers:
+  - url: https://api.eg1.io
+    description: Production server
+
+paths:
+  /v0/whereis/{id}:
+    get:
+      summary: Retrieve complete tracking history for a shipment
+      description: Returns both entity metadata and full event timeline for a shipment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Tracking ID in format {operator}-{trackingNumber}
+          schema:
+            type: string
+            example: "fdx-888877776666"
+        - name: phonenum
+          in: query
+          required: false
+          description: Last 4 digits of recipient phone number (required for sfex operator)
+          schema:
+            type: string
+            example: "6993"
+        - name: refresh
+          in: query
+          required: false
+          description: Force fresh data pull from carrier API, bypassing cache
+          schema:
+            type: boolean
+            default: false
+        - name: fulldata
+          in: query
+          required: false
+          description: Include complete sourceData in event objects
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Successful response with tracking data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackingResponse'
+              example:
+                entity:
+                  id: "fdx-888877776666"
+                  type: "waybill"
+                  uuid: "eg1_7e3f6f06-2710-4225-8067-62bebfc4x45c"
+                  createdAt: "2024-11-11T14:16:48-06:00"
+                  additional:
+                    origin: "San Francisco CA United States"
+                    destination: "CENTRAL  Hong Kong SAR, China"
+                    isCrossBorder: true
+                    processingTimeMs: 3.7
+                events:
+                  - status: 3000
+                    what: "Transport Bill Created"
+                    whom: "FedEx"
+                    when: "2024-11-11T14:16:48-06:00"
+                    where: "Customer location"
+                    notes: "Shipment information sent to FedEx"
+                    additional:
+                      trackingNum: "888877776666"
+                      operatorCode: "fdx"
+                      dataProvider: "FedEx"
+                      updateMethod: "manual-pull"
+                      updatedAt: "2025-02-20T12:23:43.892Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - BearerAuth: []
+
+  /v0/status/{id}:
+    get:
+      summary: Retrieve latest status for a shipment
+      description: Returns only the latest status without full event history
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Tracking ID in format {operator}-{trackingNumber}
+          schema:
+            type: string
+            example: "fdx-888877776666"
+        - name: phonenum
+          in: query
+          required: false
+          description: Last 4 digits of recipient phone number (required for sfex operator)
+          schema:
+            type: string
+            example: "6993"
+      responses:
+        '200':
+          description: Successful response with latest status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /v0/push/{operator}:
+    post:
+      summary: Push tracking data from external sources
+      description: Allows authenticated clients to push tracking information directly into the system
+      parameters:
+        - name: operator
+          in: path
+          required: true
+          description: The carrier/operator code
+          schema:
+            type: string
+            enum: ["fdx", "sfex", "eg1"]
+            example: "fdx"
+      requestBody:
+        required: true
+        description: Tracking data structure depends on the operator
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Operator-specific tracking data format
+      responses:
+        '200':
+          description: Successfully processed push data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PushResponse'
+              example:
+                status: "OK"
+                updatedEntities: 5
+                failedEntities: 0
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      security:
+        - BearerAuth: []
+
+  /v0/operators:
+    get:
+      summary: Retrieve list of active operators
+      description: Returns all available logistics providers
+      responses:
+        '200':
+          description: Successful response with operators list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperatorsResponse'
+              example:
+                operators:
+                  - code: "fdx"
+                    name: "FedEx"
+                    active: true
+                  - code: "sfex"
+                    name: "SF Express"
+                    active: true
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer token authentication required for most endpoints
+
+  schemas:
+    TrackingResponse:
+      type: object
+      properties:
+        entity:
+          $ref: '#/components/schemas/Entity'
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrackingEvent'
+
+    StatusResponse:
+      type: object
+      description: Latest status information for a shipment
+      properties:
+        status:
+          type: number
+          description: Standardized status code
+        what:
+          type: string
+          description: Human-readable status description
+        when:
+          type: string
+          format: date-time
+          description: Timestamp of status
+        where:
+          type: string
+          description: Location description
+        additional:
+          type: object
+          description: Additional status metadata
+
+    PushResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "OK"
+        updatedEntities:
+          type: integer
+          description: Number of entities successfully updated
+        failedEntities:
+          type: integer
+          description: Number of entities that failed to process
+
+    OperatorsResponse:
+      type: object
+      properties:
+        operators:
+          type: array
+          items:
+            $ref: '#/components/schemas/Operator'
+
+    Entity:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Tracking ID in slug format
+          example: "fdx-888877776666"
+        type:
+          type: string
+          example: "waybill"
+        uuid:
+          type: string
+          description: Unique identifier with eg1_ prefix
+          example: "eg1_7e3f6f06-2710-4225-8067-62bebfc4x45c"
+        createdAt:
+          type: string
+          format: date-time
+        additional:
+          type: object
+          properties:
+            origin:
+              type: string
+            destination:
+              type: string
+            isCrossBorder:
+              type: boolean
+            processingTimeMs:
+              type: number
+              description: Server-side processing time in milliseconds
+
+    TrackingEvent:
+      type: object
+      properties:
+        status:
+          type: number
+          description: Standardized status code (3000-3500 range)
+        what:
+          type: string
+          description: Human-readable event description
+        whom:
+          type: string
+          description: Party responsible for event
+        when:
+          type: string
+          format: date-time
+          description: Timestamp of event occurrence
+        where:
+          type: string
+          description: Location description
+        notes:
+          type: string
+          description: Additional context or details
+        additional:
+          type: object
+          properties:
+            trackingNum:
+              type: string
+            operatorCode:
+              type: string
+            dataProvider:
+              type: string
+            updateMethod:
+              type: string
+            updatedAt:
+              type: string
+              format: date-time
+            sourceData:
+              type: object
+              description: Raw carrier API response data (included when fulldata=true)
+
+    Operator:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Operator code used in tracking IDs
+          example: "fdx"
+        name:
+          type: string
+          description: Full operator name
+          example: "FedEx"
+        active:
+          type: boolean
+          description: Whether the operator is currently active
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error code in format "HTTPSTATUS-CODE"
+          example: "400-01"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Tracking ID is required"
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid parameters or request format
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missing_tracking_id:
+              value:
+                error: "400-01"
+                message: "Tracking ID is required"
+            invalid_tracking_number:
+              value:
+                error: "400-02"
+                message: "Invalid tracking number format"
+            missing_parameter:
+              value:
+                error: "400-03"
+                message: "Missing required parameter"
+
+    Unauthorized:
+      description: Authentication failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missing_header:
+              value:
+                error: "401-01"
+                message: "Missing or malformed Authorization header"
+            invalid_token:
+              value:
+                error: "401-02"
+                message: "Invalid authentication token"
+
+    Forbidden:
+      description: Client not authorized for this operation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "403-01"
+            message: "Client not authorized for this operator"
+
+    NotFound:
+      description: No data available from carrier
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "404-01"
+            message: "No data available from carrier"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "500"
+            message: "Internal Server Error"
