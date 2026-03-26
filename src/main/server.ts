@@ -144,9 +144,9 @@ app.get("/static/:filename", async (c: Context) => {
   }
 
   // Only allow specific file extensions
+  const normalizedFilename = filename.toLowerCase();
   const allowedExtensions = [".html", ".yaml", ".yml"];
-  const hasValidExtension = allowedExtensions.some(ext => filename.toLowerCase().endsWith(ext));
-
+  const hasValidExtension = allowedExtensions.some(ext => normalizedFilename.endsWith(ext));
   if (!hasValidExtension) {
     throw new AppError("400-01", "ERR-SERVER-N: UNSUPPORTED_FILE_TYPE");
   }
@@ -160,11 +160,11 @@ app.get("/static/:filename", async (c: Context) => {
     const fileContent = await Deno.readTextFile(filePath);
 
     // Determine content type based on file extension
-    let contentType = "text/plain";
-    if (filename.endsWith(".html")) {
+    let contentType = "text/plain; charset=utf-8";
+    if (normalizedFilename.endsWith(".html")) {
       contentType = "text/html; charset=utf-8";
-    } else if (filename.endsWith(".yaml") || filename.endsWith(".yml")) {
-      contentType = "text/yaml; charset=utf-8";
+    } else if (normalizedFilename.endsWith(".yaml") || normalizedFilename.endsWith(".yml")) {
+      contentType = "application/yaml; charset=utf-8";
     }
 
     return c.body(fileContent, 200, {
