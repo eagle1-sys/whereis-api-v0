@@ -206,7 +206,7 @@ components:
       description: Latest status information for a shipment
       properties:
         status:
-          type: number
+          type: integer
           description: Standardized status code
         what:
           type: string
@@ -277,7 +277,7 @@ components:
       type: object
       properties:
         status:
-          type: number
+          type: integer
           description: Standardized status code (3000-3500 range)
         what:
           type: string
