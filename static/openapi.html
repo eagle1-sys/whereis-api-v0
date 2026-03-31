@@ -5,46 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         :root {
-            --font-sans:
-                    system-ui,
-                    -apple-system,
-                    BlinkMacSystemFont,
-                    "Segoe UI",
-                    Roboto,
-                    Helvetica,
-                    Arial,
-                    sans-serif,
-                    "Apple Color Emoji",
-                    "Segoe UI Emoji",
-                    "Segoe UI Symbol";
-
-            --font-mono:
-                    ui-monospace,
-                    Menlo,
-                    Monaco,
-                    "Cascadia Mono",
-                    "Segoe UI Mono",
-                    "Roboto Mono",
-                    "Oxygen Mono",
-                    "Ubuntu Mono",
-                    "Source Code Pro",
-                    "Fira Mono",
-                    "Droid Sans Mono",
-                    Consolas,
-                    "Courier New",
-                    monospace;
+            --font-sans: -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            --font-mono: ui-monospace, Menlo, Monaco, "PT Mono", "Slot Mono", "JetBrains Mono", "Source Code Pro", "Fira Mono", Consolas, "Courier New", monospace;
         }
 
-        html,
-        body {
-            font-family: var(--font-sans);
+        html, body, redoc {
+            font-family: var(--font-sans) !important;
         }
 
-        code,
-        pre,
-        kbd,
-        samp {
-            font-family: var(--font-mono);
+        redoc * {
+            font-family: var(--font-mono) !important;
         }
     </style>
 </head>
