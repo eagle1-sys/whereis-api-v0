@@ -39,7 +39,9 @@ const testData: Record<string, unknown> = {
 
 export function pushDataTest() {
     const apiKey = Deno.env.get("WHEREIS_API_KEY");
-
+    if (!apiKey) {
+        throw new Error("WHEREIS_API_KEY environment variable is not set");
+    }
     Deno.test("Test push API", async () => {
         const url = `${WHEREIS_API_URL}/v0/push/eg1`;
         const response = await httpPost(
@@ -53,13 +55,13 @@ export function pushDataTest() {
 
         assert(
             response.status === 200,
-            `Expected HTTP 200, but received ${response.status} with body`,
+            `Expected HTTP 200, but received ${response.status}`
         );
 
         const result = await response.json();
         assert(
             result.updatedEntities >= 0,
-            `Expected updated entity num greater or equal to 0, but received ${result.updatedEntities} with body`,
+            `Expected updated entity num >= 0, but received ${result.updatedEntities}`
         );
     });
 
