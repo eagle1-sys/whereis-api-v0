@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Whereis API v0
-  description: Built for developers, completely open-source. Track any shipment via a simple API query.
+  description: Built for developers. Fully open-source. Track any shipment with a simple API query.
   version: 0.3.0
 servers:
   - url: https://api.eg1.io
