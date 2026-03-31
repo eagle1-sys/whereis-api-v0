@@ -87,6 +87,7 @@ import { getEventsFromFdxTest } from "./get-fdx-events-test.ts";
 import { getRoutesFromSfexTest } from "./get-sfex-routes-test.ts";
 import { whereisApiTest } from "./whereis-api-test.ts";
 import { statusApiTest } from "./status-api-test.ts";
+import { pushDataTest } from "./push-data-test.ts";
 
 if (isOperatorActive("fdx")) {
   getTokenFromFdXTest();
@@ -101,4 +102,8 @@ if (WHEREIS_API_URL !== undefined) {
   whereisApiTest();
 
   statusApiTest();
+
+  if (isOperatorActive("eg1")) {
+    pushDataTest();
+  }
 }

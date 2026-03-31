@@ -132,10 +132,10 @@ app.use("/v0/push/:operator", customBearerAuth);
  *   - Prevents directory traversal attacks by validating filename
  *
  * Example usage:
- *   GET /static/api-docs.html
- *   GET /static/openapi.yaml
+ *   GET /v0/api-docs.html
+ *   GET /v0/openapi.yaml
  */
-app.get("/static/:filename", async (c: Context) => {
+app.get("/v0/:filename", async (c: Context) => {
   const filename = c.req.param("filename");
 
   // Validate filename to prevent directory traversal
@@ -320,7 +320,7 @@ app.post("/v0/push/:operator", async (c: Context) => {
   });
 });
 
-app.get("/operators", (c: Context) => {
+app.get("/v0/operators", (c: Context) => {
   const output = {
     operators: OperatorRegistry.getActiveOperators(),
   };

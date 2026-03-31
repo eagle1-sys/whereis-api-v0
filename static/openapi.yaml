@@ -161,7 +161,7 @@ paths:
       security:
         - BearerAuth: []
 
-  /operators:
+  /v0/operators:
     get:
       summary: Retrieve list of active operators
       description: Returns all available logistics providers
