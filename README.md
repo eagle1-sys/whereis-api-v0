@@ -2,7 +2,7 @@
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/eagle1-sys/whereis-api-v0)
 
 ## Goal
-**Making it easy** for developers to track any shipment (with any logistics provider), using a simple API query.
+Built for developers. Track any shipment via a simple API query.
 
 ## Problem
 Since different logistics providers have their own APIs and data formats, integrating various logistics data poses a significant challenge for app developers.
