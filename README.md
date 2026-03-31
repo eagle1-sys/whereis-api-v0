@@ -7,6 +7,9 @@ Built for developers. Fully open-source. Track any shipment with a simple API qu
 ## Problem
 Since different logistics providers have their own APIs and data formats, integrating various logistics data poses a significant challenge for app developers.
 
+## Why we built this
+During COVID, we found it was nearly impossible to do logistics integrations with various carriers just to track critical packages containing masks. It took way too much time and brain cells. Thus, we are fixing it the open-source way to help fellow developers stay prepared for the next global supply chain event.
+
 ## Scope
 1. This prototype is written in TypeScript and runs on the [Deno runtime](https://deno.com).
 2. We have defined [standard status codes](metadata/status-codes.jsonc) and a consistent format for global logistics data.
