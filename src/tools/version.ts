@@ -12,7 +12,7 @@ async function main(): Promise<void> {
   // step 1: load environment variable first
   await loadEnv();
 
-  // step 2: Print the application version & build date
+  // step 2: Print the application version
   const appVersion = Deno.env.get("APP_VERSION");
   if (!appVersion) {
     throw new Error("Missing APP_VERSION");
