@@ -24,8 +24,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
+      - name: Set build variables
+        id: build_vars
+        run: |
+          echo "APP_BUILD=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "APP_BUILD_DATE=$(date -u +"%Y-%m-%d")" >> $GITHUB_OUTPUT
+          echo "Build info: $(git rev-parse --short HEAD) at $(date -u +"%Y-%m-%d")"
+
       - name: Deploy app
-        run: flyctl deploy --remote-only -a whereis-api-v0
+        run: |
+          flyctl deploy --remote-only -a whereis-api-v0 \
+            --build-arg APP_BUILD=${{ steps.build_vars.outputs.APP_BUILD }} \
+            --build-arg APP_BUILD_DATE=${{ steps.build_vars.outputs.APP_BUILD_DATE }}
+
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_PROD }}
 

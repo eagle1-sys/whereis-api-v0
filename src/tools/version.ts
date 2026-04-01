@@ -12,13 +12,12 @@ async function main(): Promise<void> {
   // step 1: load environment variable first
   await loadEnv();
 
-  // step 2: Print the application version & build date
+  // step 2: Print the application version
   const appVersion = Deno.env.get("APP_VERSION");
-  const buildDate = Deno.env.get("BUILD_DATE");
-  if (!appVersion || !buildDate) {
-    throw new Error("Missing APP_VERSION or BUILD_DATE");
+  if (!appVersion) {
+    throw new Error("Missing APP_VERSION");
   }
-  console.log(`whereis-api ${appVersion} build on ${buildDate}`);
+  console.log(`whereis-api ${appVersion}`);
 
   Deno.exit(0);
 }
