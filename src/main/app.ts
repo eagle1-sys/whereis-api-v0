@@ -28,7 +28,7 @@ import {initConnection} from "../db/dbutil.ts";
 export async function initApp(): Promise<void> {
   await loadEnv(); // load environment variable first
 
-  logger.info(`${whereIsAPI("startup")} Whereis API release ${Deno.env.get("APP_VERSION")}, build on ${Deno.env.get("BUILD_DATE")} (${Deno.env.get("APP_ENV")})`);
+  logger.info(`${whereIsAPI("startup")} Whereis API release ${Deno.env.get("APP_BUILD")}, build on ${Deno.env.get("APP_BUILD_DATE")} (${Deno.env.get("APP_ENV")})`);
   logger.info(`${whereIsAPI("startup")} deno ${Deno.version.deno}, setting: ${navigator.hardwareConcurrency} threads.`);
 
   await loadMetaData(); // load file system data
@@ -48,9 +48,6 @@ export async function loadEnv(): Promise<void> {
     const denoJson = JSON.parse(await Deno.readTextFile("deno.json"));
     if (denoJson.version) {
       Deno.env.set("APP_VERSION", denoJson.version);
-    }
-    if (denoJson.buildDate) {
-      Deno.env.set("BUILD_DATE", denoJson.buildDate);
     }
   } catch (_err) {
     // The deno.json file may not exist.

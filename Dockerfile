@@ -15,13 +15,21 @@ RUN <<CMD
 set -e  # Exit on any error
 set -u  # Exit on undefined variables
 set -x  # Print commands as they execute
-deno update
+# deno update
 deno cache src/main/main.ts
 deno check .
 deno lint
 CMD
 
 ENV PORT=8037
+
+# Accept build argument
+ARG APP_BUILD=unknown
+ARG APP_BUILD_DATE=unknown
+
+# Set as environment variable
+ENV APP_BUILD=${APP_BUILD}
+ENV APP_BUILD_DATE=${APP_BUILD_DATE}
 
 # Run the app with specified permissions
 CMD ["run", "--allow-run", "--allow-net", "--allow-env", "--allow-read", "src/main/main.ts"]
