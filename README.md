@@ -22,7 +22,7 @@ During COVID, we wanted to systematically track critical packages containing mas
 
 ### Documentation
 - [Wiki](https://github.com/eagle1-sys/whereis-api-v0/wiki)
-
+- [Real-world use case](https://github.com/orgs/eagle1-sys/discussions/429#discussioncomment-16349481)
 
 ## Examples
 
