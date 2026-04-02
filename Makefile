@@ -108,7 +108,7 @@ start: check_docker ## Start api and postgres services
 
 update: build ## Build whereis-api docker image and restart api and postgres services
 	@echo "=> Restarting services for DB_TYPE=$(DB_TYPE) using $(COMPOSE_FILE)..."
-	@APP_BUILD=$(APP_BUILD) APP_BUILD_DATE=$(APP_BUILD_DATE) docker compose -f $(COMPOSE_FILE) up $(COMPOSE_SERVICES) -d
+	@docker compose -f $(COMPOSE_FILE) up $(COMPOSE_SERVICES) -d
 	@$(MAKE) status
 
 test: check_docker ## Run 'deno task test' in the api container
