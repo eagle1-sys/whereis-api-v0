@@ -8,7 +8,7 @@ Built for developers. Fully open-source. Track any shipment with a simple API qu
 Since different logistics providers have their own APIs and data formats, integrating various logistics data poses a significant challenge for app developers.
 
 ## Why we built this
-During COVID, we wanted to automatically track critical packages containing masks without having people check each carrier's website manually. We learned that integrating with various logistics carriers was nearly impossible. It took way too much time and brain cells to understand and connect different APIs. Thus, we are fixing it the open-source way. So we can help ourselves and fellow developers stay prepared for the next global supply chain event.
+During COVID, we wanted to systematically track critical packages containing masks without checking each carrier's website manually. We learned that integrating with various logistics carriers was nearly impossible. It took way too much time and brain cells to understand and connect their APIs. Thus, we are fixing it the open-source way. Now we can help ourselves and fellow developers stay prepared for the next global supply chain event.
 
 ## Scope
 1. This prototype is written in TypeScript and runs on the [Deno runtime](https://deno.com).
