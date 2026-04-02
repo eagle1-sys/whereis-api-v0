@@ -15,7 +15,7 @@ RUN <<CMD
 set -e  # Exit on any error
 set -u  # Exit on undefined variables
 set -x  # Print commands as they execute
-# deno update
+deno update
 deno cache src/main/main.ts
 deno check .
 deno lint
