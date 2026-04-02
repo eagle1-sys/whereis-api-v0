@@ -1,6 +1,6 @@
 /**
  * @file version.ts
- * @description A command-line tool to display the application's version and build date.
+ * @description A command-line tool to display the application's version.
  *
  * @copyright (c) 2025, the Eagle1 authors
  * @license BSD 3-Clause License
