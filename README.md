@@ -2,27 +2,27 @@
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/eagle1-sys/whereis-api-v0)
 
 ## Goal
-Built for developers. Fully open-source. Track any shipment with a simple API query.
+Built for developers. Fully open-source. Track any shipment with one simple API query.
 
-## Problem
+### Problem
 Since different logistics providers have their own APIs and data formats, integrating various logistics data poses a significant challenge for app developers.
 
-## Why we built this
-During COVID, we found it was nearly impossible to do logistics integrations with various carriers just to track critical packages containing masks. It took way too much time and brain cells. Thus, we are fixing it the open-source way to help fellow developers stay prepared for the next global supply chain event.
+### Why we built this
+During COVID, we wanted to systematically track critical packages containing masks without checking each carrier's website manually. We learned that integrating with various logistics carriers was nearly impossible. It took way too much time and brain cells to understand and connect their APIs. Thus, we are fixing it the open-source way. Now we can help ourselves and fellow developers stay prepared for the next global supply chain event.
 
-## Scope
+## Design
 1. This prototype is written in TypeScript and runs on the [Deno runtime](https://deno.com).
 2. We have defined [standard status codes](metadata/status-codes.jsonc) and a consistent format for global logistics data.
 3. Initially it supports two logistics operators: FedEx and SF Express, with a [future roadmap](https://github.com/eagle1-sys/whereis-api-v0/discussions/97) planned. Code review is on [DeepWiki](https://deepwiki.com/eagle1-sys/whereis-api-v0).
 
-### Design intentions
+### Intentions
 - **Beyond Simple Mapping**: Transform raw carrier data into meaningful, standardized information.
 - **Developer-Centric**: Provide consistent, easy-to-understand API responses.
 - **Continuous Improvement**: Mapping rules evolve based on real-world data patterns via a two-stage process: (Stage 1: rule-based mapping; Stage 2: AI-assisted enhancement).
 
 ### Documentation
 - [Wiki](https://github.com/eagle1-sys/whereis-api-v0/wiki)
-
+- [Real-world use case](https://github.com/orgs/eagle1-sys/discussions/429#discussioncomment-16349481)
 
 ## Examples
 
