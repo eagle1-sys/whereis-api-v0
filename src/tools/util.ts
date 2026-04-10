@@ -247,12 +247,6 @@ export async function getResponseJSON(response: Response, uniqueId: string): Pro
     let parsed;
     try {
       let text = await response.text();
-
-      // Handle empty responses - return empty object
-      if (!text.trim()) {
-        return {};
-      }
-
       // Strip UTF-8 BOM if present
       if (text.charCodeAt(0) === 0xFEFF) {
         text = text.slice(1);
