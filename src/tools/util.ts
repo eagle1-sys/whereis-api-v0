@@ -235,7 +235,7 @@ export async function getResponseJSON(response: Response, uniqueId: string): Pro
 
   // Handle explicit zero-length bodies
   if (contentLength === "0") {
-    throw new AppError("500-01",`ERR-UTIL-C: Failed to get response as JSON (contentLength = 0) [${uniqueId}]`);
+    throw new AppError("500-02",`ERR-UTIL-C: Failed to get response as JSON (contentLength = 0) [${uniqueId}]`);
   }
 
   // Check if content-type indicates JSON or JSON-like content
