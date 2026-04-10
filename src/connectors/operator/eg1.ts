@@ -136,7 +136,7 @@ export class Eg1 implements OperatorModule{
     private convertPushDataFormat(data: Record<string, unknown>): Array<{trackingNum: string, events: Array<Record<string, unknown>>}> {
         // Validate input data structure
         if (!data["events"] || !Array.isArray(data["events"])) {
-            throw new AppError("404-04", "ERR-EG1-B: INVALID_DATA_FORMAT");
+            throw new AppError("400-06", "ERR-EG1-B: INVALID_DATA_FORMAT");
         }
 
         const events = data["events"] as Array<Record<string, unknown>>;
@@ -148,7 +148,7 @@ export class Eg1 implements OperatorModule{
             const trackingNum = event["trackingNum"] as string;
 
             if (!trackingNum) {
-                throw new AppError("404-05", "ERR-EG1-C: TRACKING_NUM_REQUIRED");
+                throw new AppError("400-07", "ERR-EG1-C: TRACKING_NUM_REQUIRED");
             }
 
             // Create a clean event object without trackingNum (since it's now at the parent level)
