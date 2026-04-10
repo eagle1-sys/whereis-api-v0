@@ -81,7 +81,7 @@ async function initPgConnection() : Promise<postgres.Sql> {
     } else {
       logger.error(`${whereIsAPI("exception")} Error initializing database connection pool: ${err}`);
     }
-    throw new AppError("500-01", `ERR-DBUTIL-B - Failed to initialize database connection pool", {cause: err}`);
+    throw new AppError("500-01", `ERR-DBUTIL-B - Failed to initialize database connection pool, ${err}`);
   }
 }
 
