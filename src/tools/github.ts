@@ -1,4 +1,5 @@
 import {httpPost} from "./util.ts";
+import {AppError} from "../main/model.ts";
 
 /**
  * @file github.ts
@@ -166,7 +167,7 @@ export class Github {
 
     if (!response.ok) {
       const err = await response.text();
-      throw new Error(`GraphQL search failed: ${err}`);
+      throw new AppError("500-02",`ERR-GITHUB-A: GraphQL search failed: ${err}`);
     }
 
     const responseJson = await response.json();
@@ -174,20 +175,21 @@ export class Github {
     // Check for GraphQL errors (auth, rate limit, etc.)
     if (responseJson.errors && Array.isArray(responseJson.errors) && responseJson.errors.length > 0) {
       const errorMessages = responseJson.errors.map((e: { message: string }) => e.message).join("; ");
-      throw new Error(`GraphQL search returned errors: ${errorMessages}`);
+      throw new AppError("500-02",`ERR-GITHUB-B: GraphQL search returned errors: ${errorMessages}`);
+
     }
 
     // Validate data structure
     if (!responseJson.data) {
-      throw new Error("GraphQL search returned no data (possible authentication or permission issue)");
+      throw new AppError("500-02",`ERR-GITHUB-C: GraphQL search returned no data (possible authentication or permission issue)`);
     }
 
     if (!responseJson.data.repository) {
-      throw new Error(`Repository not found or not accessible: ${this.GITHUB_OWNER}/${this.GITHUB_REPO_NAME}`);
+      throw new AppError("500-02",`ERR-GITHUB-D: Repository not found or not accessible: ${this.GITHUB_OWNER}/${this.GITHUB_REPO_NAME}`);
     }
 
     if (!responseJson.data.repository.discussions) {
-      throw new Error("Discussions data is missing from repository response");
+      throw new AppError("500-02",`ERR-GITHUB-E: Discussions data is missing from repository response`);
     }
 
     const nodes = responseJson.data.repository.discussions.nodes || [];
@@ -260,7 +262,7 @@ export class Github {
 
     if (!response.ok) {
       const err = await response.text();
-      throw new Error(`Create failed: ${err}`);
+      throw new AppError("500-02",`ERR-GITHUB-F: Create failed: ${err}`);
     }
 
     const responseJson = await response.json();
@@ -268,20 +270,20 @@ export class Github {
     // Check for GraphQL errors
     if (responseJson.errors && Array.isArray(responseJson.errors) && responseJson.errors.length > 0) {
       const errorMessages = responseJson.errors.map((e: { message: string }) => e.message).join("; ");
-      throw new Error(`Create discussion returned errors: ${errorMessages}`);
+      throw new AppError("500-02",`ERR-GITHUB-G: Create discussion returned errors: ${errorMessages}`);
     }
 
     // Validate data structure
     if (!responseJson.data) {
-      throw new Error(`Create discussion returned no data. Response: ${JSON.stringify(responseJson)}`);
+      throw new AppError("500-02",`ERR-GITHUB-H: Create discussion returned no data. Response: ${JSON.stringify(responseJson)}`);
     }
 
     if (!responseJson.data.createDiscussion) {
-      throw new Error(`Create discussion mutation failed. Response: ${JSON.stringify(responseJson)}`);
+      throw new AppError("500-02",`ERR-GITHUB-I: Create discussion mutation failed. Response: ${JSON.stringify(responseJson)}`);
     }
 
     if (!responseJson.data.createDiscussion.discussion) {
-      throw new Error(`Discussion object missing from response. Response: ${JSON.stringify(responseJson)}`);
+      throw new AppError("500-02",`ERR-GITHUB-J: Discussion object missing from response. Response: ${JSON.stringify(responseJson)}`);
     }
 
     const discussion = responseJson.data.createDiscussion.discussion;
@@ -340,7 +342,7 @@ export class Github {
 
     if (!response.ok) {
       const err = await response.text();
-      throw new Error(`Add comment failed: ${err}`);
+      throw new AppError("500-02",`ERR-GITHUB-K: Add comment failed: ${err}`);
     }
 
     const responseJson = await response.json();
@@ -348,26 +350,26 @@ export class Github {
     // Check for GraphQL errors
     if (responseJson.errors && Array.isArray(responseJson.errors) && responseJson.errors.length > 0) {
       const errorMessages = responseJson.errors.map((e: { message: string }) => e.message).join("; ");
-      throw new Error(`Add comment returned errors: ${errorMessages}`);
+      throw new AppError("500-02",`ERR-GITHUB-L: Add comment returned errors: ${errorMessages}`);
     }
 
     // Validate data structure
     if (!responseJson.data) {
-      throw new Error(`Add comment returned no data. Response: ${JSON.stringify(responseJson)}`);
+      throw new AppError("500-02",`ERR-GITHUB-M: Add comment returned no data. Response: ${JSON.stringify(responseJson)}`);
     }
 
     if (!responseJson.data.addDiscussionComment) {
-      throw new Error(`Add comment mutation failed. Response: ${JSON.stringify(responseJson)}`);
+      throw new AppError("500-02",`ERR-GITHUB-N: Add comment mutation failed. Response: ${JSON.stringify(responseJson)}`);
     }
 
     if (!responseJson.data.addDiscussionComment.comment) {
-      throw new Error(`Comment object missing from response. Response: ${JSON.stringify(responseJson)}`);
+      throw new AppError("500-02",`ERR-GITHUB-O: Comment object missing from response. Response: ${JSON.stringify(responseJson)}`);
     }
 
     const comment = responseJson.data.addDiscussionComment.comment;
     // Validate required fields
     if (!comment.id || !comment.url) {
-      throw new Error(`Comment missing required fields. Response: ${JSON.stringify(comment)}`);
+      throw new AppError("500-02",`ERR-GITHUB-P: Comment missing required fields. Response: ${JSON.stringify(comment)}`);
     }
 
   }

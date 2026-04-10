@@ -9,6 +9,7 @@ import { Grafana } from "./grafana.ts";
 import { loadEnv } from "../main/app.ts";
 import {loadJSONFromFs} from "./util.ts";
 import {checkStatusViaRequesty, checkStatusViaGemini} from "./llm.ts";
+import {AppError} from "../main/model.ts";
 
 let aiModel: string = "gemini";
 const MILLIS_PER_HOUR = 60 * 60 * 1000;
@@ -368,10 +369,10 @@ async function loadTrackingDataFromWhereis(trackingId: string, extra: {[key: str
     const whereIsApiUrl = Deno.env.get("WHEREIS_API_URL");
     const whereIsAPIKey = Deno.env.get("WHEREIS_API_KEY");
     if (!whereIsApiUrl) {
-        throw new Error("WHEREIS_API_URL environment variable is not set");
+        throw new AppError("500-01",`ERR-WATCHER-A: WHEREIS_API_URL environment variable is not set`);
     }
     if (!whereIsAPIKey) {
-        throw new Error("WHEREIS_API_KEY environment variable is not set");
+        throw new AppError("500-01",`ERR-WATCHER-B: WHEREIS_API_KEY environment variable is not set`);
     }
 
     let url = `${whereIsApiUrl}/v0/whereis/${trackingId}`;
@@ -389,7 +390,7 @@ async function loadTrackingDataFromWhereis(trackingId: string, extra: {[key: str
     });
 
     if (!response.ok) {
-        throw new Error(`WhereIs API error: ${response.status} ${response.statusText}`);
+        throw new AppError("500-02",`ERR-WATCHER-C: WhereIs API error: ${response.status} ${response.statusText}`);
     }
 
     return  await response.json();

@@ -15,8 +15,11 @@
   "404-01": "Whereis API could not retrieve tracking information from the data source provider.",
   "404-02": "The specified operator does not support the Push API.",
   "404-03": "The specified operator does not have a backend data source.",
+  "404-04": "Invalid data format: missing or invalid events array.",
+  "404-05": "Invalid data format: missing trackingNum.",
 
   "429-01": "Too many requests.",
 
-  "500-01": "Internal Server Error: Invalid data source API credentials."
+  "500-01": "Internal Server Error: ",
+  "500-02": "HTTP Request Error: "
 }

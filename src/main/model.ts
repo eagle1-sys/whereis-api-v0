@@ -598,7 +598,7 @@ export class AppError extends Error {
     const httpStatusCode = Number(parts[0]);
     // validate the first part
     if (isNaN(httpStatusCode)) {
-      throw new Error("Invalid parameter");
+      throw new AppError("500-02","ERR-MODEL-D: INVALID_HTTP_STATUS_CODE");
     }
 
     return httpStatusCode;

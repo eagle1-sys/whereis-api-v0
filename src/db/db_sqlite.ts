@@ -12,7 +12,7 @@ import { Database } from "sqlite";
 
 import {whereIsAPI, logger} from "../tools/logger.ts";
 import { DatabaseWrapper } from "./db_wrapper.ts";
-import { DataUpdateMethod, Entity, Event, TrackingID } from "../main/model.ts";
+import {AppError, DataUpdateMethod, Entity, Event, TrackingID} from "../main/model.ts";
 
 export class SQLiteWrapper implements DatabaseWrapper {
 
@@ -345,7 +345,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
         for (const event of events) {
           // Validate input
           if (!event || !event.eventId) {
-            throw new Error("Invalid event object: eventId is required");
+            throw new AppError("500-01", `ERR-SQLITE-A - Invalid event object: eventId is required`);
           }
 
           logger.info(`${whereIsAPI("data_monitor")} ${updateMethod}: Insert new event with ID ${event.eventId}`);

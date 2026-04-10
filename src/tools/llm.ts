@@ -1,3 +1,5 @@
+import {AppError} from "../main/model.ts";
+
 const ROUTER_API_URL = "https://router.requesty.ai/v1/chat/completions";
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/MODEL_NAME:generateContent`;
 
@@ -44,7 +46,7 @@ async function callLLMViaRequesty(model: string, messages: Array<{ role: string;
     const routerApiKey = Deno.env.get("ROUTER_API_KEY");
 
     if (!routerApiKey) {
-        throw new Error("ROUTER_API_KEY environment variable is not set");
+        throw new AppError("500-01",`ERR-LLM-A: ROUTER_API_KEY environment variable is not set`);
     }
 
     const response = await fetch(ROUTER_API_URL, {
@@ -64,7 +66,7 @@ async function callLLMViaRequesty(model: string, messages: Array<{ role: string;
     const message = choices?.[0]?.message as Record<string, unknown> | undefined;
     const content = message?.content;
     if (typeof content !== "string") {
-        throw new Error("Unexpected LLM response: missing choices[0].message.content");
+        throw new AppError("500-02",`ERR-LLM-B: Unexpected LLM response: missing choices[0].message.content`);
     }
 
     return content.trim();
@@ -74,7 +76,7 @@ async function callGemini(model: string, systemIntruction: string, userMessage: 
     const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
 
     if (!geminiApiKey) {
-        throw new Error("GEMINI_API_KEY environment variable is not set");
+        throw new AppError("500-01",`ERR-LLM-C: GEMINI_API_KEY environment variable is not set`);
     }
 
     const apiUrl = GEMINI_API_URL.replace("MODEL_NAME", model) + "?key=" + geminiApiKey;
@@ -103,7 +105,7 @@ async function callGemini(model: string, systemIntruction: string, userMessage: 
     const parts = content?.parts as Array<Record<string, unknown>> | undefined;
     const text = parts?.[0]?.text;
     if (typeof text !== "string") {
-        throw new Error("Unexpected Gemini response: missing candidates[0].content.parts[0].text");
+        throw new AppError("500-02",`ERR-LLM-D: Unexpected Gemini response: missing candidates[0].content.parts[0].text`);
     }
     return text.trim();
 }
@@ -117,7 +119,7 @@ async function getLLMResponse(response: Response): Promise<Record<string, unknow
         } catch {
             errorMessage = await response.text().catch(() => "");
         }
-        throw new Error(`HTTP error! status: ${response.status} : ${errorMessage}`);
+        throw new AppError("500-02",`ERR-LLM-E: HTTP error! status: ${response.status} : ${errorMessage}`);
     }
     return await response.json();
 }

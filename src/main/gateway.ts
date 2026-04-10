@@ -42,7 +42,7 @@ export function setOperatorStatus(operator: string, status: boolean): void {
   if (OperatorRegistry.getActiveOperatorCodes().includes(operator)) {
     operatorStatus[operator] = status;
   } else {
-    throw new Error(`Invalid operator: ${operator}`);
+    throw new AppError("500-01", "ERR-GATEWAY-B: INACTIVE_OPERATOR");
   }
 }
 
@@ -127,7 +127,7 @@ export function processPushData(operator: string, trackingData: Record<string, u
 export function getOperatorModule(operator: string): OperatorModule {
   const operatorModule = operatorModules[operator];
   if (!operatorModule) {
-    throw new Error(`Operator module not found: ${operator}`);
+    throw new AppError("500-01", `ERR-GATEWAY-C: Operator module not found: ${operator}`);
   }
   if (!isOperatorActive(operator)) {
     throw new AppError("500-01", "ERR-GATEWAY-A: INACTIVE_OPERATOR");
