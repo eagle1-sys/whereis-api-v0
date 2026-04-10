@@ -67,6 +67,7 @@ async function initPgConnection() : Promise<postgres.Sql> {
 
     return sql;
   } catch (err) {
+    const errText = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
     if (err instanceof Error) {
       const errorMessage = err.message;
       if (/connection refused/i.test(errorMessage)) {
@@ -81,7 +82,7 @@ async function initPgConnection() : Promise<postgres.Sql> {
     } else {
       logger.error(`${whereIsAPI("exception")} Error initializing database connection pool: ${err}`);
     }
-    throw new AppError("500-01", `ERR-DBUTIL-B - Failed to initialize database connection pool, ${err}`);
+    throw new AppError("500-01", `ERR-DBUTIL-B - Failed to initialize database connection pool: ${errText}`);
   }
 }
 
