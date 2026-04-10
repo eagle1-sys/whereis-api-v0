@@ -10,6 +10,7 @@
 
 import {crypto} from "@std/crypto";
 import {parse} from "@std/jsonc";
+import {AppError} from "../main/model.ts";
 
 export async function httpGet(url: string, headers: Record<string, string>): Promise<Response> {
   const controller = new AbortController();
@@ -51,10 +52,10 @@ export async function loadJSONFromFs(
   try {
     v = parse(jsonString);
   } catch (error) {
-    throw new Error(`Failed to parse JSONC file '${filePath}': ${error instanceof Error ? error.message : String(error)}`);
+    throw new AppError("500-01",`ERR-UTIL-A: Failed to parse JSONC file '${filePath}': ${error instanceof Error ? error.message : String(error)}`);
   }
   if (v === null || typeof v !== "object" || Array.isArray(v)) {
-    throw new Error(`Invalid JSON file format: ${filePath}`);
+    throw new AppError("500-01",`ERR-UTIL-B: Invalid JSON file format: ${filePath}`);
   }
   return v as Record<string, unknown>;
 }
@@ -234,7 +235,7 @@ export async function getResponseJSON(response: Response, uniqueId: string): Pro
 
   // Handle explicit zero-length bodies
   if (contentLength === "0") {
-    throw new Error(`Failed to get response as JSON (contentLength = 0) [${uniqueId}]`);
+    throw new AppError("500-02",`ERR-UTIL-C: Failed to get response as JSON (contentLength = 0) [${uniqueId}]`);
   }
 
   // Check if content-type indicates JSON or JSON-like content
@@ -246,12 +247,6 @@ export async function getResponseJSON(response: Response, uniqueId: string): Pro
     let parsed;
     try {
       let text = await response.text();
-
-      // Handle empty responses - return empty object
-      if (!text.trim()) {
-        return {};
-      }
-
       // Strip UTF-8 BOM if present
       if (text.charCodeAt(0) === 0xFEFF) {
         text = text.slice(1);
@@ -260,18 +255,17 @@ export async function getResponseJSON(response: Response, uniqueId: string): Pro
       parsed = JSON.parse(text);
     } catch (error) {
       if (!contentType) {
-        throw new Error(`Failed to parse response as JSON (no content-type header): ${error instanceof Error ? error.message : String(error)} [${uniqueId}]`);
+        throw new AppError("500-02",`ERR-UTIL-D: Failed to parse response as JSON (no content-type header): ${error instanceof Error ? error.message : String(error)} [${uniqueId}]`);
       }
-      throw new Error(`Failed to parse JSON response: ${error instanceof Error ? error.message : String(error)} [${uniqueId}]`);
+      throw new AppError("500-02",`ERR-UTIL-E: Failed to parse JSON response: ${error instanceof Error ? error.message : String(error)} [${uniqueId}]`);
     }
 
     // Enforce object root type
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      throw new TypeError(`Response root is not an object [${uniqueId}]`);
+      throw new AppError("500-02",`ERR-UTIL-F: Response root is not an object [${uniqueId}]`);
     }
 
     return parsed;
   }
-
-  throw new Error(`Unexpected content type: ${contentType} [${uniqueId}]`);
+  throw new AppError("500-02",`ERR-UTIL-G: Unexpected content type: ${contentType} [${uniqueId}]`);
 }

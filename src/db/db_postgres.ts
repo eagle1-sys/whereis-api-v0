@@ -14,7 +14,7 @@ import postgres from "postgresjs";
 import {DatabaseWrapper} from "./db_wrapper.ts";
 
 import {whereIsAPI, logger} from "../tools/logger.ts";
-import { JSONValue } from "../main/model.ts";
+import {AppError, JSONValue} from "../main/model.ts";
 import {DataUpdateMethod,Entity,Event,TrackingID} from "../main/model.ts";
 
 /**
@@ -352,7 +352,7 @@ export class PostgresWrapper implements DatabaseWrapper {
     for (const event of events) {
       // Validate input
       if (!event || !event.eventId) {
-        throw new Error("Invalid event object: eventId is required");
+        throw new AppError("500-01", `ERR-PG-A - Invalid event object: eventId is required`);
       }
 
       logger.info(`${whereIsAPI("data_monitor")} ${updateMethod}: Insert new event with ID ${event.eventId}`);

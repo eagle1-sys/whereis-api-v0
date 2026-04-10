@@ -14,6 +14,7 @@ let dbClient: DatabaseWrapper;
 import {whereIsAPI, logger} from "../tools/logger.ts";
 import { join } from '@std/path';
 import { exists } from "@std/fs/exists";
+import {AppError} from "../main/model.ts";
 
 export async function initConnection() {
   const dbType = Deno.env.get("DB_TYPE") || "sqlite";
@@ -42,7 +43,7 @@ async function initPgConnection() : Promise<postgres.Sql> {
   const dbHost = Deno.env.get("DB_HOST");
   const dbPort = Number(Deno.env.get("DB_PORT") ?? "5432")
   if (!dbHost) {
-    throw new Error("DB_HOST environment variable is not set.");
+    throw new AppError("500-01", `ERR-DBUTIL-A - DB_HOST environment variable is not set.`);
   }
 
   try {
@@ -66,6 +67,7 @@ async function initPgConnection() : Promise<postgres.Sql> {
 
     return sql;
   } catch (err) {
+    const errText = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
     if (err instanceof Error) {
       const errorMessage = err.message;
       if (/connection refused/i.test(errorMessage)) {
@@ -80,7 +82,7 @@ async function initPgConnection() : Promise<postgres.Sql> {
     } else {
       logger.error(`${whereIsAPI("exception")} Error initializing database connection pool: ${err}`);
     }
-    throw new Error("Failed to initialize database connection pool", {cause: err});
+    throw new AppError("500-01", `ERR-DBUTIL-B - Failed to initialize database connection pool: ${errText}`);
   }
 }
 

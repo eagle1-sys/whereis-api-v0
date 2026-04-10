@@ -187,7 +187,7 @@ export class Fdx implements OperatorModule {
     const fdxClientId = Deno.env.get("FDX_CLIENT_ID");
     const fdxClientSecret = Deno.env.get("FDX_CLIENT_SECRET");
     if (!fdxClientId || !fdxClientSecret) {
-      throw new AppError("500-01", "ERR-FDX-A: CLIENT_ID/SECRET");
+      throw new AppError("500-01", "ERR-FDX-A: Invalid data source API CLIENT_ID/SECRET");
     }
 
     const response = await httpPost(
@@ -206,11 +206,11 @@ export class Fdx implements OperatorModule {
     // if successful, update the token and expiration time.
     if (response.ok) {
       if(!data["access_token"]) {
-        throw new Error("SNH: No access_token provided in response [500AF - getToken]");
+        throw new AppError("500-02", "ERR-FDX-F: No access_token provided in response");
       }
 
       if (typeof data["expires_in"] !== "number" || data["expires_in"] <= 0) {
-        throw new Error("SNH: Invalid or missing expires_in value [500AG - getToken]");
+        throw new AppError("500-02", "ERR-FDX-G: Invalid or missing expires_in value");
       }
 
       this.token = data["access_token"] as string;
@@ -218,11 +218,11 @@ export class Fdx implements OperatorModule {
       return this.token;
     } else {
       if(!data["errors"]) {
-        throw new Error("SNH: No errors provided in response [500AF - getToken]");
+        throw new AppError("500-02", "ERR-FDX-H: No errors provided in response");
       }
 
       if(!Array.isArray(data["errors"])){
-        throw new Error("SNH: 'errors' field must be an array [500AH - getToken]");
+        throw new AppError("500-02", "ERR-FDX-I: 'errors' field must be an array");
       }
 
       const errors = data["errors"] as Array<{ code?: string; message?: string }>;
@@ -230,9 +230,9 @@ export class Fdx implements OperatorModule {
       const code = errors[0]?.code ?? "";
       if(code==="BAD.REQUEST.ERROR" || code==="NOT.AUTHORIZED.ERROR") {
         // Invalid or missing data source API credentials
-        throw new AppError("500-01", `ERR-FDX-B: ${code}`);
+        throw new AppError("500-01", `ERR-FDX-B: Invalid data source API credentials ${code}`);
       } else {
-        throw new Error(`Unexpected error code from FedEx API: ${code} [500AE - getToken]`);
+        throw new AppError("500-02", `ERR-FDX-J: Unexpected error code: ${code}`);
       }
     }
   }
@@ -498,7 +498,7 @@ export class Fdx implements OperatorModule {
         JSON.stringify(payload)
     );
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status} [ERR-FDX-E - getRoute]`);
+      throw new AppError("500-02", `ERR-FDX-E - Incorrect http response status (${response.status})`);
     }
 
     return await getResponseJSON(response, "ERR-FDX-F - getRoute");

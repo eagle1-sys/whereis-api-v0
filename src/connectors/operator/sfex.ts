@@ -202,7 +202,7 @@ export class Sfex implements OperatorModule {
         throw new AppError("500-01", `ERR-SFEX-B: ${resultCode}`);
       default:
         // Handle other API errors
-        throw new Error(`${resultCode}: ${result["apiErrorMsg"]}`);
+        throw new AppError("500-02", `ERR-SFEX-G: ${resultCode}: ${result["apiErrorMsg"]}`);
     }
   }
 
@@ -292,7 +292,7 @@ export class Sfex implements OperatorModule {
         )
     );
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status} [ERR-SFEX-F - getRoute]`);
+      throw new AppError("500-02", `ERR-SFEX-F - getRoute(${response.status})`);
     }
 
     return await getResponseJSON(response, "ERR-SFEX-G - getRoute")
