@@ -101,8 +101,13 @@ export async function requestWhereIs(operator: string, trackingIds: TrackingID[]
   for (const entity of entities) {
     if (!entity.isStatusExist(3500)) continue;
 
+    const additionalData = entity.additional || {};
     const missingStatuses = entity.getMissingCriticalStatuses();
     for (const status of missingStatuses) {
+      // Ingnore 3300/3400 status for FDX if it's not cross border
+      if (entity.id.startsWith("fdx") && additionalData.isCrossBorder === undefined && (status === 3300 || status === 3400)) {
+        continue;
+      }
       logger.warn(`${whereIsAPI("data_monitor")} Entity ${entity.id} missing critical status : ${status}`);
     }
   }
