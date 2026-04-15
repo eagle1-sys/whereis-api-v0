@@ -15,7 +15,7 @@
 import {loadEnv} from "../main/app.ts";
 import {initConnection} from "./dbutil.ts";
 import {whereIsAPI, logger} from "../tools/logger.ts";
-import {dbClient} from "./dbutil.ts";
+import {getDbClient} from "./dbutil.ts";
 
 async function main(): Promise<void> {
     // step 1: load environment variable first
@@ -31,7 +31,7 @@ async function main(): Promise<void> {
     }
 
     // step 3: write API key to the database
-    const inserted = await dbClient.insertToken(key, user);
+    const inserted = await getDbClient().insertToken(key, user);
     // Just output the API key to console (Avoid writing to grafana)
     if (!inserted) {
         console.log(`Token ${key} already exists or could not be inserted.`);

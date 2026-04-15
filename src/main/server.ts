@@ -9,7 +9,7 @@
 import { cors } from "hono/cors";
 import { Context, Hono, HonoRequest, Next } from "hono";
 import { ContentfulStatusCode } from "hono/utils/http-status";
-import { dbClient} from "../db/dbutil.ts";
+import { getDbClient} from "../db/dbutil.ts";
 import {whereIsAPI, logger} from "../tools/logger.ts";
 import {getExtraParams, processPushData, requestWhereIs, validateParams, validateStoredEntity} from "./gateway.ts";
 import {ApiParams, Entity, OperatorRegistry, TrackingID, AppError,} from "./model.ts";
@@ -40,7 +40,7 @@ const customBearerAuth = async (c: Context, next: Next) => {
   }
 
   const token = authHeader.split(" ")[1];
-  const isValidToken = await dbClient.isTokenValid(token); // verify the token
+  const isValidToken = await getDbClient().isTokenValid(token); // verify the token
   if (!isValidToken) {
     throw new AppError("401-02", "ERR-SERVER-G: TOKEN_VALIDATION");
   }
@@ -289,17 +289,17 @@ app.post("/v0/push/:operator", async (c: Context) => {
   let failed = 0;
   for (const entity of entities) {
     try {
-      const eventIdsInDb: string[] = await dbClient.queryEventIds(
+      const eventIdsInDb: string[] = await getDbClient().queryEventIds(
           TrackingID.parse(entity.id),
       );
       if (eventIdsInDb.length === 0) {
-        const changes = await dbClient.insertEntity(entity);
+        const changes = await getDbClient().insertEntity(entity);
         updated = updated + (changes ?? 0);
       } else {
         // update the database on-demand
         const {dataChanged, eventIdsNew} = entity.compare(eventIdsInDb);
         if (dataChanged && eventIdsNew.length > 0) {
-          const updatedNum = await dbClient.updateEntity(entity, "push", eventIdsNew, []);
+          const updatedNum = await getDbClient().updateEntity(entity, "push", eventIdsNew, []);
           updated = updated + updatedNum;
         }
       }
@@ -340,12 +340,12 @@ app.get("/web-health", (c: Context) => {
  * GET /app-health - App health check endpoint
  */
 app.get("/app-health", async (c: Context) => {
-  if (dbClient === undefined) {
+  if (getDbClient() === undefined) {
     logger.info(`${whereIsAPI("startup")} DB connection is not ready`);
     return c.text("INIT", 200);
   }
   // Test the connection by executing a simple query
-  const testResult = await dbClient.ping();
+  const testResult = await getDbClient().ping();
   if (testResult) {
     return c.text("UP", 200);
   }
@@ -383,13 +383,13 @@ app.onError((err: unknown, c: Context) => {
 async function refreshEntityFromProvider(trackingID: TrackingID, parsedParams: Record<string, string>): Promise<Entity | undefined> {
   const entities = await requestWhereIs(trackingID.operator, [trackingID], parsedParams, "manual-pull");
   if (entities.length === 1) {
-    await dbClient.refreshEntity(trackingID, entities[0] as Entity);
+    await getDbClient().refreshEntity(trackingID, entities[0] as Entity);
   }
   return entities.length === 0 ? undefined : entities[0];
 }
 
 async function getEntityFromDbOrProvider(trackingID: TrackingID, parsedParams: Record<string, string>): Promise<Entity | undefined> {
-  let entity = await dbClient.queryEntity(trackingID);
+  let entity = await getDbClient().queryEntity(trackingID);
 
   if(entity) {
     // Throws AppError if validation fails
@@ -398,7 +398,7 @@ async function getEntityFromDbOrProvider(trackingID: TrackingID, parsedParams: R
     const entities = await requestWhereIs(trackingID.operator, [trackingID], parsedParams, "manual-pull");
     if (entities.length === 1) {
       entity = entities[0];
-      await dbClient.insertEntity(entity as Entity);
+      await getDbClient().insertEntity(entity as Entity);
     }
   }
 
@@ -420,7 +420,7 @@ async function getEntityFromDbOrProvider(trackingID: TrackingID, parsedParams: R
  */
 async function getStatus(trackingID: TrackingID, queryParams: Record<string, string>): Promise<Record<string, unknown> | undefined> {
   // Try to get entity from database first
-  const entity = await dbClient.queryEntity(trackingID);
+  const entity = await getDbClient().queryEntity(trackingID);
   if (entity) {
     // Throws AppError if validation fails
     validateStoredEntity(trackingID.operator, entity, queryParams);
@@ -434,7 +434,7 @@ async function getStatus(trackingID: TrackingID, queryParams: Record<string, str
     throw new AppError("404-01", `ERR-SERVER-K: Received empty data from source ${trackingID.operator}`); // Not found in data provider
   }
 
-  await dbClient.insertEntity(result[0] as Entity);
+  await getDbClient().insertEntity(result[0] as Entity);
 
   return (result[0] as Entity).getLastStatus();
 }
