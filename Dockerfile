@@ -24,10 +24,12 @@ CMD
 ENV PORT=8037
 
 # Accept build argument
+ARG APP_VERSION=unknown
 ARG APP_BUILD=unknown
 ARG APP_BUILD_DATE=unknown
 
 # Set as environment variable
+ENV APP_VERSION=${APP_VERSION}
 ENV APP_BUILD=${APP_BUILD}
 ENV APP_BUILD_DATE=${APP_BUILD_DATE}
 
