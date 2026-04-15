@@ -10,6 +10,7 @@ import { DatabaseWrapper } from "./db_wrapper.ts";
 import { PostgresWrapper } from "./db_postgres.ts";
 
 let dbClient: DatabaseWrapper;
+let isInitialized = false;
 
 import {whereIsAPI, logger} from "../tools/logger.ts";
 import { join } from '@std/path';
@@ -36,6 +37,7 @@ export async function initConnection() {
     dbClient = new SQLiteWrapper(db);
     logger.info(`${whereIsAPI("startup")} SQLite database is ready`);
   }
+  isInitialized = true;
 }
 
 async function initPgConnection() : Promise<postgres.Sql> {
@@ -86,4 +88,17 @@ async function initPgConnection() : Promise<postgres.Sql> {
   }
 }
 
-export { dbClient };
+/**
+ * Gets the database client instance.
+ *
+ * @returns {DatabaseWrapper} The database client
+ * @throws {AppError} If database is not initialized
+ */
+export function getDbClient(): DatabaseWrapper {
+  if (!isInitialized || !dbClient) {
+    throw new AppError("500-01", "ERR-DBUTIL-C - Database client not initialized. ");
+  }
+  return dbClient;
+}
+
+// export { dbClient };

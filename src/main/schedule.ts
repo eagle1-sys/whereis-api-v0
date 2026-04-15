@@ -8,7 +8,7 @@
  * @copyright (c) 2025, the Eagle1 authors
  * @license BSD 3-Clause License
  */
-import { dbClient } from "../db/dbutil.ts";
+import { getDbClient } from "../db/dbutil.ts";
 import {whereIsAPI, logger} from "../tools/logger.ts";
 import { requestWhereIs } from "./gateway.ts";
 import { AppError, Entity, OperatorRegistry, TrackingID } from "./model.ts";
@@ -35,7 +35,7 @@ Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
  */
 Deno.cron("Record active tracking NO", {hour:2, minute:0}, async () => {
   try {
-    const inProcessTrackingNums: Record<string, unknown> = await dbClient.getInProcessingTrackingNums();
+    const inProcessTrackingNums: Record<string, unknown> = await getDbClient().getInProcessingTrackingNums();
     const activeTrackingNo = Object.keys(inProcessTrackingNums).length;
     const comment = `${new Date().toISOString().slice(0, 10)}: Daily ${activeTrackingNo} active tracking numbers`;
     logger.info(`${whereIsAPI("usage_report", "Usage")} ${comment}`);
@@ -60,7 +60,7 @@ Deno.cron("Record active tracking NO", {hour:2, minute:0}, async () => {
 async function syncRoutes() {
   let inProcessTrackingNums: Record<string, unknown>;
   try {
-    inProcessTrackingNums = await dbClient.getInProcessingTrackingNums();
+    inProcessTrackingNums = await getDbClient().getInProcessingTrackingNums();
     logger.info(`${whereIsAPI("data_monitor")} Fetching in-process tracking numbers: ${Object.keys(inProcessTrackingNums).length} tracking numbers`);
 
     // Group tracking numbers by operator
@@ -156,11 +156,11 @@ async function processTrackingIds(operator: string, trackingIds: TrackingID[], p
 
   // step 2: compare eventIds in the database and fresh eventIds
   for (const entity of entities) {
-    const eventIdsInDb: string[] = await dbClient.queryEventIds(TrackingID.parse(entity.id));
+    const eventIdsInDb: string[] = await getDbClient().queryEventIds(TrackingID.parse(entity.id));
     // update the database on-demand
     const {dataChanged, eventIdsNew, eventIdsToBeRemoved} = entity.compare(eventIdsInDb);
     if (dataChanged) {
-      await dbClient.updateEntity(entity, updateMethod, eventIdsNew, eventIdsToBeRemoved);
+      await getDbClient().updateEntity(entity, updateMethod, eventIdsNew, eventIdsToBeRemoved);
     }
   }
 }
