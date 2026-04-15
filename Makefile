@@ -9,6 +9,7 @@ IMAGE      := local/$(IMAGE_NAME):$(IMAGE_TAG)
 
 # Database type: 'sqlite' (default) or 'postgres'. Controls DB initialization.
 DB_TYPE ?= sqlite
+APP_VERSION := $(shell git describe --abbrev=0 --tags 2>/dev/null || echo "unknown")
 APP_BUILD := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 APP_BUILD_DATE := $(shell date -u +"%Y-%m-%d")
 
@@ -99,7 +100,7 @@ init_db: check_docker config/create-whereis-db.sql # -- Initialize the postgres 
 
 build: check_docker Dockerfile docker-compose.yaml ## Build whereis-api docker image
 	@echo "=> Building Docker image with tag: $(IMAGE) for DB_TYPE=$(DB_TYPE)"
-	@docker build --build-arg APP_BUILD=$(APP_BUILD) --build-arg APP_BUILD_DATE=$(APP_BUILD_DATE) -t $(IMAGE) .
+	@docker build --build-arg APP_VERSION=$(APP_VERSION)  --build-arg APP_BUILD=$(APP_BUILD) --build-arg APP_BUILD_DATE=$(APP_BUILD_DATE) -t $(IMAGE) .
 
 start: check_docker ## Start api and postgres services
 	@echo "=> Starting services for DB_TYPE=$(DB_TYPE) using $(COMPOSE_FILE)..."
@@ -108,7 +109,7 @@ start: check_docker ## Start api and postgres services
 
 update: build ## Build whereis-api docker image and restart api and postgres services
 	@echo "=> Restarting services for DB_TYPE=$(DB_TYPE) using $(COMPOSE_FILE)..."
-	@APP_BUILD=$(APP_BUILD) APP_BUILD_DATE=$(APP_BUILD_DATE) docker compose -f $(COMPOSE_FILE) up $(COMPOSE_SERVICES) -d
+	@APP_VERSION=$(APP_VERSION) APP_BUILD=$(APP_BUILD) APP_BUILD_DATE=$(APP_BUILD_DATE) docker compose -f $(COMPOSE_FILE) up $(COMPOSE_SERVICES) -d
 	@$(MAKE) status
 
 test: check_docker ## Run 'deno task test' in the api container

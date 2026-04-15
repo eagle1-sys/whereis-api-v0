@@ -44,15 +44,6 @@ export async function initApp(): Promise<void> {
  * @throws {Error} If the `.env` file cannot be loaded or parsed.
  */
 export async function loadEnv(): Promise<void> {
-  try {
-    const denoJson = JSON.parse(await Deno.readTextFile("deno.json"));
-    if (denoJson.version) {
-      Deno.env.set("APP_VERSION", denoJson.version);
-    }
-  } catch (_err) {
-    // The deno.json file may not exist.
-  }
-
   // Set environment variables from the `.env` file if not already set
   const env = await load({ envPath: "./.env" });
   for (const [key, value] of Object.entries(env)) {

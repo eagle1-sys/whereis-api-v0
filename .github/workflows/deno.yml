@@ -27,6 +27,7 @@ jobs:
       - name: Set build variables
         id: build_vars
         run: |
+          echo "APP_VERSION=$(git describe --abbrev=0 --tags)" >> $GITHUB_OUTPUT
           echo "APP_BUILD=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
           echo "APP_BUILD_DATE=$(date -u +"%Y-%m-%d")" >> $GITHUB_OUTPUT
           echo "Build info: $(git rev-parse --short HEAD) at $(date -u +"%Y-%m-%d")"
@@ -34,6 +35,7 @@ jobs:
       - name: Deploy app
         run: |
           flyctl deploy --remote-only -a whereis-api-v0 \
+            --build-arg APP_VERSION=${{ steps.build_vars.outputs.APP_VERSION }} \
             --build-arg APP_BUILD=${{ steps.build_vars.outputs.APP_BUILD }} \
             --build-arg APP_BUILD_DATE=${{ steps.build_vars.outputs.APP_BUILD_DATE }}
 
