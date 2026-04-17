@@ -28,7 +28,10 @@ import {initConnection} from "../db/dbutil.ts";
 export async function initApp(): Promise<void> {
   await loadEnv(); // load environment variable first
 
-  logger.info(`${whereIsAPI("startup")} Whereis API release ${Deno.env.get("APP_BUILD")}, build on ${Deno.env.get("APP_BUILD_DATE")} (${Deno.env.get("APP_ENV")})`);
+  const appVersion = Deno.env.get("APP_VERSION") ?? "unknown";
+  const appBuild = Deno.env.get("APP_BUILD") ?? "unknown";
+  const appBuildDate = Deno.env.get("APP_BUILD_DATE") ?? "unknown";
+  logger.info(`${whereIsAPI("startup")} Whereis API ${appVersion}; build ${appBuild}, ${appBuildDate} (${Deno.env.get("APP_ENV")})`);
   logger.info(`${whereIsAPI("startup")} deno ${Deno.version.deno}, setting: ${navigator.hardwareConcurrency} threads.`);
 
   await loadMetaData(); // load file system data

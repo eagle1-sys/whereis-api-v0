@@ -13,7 +13,7 @@ function main(): void {
   const appBuild = Deno.env.get("APP_BUILD") ?? "unknown";
   const appBuildDate = Deno.env.get("APP_BUILD_DATE") ?? "unknown";
 
-  console.log(`whereis-api ${appVersion}, ${appBuild}, build on ${appBuildDate}`);
+  console.log(`whereis-api ${appVersion}; build ${appBuild}, ${appBuildDate}`);
   Deno.exit(0);
 }
 
