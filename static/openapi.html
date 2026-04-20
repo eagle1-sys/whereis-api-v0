@@ -1,25 +1,26 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>API Docs</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        :root {
-            --font-sans: -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-            --font-mono: ui-monospace, Menlo, Monaco, "PT Mono", "Slot Mono", "JetBrains Mono", "Source Code Pro", "Fira Mono", Consolas, "Courier New", monospace;
-        }
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Eagle1 Whereis API v0 Docs</title>
+    <meta name="description" content="API reference documentation for Eagle1 Whereis API v0.">
+    <meta name="theme-color" content="#ffffff">
+  </head>
+  <body>
+    <main>
+      <noscript>
+        This API documentation requires JavaScript to load.
+      </noscript>
 
-        html, body {
-            font-family: var(--font-sans) !important;
-        }
+      <div id="app" aria-label="API reference"></div>
+    </main>
 
-        * {
-            font-family: var(--font-mono) !important;
-        }
-    </style>
-</head>
-<body>
-<script id="api-reference" data-url="/v0/openapi.yaml"></script>
-<script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
-</body>
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+    <script>
+      Scalar.createApiReference('#app', {
+        url: '/v0/openapi.yaml'
+      })
+    </script>
+  </body>
 </html>
