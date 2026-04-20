@@ -4,23 +4,70 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Eagle1 Whereis API v0 Docs</title>
-    <meta name="description" content="API reference documentation for Eagle1 Whereis API v0.">
-    <meta name="theme-color" content="#ffffff">
+    <meta
+      name="description"
+      content="API reference documentation for Eagle1 Whereis API v0."
+    >
+
+    <!-- Barlow -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    >
+
+    <!-- Maple Mono -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@fontsource/maple-mono/index.css"
+    >
+
+    <style>
+      :root {
+        --font-body: "Barlow", sans-serif;
+        --font-mono: "Maple Mono", monospace;
+
+        --scalar-font: "Barlow", sans-serif;
+        --scalar-font-code: "Maple Mono", monospace;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        min-height: 100%;
+        font-family: var(--font-body);
+      }
+
+      body {
+        min-height: 100vh;
+      }
+
+      main,
+      #app {
+        min-height: 100vh;
+      }
+
+      code,
+      pre,
+      kbd,
+      samp {
+        font-family: var(--font-mono);
+      }
+    </style>
   </head>
   <body>
-    <main>
-      <noscript>
-        This API documentation requires JavaScript to load.
-      </noscript>
-
-      <div id="app" aria-label="API reference"></div>
+    <main id="app" aria-label="API reference">
+      <noscript>This API documentation requires JavaScript to load.</noscript>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
     <script>
       Scalar.createApiReference('#app', {
-        url: '/v0/openapi.yaml'
-      })
+        url: '/v0/openapi.yaml',
+        withDefaultFonts: false
+      });
     </script>
   </body>
 </html>
