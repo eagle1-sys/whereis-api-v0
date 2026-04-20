@@ -522,7 +522,7 @@ export class Fdx implements OperatorModule {
       return undefined;
     }
 
-    entity.uuid = "eg1_" + crypto.randomUUID();
+    entity.uuid = crypto.randomUUID();
     entity.id = trackingId.toString();
     entity.params = {};
     entity.type = "waybill";
