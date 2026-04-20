@@ -9,17 +9,17 @@
             --font-mono: ui-monospace, Menlo, Monaco, "PT Mono", "Slot Mono", "JetBrains Mono", "Source Code Pro", "Fira Mono", Consolas, "Courier New", monospace;
         }
 
-        html, body, redoc {
+        html, body {
             font-family: var(--font-sans) !important;
         }
 
-        redoc * {
+        * {
             font-family: var(--font-mono) !important;
         }
     </style>
 </head>
 <body>
-<redoc spec-url="/v0/openapi.yaml"></redoc>
-<script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+<script id="api-reference" data-url="/v0/openapi.yaml"></script>
+<script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
 </body>
 </html>
