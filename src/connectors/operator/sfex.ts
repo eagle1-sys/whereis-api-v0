@@ -319,7 +319,7 @@ export class Sfex implements OperatorModule {
     }
 
     const entity: Entity = new Entity();
-    entity.uuid = "eg1_" + crypto.randomUUID();
+    entity.uuid = crypto.randomUUID();
     entity.id = trackingId.toString();
     entity.type = "waybill";
     entity.usePull = true;

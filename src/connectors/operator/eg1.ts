@@ -61,7 +61,7 @@ export class Eg1 implements OperatorModule{
             const entity = new Entity();
 
             // Generate entity properties
-            entity.uuid = "eg1_" + crypto.randomUUID();
+            entity.uuid = crypto.randomUUID();
             entity.id = `${operatorCode}-${trackingNum}`;
             entity.type = "waybill";
             entity.usePull = false;
