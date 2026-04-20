@@ -21,6 +21,22 @@ deno check .
 deno lint
 CMD
 
+# Create temp warmup file to trigger the download/cache
+RUN <<EOF
+cat > /tmp/warmup_sqlite.ts <<'EOT'
+import { Database } from "jsr:@db/sqlite";
+
+console.log("=== Warming up @db/sqlite prebuilt library ===");
+const db = new Database(":memory:");
+console.log("SQLite version:", db.version);
+db.close();
+console.log("✅ SQLite prebuilt library cached successfully");
+EOT
+EOF
+
+# Run warmup with necessary permission
+RUN deno run --allow-ffi --allow-env --allow-read --allow-write --allow-net /tmp/warmup_sqlite.ts
+
 ENV PORT=8037
 
 # Accept build argument
