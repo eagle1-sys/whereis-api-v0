@@ -52,7 +52,7 @@ const response = await fetch(url, {
   "entity": {
     "id": "fdx-888877776666",
     "type": "waybill",
-    "uuid": "7e3f6f06-2710-4225-8067-62bebfc4x45c",
+    "uuid": "37ebed64-f8fb-457b-be21-5df1f519fbc4",
     "createdAt": "2024-11-11T14:16:48-06:00",
     "additional": {
       "origin": "San Francisco CA United States",
