@@ -19,7 +19,7 @@ paths:
           description: Tracking ID in format {operator}-{trackingNumber}
           schema:
             type: string
-            example: "fdx-888877776666"
+            example: "sfex-SF888877776666"
         - name: phonenum
           in: query
           required: false
@@ -50,26 +50,24 @@ paths:
                 $ref: '#/components/schemas/TrackingResponse'
               example:
                 entity:
-                  id: "fdx-888877776666"
+                  id: "sfex-SF888877776666"
                   type: "waybill"
-                  uuid: "eg1_37ebed64-f8fb-457b-be21-5df1f519fbc4"
+                  uuid: "37ebed64-f8fb-457b-be21-5df1f519fbc4"
                   createdAt: "2024-11-11T14:16:48-06:00"
                   additional:
-                    origin: "San Francisco CA United States"
-                    destination: "CENTRAL  Hong Kong SAR, China"
                     isCrossBorder: true
                     processingTimeMs: 3.7
                 events:
                   - status: 3000
                     what: "Transport Bill Created"
-                    whom: "FedEx"
+                    whom: "SF Express"
                     when: "2024-11-11T14:16:48-06:00"
                     where: "Customer location"
-                    notes: "Shipment information sent to FedEx"
+                    notes: "Shipment information sent to SF Express"
                     additional:
-                      trackingNum: "888877776666"
-                      operatorCode: "fdx"
-                      dataProvider: "FedEx"
+                      trackingNum: "SF888877776666"
+                      operatorCode: "sfex"
+                      dataProvider: "SF Express"
                       updateMethod: "manual-pull"
                       updatedAt: "2025-02-20T12:23:43.892Z"
         '400':
@@ -96,7 +94,7 @@ paths:
           description: Tracking ID in format {operator}-{trackingNumber}
           schema:
             type: string
-            example: "fdx-888877776666"
+            example: "sfex-SF888877776666"
         - name: phonenum
           in: query
           required: false
@@ -249,14 +247,14 @@ components:
         id:
           type: string
           description: Tracking ID in slug format
-          example: "fdx-888877776666"
+          example: "sfex-SF888877776666"
         type:
           type: string
           example: "waybill"
         uuid:
           type: string
           description: Unique identifier
-          example: "eg1_37ebed64-f8fb-457b-be21-5df1f519fbc4"
+          example: "37ebed64-f8fb-457b-be21-5df1f519fbc4"
         createdAt:
           type: string
           format: date-time
