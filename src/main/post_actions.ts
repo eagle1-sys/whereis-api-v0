@@ -17,7 +17,7 @@ export function postAction(entity: Entity): void {
     const additionalData = entity.additional || {};
     const missingStatuses = entity.getMissingCriticalStatuses();
     for (const status of missingStatuses) {
-        // Ingnore 3300/3400 status for FDX if it's not cross border
+        // Ignore 3300/3400 status for FDX if it's not cross border
         if (entity.id.startsWith("fdx") && additionalData.isCrossBorder === undefined && (status === 3300 || status === 3400)) {
             continue;
         }
