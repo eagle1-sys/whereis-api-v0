@@ -23,7 +23,7 @@ paths:
         - name: phonenum
           in: query
           required: false
-          description: Last 4 digits of recipient phone number (required for sfex operator)
+          description: Last 4 digits of recipient phone number (only required for the sfex operator)
           schema:
             type: string
             example: "6993"
