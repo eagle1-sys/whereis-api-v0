@@ -9,6 +9,7 @@
  */
 
 import { crypto } from "@std/crypto";
+import { v7 as uuidv7 } from "@std/uuid";
 import { config } from "../../../config.ts";
 import {whereIsAPI, logger} from "../../tools/logger.ts";
 import {DataUpdateMethod, Entity, Event, StatusCode, TrackingID, AppError} from "../../main/model.ts";
@@ -319,7 +320,7 @@ export class Sfex implements OperatorModule {
     }
 
     const entity: Entity = new Entity();
-    entity.uuid = crypto.randomUUID();
+    entity.uuid = uuidv7.generate();
     entity.id = trackingId.toString();
     entity.type = "waybill";
     entity.usePull = true;

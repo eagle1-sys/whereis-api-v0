@@ -8,6 +8,7 @@
  * @license BSD 3-Clause License
  */
 
+import { v7 as uuidv7 } from "@std/uuid";
 import {AppError, DataUpdateMethod, Entity, Event, ExceptionCode, StatusCode, TrackingID,} from "../../main/model.ts";
 import {config} from "../../../config.ts";
 import {whereIsAPI, logger} from "../../tools/logger.ts";
@@ -522,7 +523,7 @@ export class Fdx implements OperatorModule {
       return undefined;
     }
 
-    entity.uuid = crypto.randomUUID();
+    entity.uuid = uuidv7.generate();
     entity.id = trackingId.toString();
     entity.params = {};
     entity.type = "waybill";

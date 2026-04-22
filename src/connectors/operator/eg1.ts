@@ -7,6 +7,7 @@
  * @license BSD 3-Clause License
  */
 
+import { v7 as uuidv7 } from "@std/uuid";
 import {AppError, Entity, Event, TrackingID,} from "../../main/model.ts";
 import {OperatorModule} from "../../main/operator.ts";
 
@@ -61,7 +62,7 @@ export class Eg1 implements OperatorModule{
             const entity = new Entity();
 
             // Generate entity properties
-            entity.uuid = crypto.randomUUID();
+            entity.uuid = uuidv7.generate();
             entity.id = `${operatorCode}-${trackingNum}`;
             entity.type = "waybill";
             entity.usePull = false;
