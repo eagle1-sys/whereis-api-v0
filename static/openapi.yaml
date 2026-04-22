@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Eagle1 Whereis API v0
-  description: Built for developers. Fully open-source. Track any shipment with a simple API query.
+  description: Built for developers. Fully open-source. Track any shipment with one simple API query.
   version: 0.3.0
 servers:
   - url: https://api.eg1.io
@@ -10,8 +10,8 @@ servers:
 paths:
   /v0/whereis/{id}:
     get:
-      summary: Retrieve complete tracking history for a shipment
-      description: Returns both entity metadata and full event timeline for a shipment
+      summary: Retrieve shipment tracking history
+      description: Returns shipment metadata and logistics events in chronological order.
       parameters:
         - name: id
           in: path
