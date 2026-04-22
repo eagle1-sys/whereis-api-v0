@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Eagle1 Whereis API v0
-  description: Built for developers. Fully open-source. Track any shipment with one simple API query.
+  description: Built for developers. Fully open-source. Track any shipment with one simple API.
   version: 0.3.0
 servers:
   - url: https://api.eg1.io
