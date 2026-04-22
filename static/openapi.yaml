@@ -52,7 +52,7 @@ paths:
                 entity:
                   id: "fdx-888877776666"
                   type: "waybill"
-                  uuid: "eg1_37ebed64-f8fb-457b-be21-5df1f519fbc4"
+                  uuid: "37ebed64-f8fb-457b-be21-5df1f519fbc4"
                   createdAt: "2024-11-11T14:16:48-06:00"
                   additional:
                     origin: "San Francisco CA United States"
@@ -256,7 +256,7 @@ components:
         uuid:
           type: string
           description: Unique identifier
-          example: "eg1_37ebed64-f8fb-457b-be21-5df1f519fbc4"
+          example: "37ebed64-f8fb-457b-be21-5df1f519fbc4"
         createdAt:
           type: string
           format: date-time
