@@ -13,6 +13,7 @@ import {whereIsAPI, logger} from "../tools/logger.ts";
 import { requestWhereIs } from "./gateway.ts";
 import { AppError, Entity, OperatorRegistry, TrackingID } from "./model.ts";
 import {initApp} from "./app.ts";
+import {postAction} from "./post_actions.ts";
 
 await initApp();
 
@@ -162,6 +163,9 @@ async function processTrackingIds(operator: string, trackingIds: TrackingID[], p
     if (dataChanged) {
       await getDbClient().updateEntity(entity, updateMethod, eventIdsNew, eventIdsToBeRemoved);
     }
+
+    // post-processing
+    postAction(entity);
   }
 }
 

@@ -13,6 +13,7 @@ import { getDbClient} from "../db/dbutil.ts";
 import {whereIsAPI, logger} from "../tools/logger.ts";
 import {getExtraParams, processPushData, requestWhereIs, validateParams, validateStoredEntity} from "./gateway.ts";
 import {ApiParams, Entity, OperatorRegistry, TrackingID, AppError,} from "./model.ts";
+import {postAction} from "./post_actions.ts";
 
 declare module "hono" {
   // noinspection JSUnusedGlobalSymbols
@@ -384,6 +385,9 @@ async function refreshEntityFromProvider(trackingID: TrackingID, parsedParams: R
   const entities = await requestWhereIs(trackingID.operator, [trackingID], parsedParams, "manual-pull");
   if (entities.length === 1) {
     await getDbClient().refreshEntity(trackingID, entities[0] as Entity);
+
+    // post-processing
+    postAction(entities[0]);
   }
   return entities.length === 0 ? undefined : entities[0];
 }
@@ -399,6 +403,9 @@ async function getEntityFromDbOrProvider(trackingID: TrackingID, parsedParams: R
     if (entities.length === 1) {
       entity = entities[0];
       await getDbClient().insertEntity(entity as Entity);
+
+      // post-processing
+      postAction(entity);
     }
   }
 
@@ -420,7 +427,7 @@ async function getEntityFromDbOrProvider(trackingID: TrackingID, parsedParams: R
  */
 async function getStatus(trackingID: TrackingID, queryParams: Record<string, string>): Promise<Record<string, unknown> | undefined> {
   // Try to get entity from database first
-  const entity = await getDbClient().queryEntity(trackingID);
+  let entity = await getDbClient().queryEntity(trackingID);
   if (entity) {
     // Throws AppError if validation fails
     validateStoredEntity(trackingID.operator, entity, queryParams);
@@ -434,9 +441,13 @@ async function getStatus(trackingID: TrackingID, queryParams: Record<string, str
     throw new AppError("404-01", `ERR-SERVER-K: Received empty data from source ${trackingID.operator}`); // Not found in data provider
   }
 
-  await getDbClient().insertEntity(result[0] as Entity);
+  entity = result[0] as Entity;
+  await getDbClient().insertEntity(entity);
 
-  return (result[0] as Entity).getLastStatus();
+  // post-processing
+  postAction(entity);
+
+  return (entity).getLastStatus();
 }
 
 /**
