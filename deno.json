@@ -17,6 +17,7 @@
     "@std/bytes": "jsr:@std/bytes",
     "@std/fmt": "jsr:@std/fmt",
     "@std/encoding": "jsr:@std/encoding",
+    "@std/uuid": "jsr:@std/uuid",
     "hono": "jsr:@hono/hono@^4",
     "postgresjs": "https://deno.land/x/postgresjs/mod.js",
     "@cross/log": "jsr:@cross/log",

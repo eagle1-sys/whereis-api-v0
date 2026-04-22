@@ -10,7 +10,6 @@
 import { HonoRequest } from "hono/request";
 import {AppError, Entity, OperatorRegistry, TrackingID} from "./model.ts";
 import {OperatorModule} from "./operator.ts";
-import {whereIsAPI, logger} from "../tools/logger.ts";
 
 // Define a type for the operator status
 type OperatorStatus = {
@@ -95,23 +94,7 @@ export function validateStoredEntity(operator: string, entity: Entity, params: R
 export async function requestWhereIs(operator: string, trackingIds: TrackingID[], extraParams: Record<string, string>, updateMethod: string,): Promise<Entity[]> {
   const operatorModule = getOperatorModule(operator);
 
-  const entities: Entity[] = await operatorModule.pullFromSource(trackingIds, extraParams, updateMethod);
-
-  // whether entity is missing critical status code
-  for (const entity of entities) {
-    if (!entity.isStatusExist(3500)) continue;
-
-    const additionalData = entity.additional || {};
-    const missingStatuses = entity.getMissingCriticalStatuses();
-    for (const status of missingStatuses) {
-      // Ingnore 3300/3400 status for FDX if it's not cross border
-      if (entity.id.startsWith("fdx") && additionalData.isCrossBorder === undefined && (status === 3300 || status === 3400)) {
-        continue;
-      }
-      logger.warn(`${whereIsAPI("data_monitor")} Entity ${entity.id} missing critical status : ${status}`);
-    }
-  }
-  return entities;
+  return await operatorModule.pullFromSource(trackingIds, extraParams, updateMethod);
 }
 
 /**
