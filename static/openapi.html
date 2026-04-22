@@ -1,25 +1,72 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>API Docs</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Eagle1 Whereis API v0 Docs</title>
+    <meta
+      name="description"
+      content="API reference documentation for Eagle1 Whereis API v0."
+    >
+
+    <!-- Barlow -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    >
+
+    <!-- Maple Mono -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@fontsource/maple-mono/index.css"
+    >
+
     <style>
-        :root {
-            --font-sans: -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-            --font-mono: ui-monospace, Menlo, Monaco, "PT Mono", "Slot Mono", "JetBrains Mono", "Source Code Pro", "Fira Mono", Consolas, "Courier New", monospace;
-        }
+      :root {
+        --font-body: "Barlow", sans-serif;
+        --font-mono: "Maple Mono", monospace;
 
-        html, body {
-            font-family: var(--font-sans) !important;
-        }
+        --scalar-font: "Barlow", sans-serif;
+        --scalar-font-code: "Maple Mono", monospace;
+      }
 
-        * {
-            font-family: var(--font-mono) !important;
-        }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        min-height: 100%;
+        font-family: var(--font-body);
+      }
+
+      body {
+        min-height: 100vh;
+      }
+
+      main,
+      #app {
+        min-height: 100vh;
+      }
+
+      code,
+      pre,
+      kbd,
+      samp {
+        font-family: var(--font-mono);
+      }
     </style>
-</head>
-<body>
-<script id="api-reference" data-url="/v0/openapi.yaml"></script>
-<script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
-</body>
+  </head>
+  <body>
+    <noscript>This API documentation requires JavaScript to load.</noscript>
+    <main id="app" aria-label="API reference"></main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+    <script>
+      Scalar.createApiReference('#app', {
+        url: '/v0/openapi.yaml',
+        withDefaultFonts: false
+      });
+    </script>
+  </body>
 </html>
