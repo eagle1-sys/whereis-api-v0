@@ -258,7 +258,7 @@ app.get("/v0/:filename", async (c: Context) => {
     });
   } catch (error) {
     if (error instanceof Deno.errors.NotFound) {
-      throw new AppError("400-08", `ERR-SERVER-O: FILE_NOT_FOUND: ${filename}`);
+      throw new AppError("404-04", `ERR-SERVER-O: FILE_NOT_FOUND: ${filename}`);
     }
 
     const errorMessage = error instanceof Error ? error.message : String(error);
