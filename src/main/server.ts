@@ -117,72 +117,6 @@ app.use("/v0/whereis/:id", customBearerAuth);
 app.use("/v0/push/:operator", customBearerAuth);
 
 /**
- * GET /static/:filename - Serves static HTML and YAML files
- *
- * This endpoint serves static files (HTML and YAML) from the static directory.
- * It supports serving documentation, API specifications, and other static resources.
- *
- * @param c - The Hono context object containing request and response information.
- * @returns A Promise resolving to a Response object with the file content.
- *
- * URL Parameters:
- *   - filename: The name of the file to serve (must end with .html or .yaml/.yml)
- *
- * Security:
- *   - Only allows files with .html, .yaml, or .yml extensions
- *   - Prevents directory traversal attacks by validating filename
- *
- * Example usage:
- *   GET /v0/api-docs.html
- *   GET /v0/openapi.yaml
- */
-app.get("/v0/:filename", async (c: Context) => {
-  const filename = c.req.param("filename");
-
-  // Validate filename to prevent directory traversal
-  if (!filename || filename.includes("..") || filename.includes("/") || filename.includes("\\")) {
-    throw new AppError("400-01", "ERR-SERVER-M: INVALID_FILENAME");
-  }
-
-  // Only allow specific file extensions
-  const normalizedFilename = filename.toLowerCase();
-  const allowedExtensions = [".html", ".yaml", ".yml"];
-  const hasValidExtension = allowedExtensions.some(ext => normalizedFilename.endsWith(ext));
-  if (!hasValidExtension) {
-    throw new AppError("400-01", "ERR-SERVER-N: UNSUPPORTED_FILE_TYPE");
-  }
-
-  try {
-    // Construct the file path (adjust the base path according to your project structure)
-    const staticDir = new URL("../../static/", import.meta.url).pathname;
-    const filePath = `${staticDir}${filename}`;
-
-    // Read the file
-    const fileContent = await Deno.readTextFile(filePath);
-
-    // Determine content type based on file extension
-    let contentType = "text/plain; charset=utf-8";
-    if (normalizedFilename.endsWith(".html")) {
-      contentType = "text/html; charset=utf-8";
-    } else if (normalizedFilename.endsWith(".yaml") || normalizedFilename.endsWith(".yml")) {
-      contentType = "application/yaml; charset=utf-8";
-    }
-
-    return c.body(fileContent, 200, {
-      "Content-Type": contentType,
-    });
-  } catch (error) {
-    if (error instanceof Deno.errors.NotFound) {
-      throw new AppError("404-01", `ERR-SERVER-O: FILE_NOT_FOUND: ${filename}`);
-    }
-
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`${whereIsAPI("exception")} Failed to read static file ${filename}: ${errorMessage}`);
-    throw new AppError("500-01", `ERR-SERVER-P: FILE_READ_ERROR: ${filename}`);
-  }
-});
-
-/**
  * GET /v0/status/:id? - Retrieves the status for a given tracking ID
  *
  * This endpoint handles GET requests to retrieve the status of a shipment based on its tracking ID.
@@ -212,6 +146,125 @@ app.get("/v0/status/:id?", async (c: Context) => {
   return c.body(JSON.stringify(status, null, 2), 200, {
     "Content-Type": "application/json; charset=utf-8",
   });
+});
+
+/**
+ * GET /v0/operators - Retrieves a list of all active logistics operators
+ *
+ * This endpoint returns information about all logistics carriers/operators currently
+ * supported by the system. It provides metadata about each operator including their
+ * code, display name, and operational status.
+ *
+ * @param c - The Hono context object containing request and response information.
+ * @returns A Response object with JSON containing the list of active operators.
+ *   - Returns a 200 status code with operator information as pretty-printed JSON.
+ *
+ * Authentication:
+ *   - No authentication required (public endpoint)
+ *
+ * Response Format:
+ *   {
+ *     "operators": [
+ *       {
+ *         "code": "fdx",
+ *         "name": "FedEx",
+ *         "active": true
+ *       },
+ *       {
+ *         "code": "sfex",
+ *         "name": "SF Express",
+ *         "active": true
+ *       },
+ *       {
+ *         "code": "eg1",
+ *         "name": "Eagle1",
+ *         "active": true
+ *       }
+ *     ]
+ *   }
+ *
+ * Example usage:
+ *   GET /v0/operators
+ *
+ * Use cases:
+ *   - Discovering available carriers before making tracking requests
+ *   - Building dynamic UI elements that list supported operators
+ *   - Validating operator codes before submitting tracking queries
+ *   - Monitoring system capabilities and operator availability
+ */
+app.get("/v0/operators", (c: Context) => {
+  const output = {
+    operators: OperatorRegistry.getActiveOperators(),
+  };
+  return c.json(output, 200, {
+    "Content-Type": "application/json; charset=utf-8",
+  });
+});
+
+/**
+ * GET /static/:filename - Serves static HTML and YAML files
+ *
+ * This endpoint serves static files (HTML and YAML) from the static directory.
+ * It supports serving documentation, API specifications, and other static resources.
+ *
+ * @param c - The Hono context object containing request and response information.
+ * @returns A Promise resolving to a Response object with the file content.
+ *
+ * URL Parameters:
+ *   - filename: The name of the file to serve (must end with .html or .yaml/.yml)
+ *
+ * Security:
+ *   - Only allows files with .html, .yaml, or .yml extensions
+ *   - Prevents directory traversal attacks by validating filename
+ *
+ * Example usage:
+ *   GET /v0/api-docs.html
+ *   GET /v0/openapi.yaml
+ */
+app.get("/v0/:filename", async (c: Context) => {
+  const filename = c.req.param("filename");
+
+  // Validate filename to prevent directory traversal
+  if (!filename || filename.includes("..") || filename.includes("/") || filename.includes("\\")) {
+    throw new AppError("400-08", "ERR-SERVER-M: INVALID_FILENAME");
+  }
+
+  // Only allow specific file extensions
+  const normalizedFilename = filename.toLowerCase();
+  const allowedExtensions = [".html", ".yaml", ".yml"];
+  const hasValidExtension = allowedExtensions.some(ext => normalizedFilename.endsWith(ext));
+  if (!hasValidExtension) {
+    throw new AppError("400-08", "ERR-SERVER-N: UNSUPPORTED_FILE_TYPE");
+  }
+
+  try {
+    // Construct the file path (adjust the base path according to your project structure)
+    const staticDir = new URL("../../static/", import.meta.url).pathname;
+    const filePath = `${staticDir}${filename}`;
+
+    // Read the file
+    const fileContent = await Deno.readTextFile(filePath);
+
+    // Determine content type based on file extension
+    let contentType = "text/plain; charset=utf-8";
+    if (normalizedFilename.endsWith(".html")) {
+      contentType = "text/html; charset=utf-8";
+    } else if (normalizedFilename.endsWith(".yaml") || normalizedFilename.endsWith(".yml")) {
+      contentType = "application/yaml; charset=utf-8";
+    }
+
+    return c.body(fileContent, 200, {
+      "Content-Type": contentType,
+    });
+  } catch (error) {
+    if (error instanceof Deno.errors.NotFound) {
+      throw new AppError("404-04", `ERR-SERVER-O: FILE_NOT_FOUND: ${filename}`);
+    }
+
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(`${whereIsAPI("exception")} Failed to read static file ${filename}: ${errorMessage}`);
+    throw new AppError("500-01", `ERR-SERVER-P: FILE_READ_ERROR: ${filename}`);
+  }
 });
 
 /**
@@ -317,15 +370,6 @@ app.post("/v0/push/:operator", async (c: Context) => {
     failedEntities: failed
   };
   return c.json(result, 200, {
-    "Content-Type": "application/json; charset=utf-8",
-  });
-});
-
-app.get("/v0/operators", (c: Context) => {
-  const output = {
-    operators: OperatorRegistry.getActiveOperators(),
-  };
-  return c.json(output, 200, {
     "Content-Type": "application/json; charset=utf-8",
   });
 });
