@@ -38,11 +38,11 @@ export interface DatabaseWrapper {
   /**
    * Inserts a new tracking entity into the database.
    * @param entity - The entity object containing tracking information and events
-   * @returns Promise resolving to:
-   *          - 1 if the entity and its events were successfully inserted
-   *          - 0 if the entity has no events or the insertion failed
+   * @returns Promise resolving to an object containing:
+   *          - entityInserted: 1 if the entity was successfully inserted, 0 otherwise
+   *          - eventsInserted: The number of events successfully inserted
    */
-  insertEntity(entity: Entity): Promise<number>;
+  insertEntity(entity: Entity): Promise<{ entityInserted: number; eventsInserted: number }>;
 
   /**
    * Completely replaces an existing entity's data with new information.
@@ -62,11 +62,12 @@ export interface DatabaseWrapper {
    * @param updateMethod - The method used to obtain the update (e.g., 'manual-pull', 'auto-pull')
    * @param eventIdsNew - Array of new event IDs to add to the entity
    * @param eventIdsToBeRemoved - Array of event IDs to remove from the entity
-   * @returns Promise resolving to:
-   *          - 1 if the update operation succeeded
-   *          - 0 if the operation failed
+   * @returns Promise resolving to an object containing:
+   *          - entityUpdated: 1 if the entity was successfully updated, 0 otherwise
+   *          - eventsInserted: The number of new events successfully inserted
+   *          - eventsDeleted: The number of events successfully deleted
    */
-  updateEntity(entity: Entity, updateMethod: string, eventIdsNew: string[], eventIdsToBeRemoved: string[]): Promise<number>;
+  updateEntity(entity: Entity, updateMethod: string, eventIdsNew: string[], eventIdsToBeRemoved: string[]): Promise<{ entityUpdated: number; eventsInserted: number; eventsDeleted: number }>;
 
   /**
    * Retrieves all event IDs associated with a tracking entity.

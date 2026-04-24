@@ -99,29 +99,30 @@ export class PostgresWrapper implements DatabaseWrapper {
    * @param entity - The Entity object to be inserted into the database.
    *                 It should contain all necessary properties such as uuid, id, type, creation time, completion status, additional data, and parameters.
    *
-   * @returns A Promise that resolves to:
-   *          - 1 if both the entity and its events were successfully inserted
-   *          - 0 if the entity has no events or the insertion failed
+   * @returns A Promise that resolves to an object containing:
+   *          - entityInserted: 1 if the entity was successfully inserted, 0 otherwise
+   *          - eventsInserted: The number of events successfully inserted
    *
    * @throws Will throw an error if the database operation fails.
    */
-  async insertEntity(entity: Entity): Promise<number> {
-    let inserted = 0;
+  async insertEntity(entity: Entity): Promise<{ entityInserted: number; eventsInserted: number }> {
+    let entityInserted = 0;
+    let eventsInserted = 0;
     const updateMethod = entity.usePull ? "manual-pull" : "push";
     if(entity.events === undefined || entity.events.length === 0) {
       logger.error(`${whereIsAPI("alert")} Entity [${entity.id}] has no events`);
-      return 0;
+      return { entityInserted: 0, eventsInserted: 0 };
     }
 
     await this.sql.begin(async (tx) => {
-       inserted = await this.insertEntityRecord(tx, entity);
+      entityInserted = await this.insertEntityRecord(tx, entity);
       // insert events
-      if (inserted === 1) {
-        await this.insertEvents(tx, entity.events, DataUpdateMethod.getDisplayText(updateMethod));
+      if (entityInserted === 1) {
+        eventsInserted = await this.insertEvents(tx, entity.events, DataUpdateMethod.getDisplayText(updateMethod));
       }
     });
 
-    return inserted;
+    return { entityInserted, eventsInserted };
   }
 
   /**
@@ -138,11 +139,16 @@ export class PostgresWrapper implements DatabaseWrapper {
    * @param updateMethod - A string describing the update method (e.g., "auto-pull" or "manual-pull")
    * @param eventIdsNew - An array of event IDs that need to be added to the entity.
    * @param eventIdsToBeRemoved - An array of event IDs that need to be removed from the entity.
-   * @returns A Promise that resolves to the number 1 upon successful completion of all update operations.
+   * @returns A Promise that resolves to an object containing:
+   *          - entityUpdated: 1 if the entity was successfully updated, 0 otherwise
+   *          - eventsInserted: The number of new events successfully inserted
+   *          - eventsDeleted: The number of events successfully deleted
    * @throws Will throw an error if any database operation fails during the transaction.
    */
-  async updateEntity(entity: Entity, updateMethod: string, eventIdsNew: string[], eventIdsToBeRemoved: string[]): Promise<number> {
-    let changed = 0;
+  async updateEntity(entity: Entity, updateMethod: string, eventIdsNew: string[], eventIdsToBeRemoved: string[]): Promise<{ entityUpdated: number; eventsInserted: number; eventsDeleted: number }> {
+    let entityUpdated = 0;
+    let eventsInserted = 0;
+    let eventsDeleted = 0;
     const updateMethodText = DataUpdateMethod.getDisplayText(updateMethod);
 
     await this.sql.begin(async (tx) => {
@@ -150,7 +156,7 @@ export class PostgresWrapper implements DatabaseWrapper {
       // step 1: update the entity record ONLY when the entity is completed
       if (entity.isCompleted()) {
         const result = await (tx as unknown as postgres.Sql)`UPDATE entities SET completed = true WHERE id = ${entity.id as string}`;
-        changed = changed + (result.count?? 0);
+        entityUpdated = result.count ?? 0;
       }
 
       // step 2: insert new events
@@ -158,8 +164,7 @@ export class PostgresWrapper implements DatabaseWrapper {
         const events: Event[] = (entity.events ?? []).filter((event) =>
             eventIdsNew.includes(event.eventId)
         );
-        const inserted = await this.insertEvents(tx, events, updateMethodText);
-        changed = changed + (inserted ?? 0);
+        eventsInserted = await this.insertEvents(tx, events, updateMethodText);
       }
 
       // step 3: remove events that are not in the updated entity
@@ -167,12 +172,12 @@ export class PostgresWrapper implements DatabaseWrapper {
         for (const eventId of eventIdsToBeRemoved) {
           logger.info(`${whereIsAPI("data_monitor")} ${updateMethod}: Delete exist event with ID ${eventId}`);
           const result = await (tx as unknown as postgres.Sql)`DELETE FROM events WHERE event_id = ${eventId}`;
-          changed = changed + (result.count?? 0);
+          eventsDeleted += result.count ?? 0;
         }
       }
     });
 
-    return changed > 0 ? 1 : 0;
+    return { entityUpdated, eventsInserted, eventsDeleted };
   }
 
   /**
@@ -343,11 +348,10 @@ export class PostgresWrapper implements DatabaseWrapper {
    *                       This is used for logging purposes.
    *
    * @returns A Promise that resolves to the number of successfully inserted events.
-   *          If no events were inserted successfully, it returns undefined.
    *
    * @throws Will throw an Error if an event object is invalid (i.e., missing eventId).
    */
-  private async insertEvents(tx: postgres.TransactionSql, events: Event[], updateMethod: string): Promise<number | undefined> {
+  private async insertEvents(tx: postgres.TransactionSql, events: Event[], updateMethod: string): Promise<number> {
     let insertedNum = 0;
     for (const event of events) {
       // Validate input
@@ -387,7 +391,7 @@ export class PostgresWrapper implements DatabaseWrapper {
           // log the info if no event_id was inserted
           logger.info(`${whereIsAPI("data_monitor")} Event with ID ${event.eventId} could not be inserted.`);
         }
-        insertedNum = insertedNum + result.count;
+        insertedNum = insertedNum + (result.count ?? 0);
       } catch (err) {
         logger.error(`${whereIsAPI("exception")} Failed to insert event with ID ${event.eventId}:`, err);
       }
