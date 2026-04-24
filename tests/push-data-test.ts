@@ -59,10 +59,9 @@ export function pushDataTest() {
         );
 
         const result = await response.json();
-        console.log(result);
         assert(
-            result.eventsReceived >= 0,
-            `Expected updated entity num >= 0, but received ${result.updatedEntities}`
+            result.eventsReceived === 3,
+            `Expected event received num >= 0, but received ${result.eventsReceived}`
         );
     });
 

@@ -112,12 +112,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
         return { entityInserted, eventsInserted };
       });
 
-      try {
-        const changes = transaction();
-        resolve(changes);
-      } catch (_err) {
-        resolve({ entityInserted: 0, eventsInserted: 0 });
-      }
+      resolve(transaction());
     });
   }
 
@@ -178,12 +173,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
         return { entityUpdated, eventsInserted, eventsDeleted };
       });
 
-      try {
-        const updated = transaction();
-        resolve(updated);
-      } catch (_err) {
-        resolve({ entityUpdated: 0, eventsInserted: 0, eventsDeleted: 0 });
-      }
+      resolve(transaction());
     });
   }
 

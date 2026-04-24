@@ -324,6 +324,7 @@ app.post("/v0/push/:operator", async (c: Context) => {
   try {
     entities = processPushData(operator, requestBody);
   } catch (error) {
+    if (error instanceof AppError) throw error;
     const errorMessage = error instanceof Error ? error.message : String(error);
     throw new AppError("500-01", `500AA: server - DATA_PROCESSING_FAILED: ${errorMessage}`);
   }
@@ -344,7 +345,7 @@ app.post("/v0/push/:operator", async (c: Context) => {
       if (eventIdsInDb.length === 0) {
         // New entity — insert it
         const changes = await getDbClient().insertEntity(entity);
-        if (changes && changes.entityInserted > 0) {
+        if (changes.entityInserted > 0) {
           createdTrackingIds.push(entity.id);
           eventsAdded += entityEventCount;
         } else {
@@ -356,10 +357,10 @@ app.post("/v0/push/:operator", async (c: Context) => {
         const { dataChanged, eventIdsNew } = entity.compare(eventIdsInDb);
         if (dataChanged && eventIdsNew.length > 0) {
           const updateResult = await getDbClient().updateEntity(entity, "push", eventIdsNew, []);
-          if (updateResult.entityUpdated > 0) {
+          if (updateResult.eventsInserted > 0 || updateResult.entityUpdated > 0) {
             updatedTrackingIds.push(entity.id);
-            eventsAdded += eventIdsNew.length;
-            eventsDuplicate += entityEventCount - eventIdsNew.length;
+            eventsAdded += updateResult.eventsInserted;
+            eventsDuplicate += entityEventCount - updateResult.eventsInserted;
           } else {
             unchangedTrackingIds.push(entity.id);
             eventsDuplicate += entityEventCount;

@@ -391,7 +391,7 @@ export class PostgresWrapper implements DatabaseWrapper {
           // log the info if no event_id was inserted
           logger.info(`${whereIsAPI("data_monitor")} Event with ID ${event.eventId} could not be inserted.`);
         }
-        insertedNum = insertedNum + result.count;
+        insertedNum = insertedNum + (result.count ?? 0);
       } catch (err) {
         logger.error(`${whereIsAPI("exception")} Failed to insert event with ID ${event.eventId}:`, err);
       }
