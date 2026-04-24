@@ -302,24 +302,7 @@ app.get("/v0/whereis/:id", async (c: Context) => {
   });
 });
 
-/**
- * POST /v0/push/:operator - Receives tracking data from external sources
- *
- * This endpoint allows authenticated clients to push tracking information directly into the system.
- * It validates the operator, processes the incoming data, and stores it in the database.
- *
- * @param c - The Hono context object containing request and response information.
- * @returns A Promise resolving to a Response object.
- *
- * URL Parameters:
- *   - operator: The carrier/operator code (e.g., 'fdx', 'sfex')
- *
- * Request Body (JSON):
- *   - The structure depends on the operator. Different operators have different data structures.
- *   - For FedEx (fdx): Expects FedEx-specific tracking data format
- *   - For SF Express (sfex): Expects SF Express-specific tracking data format
- *   - Refer to operator-specific documentation for exact schema requirements
- */
+
 app.post("/v0/push/:operator", async (c: Context) => {
   const operator = c.req.param("operator");
   // Validate operator
@@ -337,37 +320,71 @@ app.post("/v0/push/:operator", async (c: Context) => {
   }
 
   // Process valid data and convert to entities
-  const entities: Entity[] = processPushData(operator, requestBody);
+  let entities: Entity[];
+  try {
+    entities = processPushData(operator, requestBody);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new AppError("500-01", `500AA: server - DATA_PROCESSING_FAILED: ${errorMessage}`);
+  }
 
-  let updated = 0;
-  let failed = 0;
+  let eventsReceived = 0;
+  let eventsAdded = 0;
+  let eventsDuplicate = 0;
+  const createdTrackingIds: string[] = [];
+  const updatedTrackingIds: string[] = [];
+  const unchangedTrackingIds: string[] = [];
+  const failedTrackingIds: string[] = [];
+
   for (const entity of entities) {
+    const entityEventCount = entity.events?.length ?? 0;
+    eventsReceived += entityEventCount;
     try {
-      const eventIdsInDb: string[] = await getDbClient().queryEventIds(
-          TrackingID.parse(entity.id),
-      );
+      const eventIdsInDb: string[] = await getDbClient().queryEventIds(TrackingID.parse(entity.id));
       if (eventIdsInDb.length === 0) {
+        // New entity — insert it
         const changes = await getDbClient().insertEntity(entity);
-        updated = updated + (changes ?? 0);
+        if (changes && changes.entityInserted > 0) {
+          createdTrackingIds.push(entity.id);
+          eventsAdded += entityEventCount;
+        } else {
+          unchangedTrackingIds.push(entity.id);
+          eventsDuplicate += entityEventCount;
+        }
       } else {
-        // update the database on-demand
-        const {dataChanged, eventIdsNew} = entity.compare(eventIdsInDb);
+        // Existing entity — append new events only
+        const { dataChanged, eventIdsNew } = entity.compare(eventIdsInDb);
         if (dataChanged && eventIdsNew.length > 0) {
-          const updatedNum = await getDbClient().updateEntity(entity, "push", eventIdsNew, []);
-          updated = updated + updatedNum;
+          const updateResult = await getDbClient().updateEntity(entity, "push", eventIdsNew, []);
+          if (updateResult.entityUpdated > 0) {
+            updatedTrackingIds.push(entity.id);
+            eventsAdded += eventIdsNew.length;
+            eventsDuplicate += entityEventCount - eventIdsNew.length;
+          } else {
+            unchangedTrackingIds.push(entity.id);
+            eventsDuplicate += entityEventCount;
+          }
+        } else {
+          // No new events — all are duplicates
+          unchangedTrackingIds.push(entity.id);
+          eventsDuplicate += entityEventCount;
         }
       }
     } catch (error) {
-      failed = failed + 1;
+      failedTrackingIds.push(entity.id);
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error(`${whereIsAPI("exception")} Failed to store entity ${entity.id}: ${errorMessage}`);
     }
   }
 
   const result = {
-    status: "OK",
-    updatedEntities: updated,
-    failedEntities: failed
+    eventsReceived,
+    eventsAdded,
+    eventsDuplicate,
+    createdTrackingIds,
+    updatedTrackingIds,
+    unchangedTrackingIds,
+    failedTrackingIds,
   };
   return c.json(result, 200, {
     "Content-Type": "application/json; charset=utf-8",

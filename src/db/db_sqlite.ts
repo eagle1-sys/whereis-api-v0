@@ -88,32 +88,35 @@ export class SQLiteWrapper implements DatabaseWrapper {
    * Inserts a new entity into the database.
    *
    * @param entity - The Entity object to be inserted.
-   * @returns A Promise that resolves to the number of changes made in the database, or undefined if no changes were made.
+   * @returns A Promise that resolves to an object containing:
+   *          - entityInserted: 1 if the entity was successfully inserted, 0 otherwise
+   *          - eventsInserted: The number of events successfully inserted
    */
-  async insertEntity(entity: Entity): Promise<number> {
+  async insertEntity(entity: Entity): Promise<{ entityInserted: number; eventsInserted: number }> {
     const updateMethod = entity.usePull ? "manual-pull" : "push";
     if (entity.events === undefined || entity.events.length === 0) {
       logger.error(`${whereIsAPI("alert")} Entity [${entity.id}] has no events`);
-      return 0;
+      return { entityInserted: 0, eventsInserted: 0 };
     }
 
     return await new Promise((resolve, _reject) => {
       const transaction = this.db.transaction(() => {
         // insert the entity record ONLY
-        const changes = this.insertEntityRecord(this.db, entity);
+        const entityInserted = this.insertEntityRecord(this.db, entity);
+        let eventsInserted = 0;
 
         // insert the events if the entity is completed
-        if (changes === 1) {
-          this.insertEvents(this.db, entity.events, DataUpdateMethod.getDisplayText(updateMethod));
+        if (entityInserted === 1) {
+          eventsInserted = this.insertEvents(this.db, entity.events, DataUpdateMethod.getDisplayText(updateMethod));
         }
-        return changes;
+        return { entityInserted, eventsInserted };
       });
 
       try {
         const changes = transaction();
         resolve(changes);
       } catch (_err) {
-        resolve(0);
+        resolve({ entityInserted: 0, eventsInserted: 0 });
       }
     });
   }
@@ -126,10 +129,15 @@ export class SQLiteWrapper implements DatabaseWrapper {
    * @param updateMethod - A string indicating the method of update (e.g., "manual-pull" or "auto-pull").
    * @param eventIdsNew - An array of event IDs representing new events to be inserted into the database.
    * @param eventIdsToBeRemoved - An array of event IDs representing events to be deleted from the database.
-   * @returns A Promise that resolves to 1 if the update was successful, or 0 if an error occurred.
+   * @returns A Promise that resolves to an object containing:
+   *          - entityUpdated: 1 if the entity was successfully updated, 0 otherwise
+   *          - eventsInserted: The number of new events successfully inserted
+   *          - eventsDeleted: The number of events successfully deleted
    */
-  async updateEntity(entity: Entity, updateMethod: string, eventIdsNew: string[], eventIdsToBeRemoved: string[]): Promise<number> {
-    let changed = 0;
+  async updateEntity(entity: Entity, updateMethod: string, eventIdsNew: string[], eventIdsToBeRemoved: string[]): Promise<{ entityUpdated: number; eventsInserted: number; eventsDeleted: number }> {
+    let entityUpdated = 0;
+    let eventsInserted = 0;
+    let eventsDeleted = 0;
     const updateMethodText = DataUpdateMethod.getDisplayText(updateMethod);
 
     return await new Promise((resolve, _reject) => {
@@ -139,7 +147,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
           const stmt = this.db.prepare(`UPDATE entities SET completed = 1 WHERE id = ?`);
           try {
             stmt.run(entity.id);
-            changed = changed + this.db.changes;
+            entityUpdated = this.db.changes;
           } finally {
             stmt.finalize();
           }
@@ -151,8 +159,7 @@ export class SQLiteWrapper implements DatabaseWrapper {
               eventIdsNew.includes(event.eventId)
           );
 
-          const inserted = this.insertEvents(this.db, events, updateMethodText);
-          changed = changed + (inserted?? 0);
+          eventsInserted =  this.insertEvents(this.db, events, updateMethodText);
         }
 
         // step 3: remove events that are not in the updated entity
@@ -162,20 +169,20 @@ export class SQLiteWrapper implements DatabaseWrapper {
             for (const eventId of eventIdsToBeRemoved) {
               logger.info(`${whereIsAPI("data_monitor")} ${updateMethod}: Delete exist event with ID ${eventId}`);
               stmt.run(eventId);
-              changed = changed + this.db.changes;
+              eventsDeleted += this.db.changes;
             }
           } finally {
             stmt.finalize();
           }
         }
-        return changed > 0 ? 1 : 0;
+        return { entityUpdated, eventsInserted, eventsDeleted };
       });
 
       try {
         const updated = transaction();
         resolve(updated);
       } catch (_err) {
-        resolve(0);
+        resolve({ entityUpdated: 0, eventsInserted: 0, eventsDeleted: 0 });
       }
     });
   }
