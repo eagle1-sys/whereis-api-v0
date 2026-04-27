@@ -1,4 +1,4 @@
-openapi: 3.0.3
+openapi: 3.1.1
 info:
   title: Eagle1 Whereis API v0
   description: Built for developers. Fully open-source. Track any shipment with one simple API.
@@ -6,12 +6,11 @@ info:
 servers:
   - url: https://api.eg1.io
     description: Production server
-
 paths:
   /v0/whereis/{id}:
     get:
-      summary: Retrieve shipment tracking history
-      description: Returns shipment metadata and logistics events in chronological order.
+      summary: Retrieve tracking history for a shipment
+      description: Returns both metadata and event timeline for a shipment
       parameters:
         - name: id
           in: path
@@ -19,7 +18,7 @@ paths:
           description: Tracking ID in format {operator}-{trackingNumber}
           schema:
             type: string
-            example: "sfex-SF888877776666"
+            example: fdx-888877776666
         - name: phonenum
           in: query
           required: false
@@ -41,48 +40,58 @@ paths:
           schema:
             type: boolean
             default: false
+      x-codeSamples:
+        - lang: bash
+          label: Curl
+          source: |-
+            curl 'https://api.eg1.io/v0/whereis/fdx-888877776666' \
+              --header 'Authorization: Bearer YOUR_SECRET_TOKEN'
       responses:
-        '200':
+        "200":
           description: Successful response with tracking data
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TrackingResponse'
-              example:
-                entity:
-                  id: "sfex-SF888877776666"
-                  type: "waybill"
-                  uuid: "37ebed64-f8fb-457b-be21-5df1f519fbc4"
-                  createdAt: "2024-11-11T14:16:48-06:00"
-                  additional:
-                    isCrossBorder: true
-                    processingTimeMs: 3.7
-                events:
-                  - status: 3000
-                    what: "Transport Bill Created"
-                    whom: "SF Express"
-                    when: "2024-11-11T14:16:48-06:00"
-                    where: "Customer location"
-                    notes: "Shipment information sent to SF Express"
-                    additional:
-                      trackingNum: "SF888877776666"
-                      operatorCode: "sfex"
-                      dataProvider: "SF Express"
-                      updateMethod: "manual-pull"
-                      updatedAt: "2025-02-20T12:23:43.892Z"
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+                $ref: "#/components/schemas/TrackingResponse"
+              examples:
+                fdx:
+                  summary: FedEx shipment
+                  value:
+                    entity:
+                      id: fdx-888877776666
+                      type: waybill
+                      uuid: 01931cdf-2b80-74e2-8924-d2e5a7b6c3f1
+                      createdAt: 2024-11-11T14:16:48-06:00
+                      additional:
+                        origin: San Francisco CA United States
+                        destination: CENTRAL  Hong Kong SAR, China
+                        isCrossBorder: true
+                        processingTimeMs: 3.7
+                    events:
+                      - status: 3000
+                        what: Transport Bill Created
+                        whom: FedEx
+                        when: 2024-11-11T14:16:48-06:00
+                        where: Customer location
+                        notes: Shipment information sent to FedEx
+                        additional:
+                          trackingNum: "888877776666"
+                          operatorCode: fdx
+                          dataProvider: FedEx
+                          updateMethod: manual-pull
+                          updatedAt: 2025-02-20T12:23:43.892Z
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
       security:
         - BearerAuth: []
-
   /v0/status/{id}:
     get:
       summary: Retrieve latest status for a shipment
@@ -94,7 +103,7 @@ paths:
           description: Tracking ID in format {operator}-{trackingNumber}
           schema:
             type: string
-            example: "sfex-SF888877776666"
+            example: sfex-SF1234123412341
         - name: phonenum
           in: query
           required: false
@@ -103,23 +112,24 @@ paths:
             type: string
             example: "6993"
       responses:
-        '200':
+        "200":
           description: Successful response with latest status
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/StatusResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
+                $ref: "#/components/schemas/StatusResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
   /v0/push/{operator}:
     post:
       summary: Push tracking data from external sources
-      description: Allows authenticated clients to push tracking information directly into the system
+      description:
+        Allows authenticated clients to push tracking information directly
+        into the system
       parameters:
         - name: operator
           in: path
@@ -127,8 +137,11 @@ paths:
           description: The carrier/operator code
           schema:
             type: string
-            enum: ["fdx", "sfex", "eg1"]
-            example: "fdx"
+            enum:
+              - fdx
+              - sfex
+              - eg1
+            example: fdx
       requestBody:
         required: true
         description: Tracking data structure depends on the operator
@@ -138,67 +151,63 @@ paths:
               type: object
               description: Operator-specific tracking data format
       responses:
-        '200':
+        "200":
           description: Successfully processed push data
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PushResponse'
+                $ref: "#/components/schemas/PushResponse"
               example:
-                status: "OK"
+                status: OK
                 updatedEntities: 5
                 failedEntities: 0
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
       security:
         - BearerAuth: []
-
   /v0/operators:
     get:
       summary: Retrieve list of active operators
       description: Returns all available logistics providers
       responses:
-        '200':
+        "200":
           description: Successful response with operators list
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OperatorsResponse'
+                $ref: "#/components/schemas/OperatorsResponse"
               example:
                 operators:
-                  - code: "fdx"
-                    name: "FedEx"
+                  - code: fdx
+                    name: FedEx
                     active: true
-                  - code: "sfex"
-                    name: "SF Express"
+                  - code: sfex
+                    name: SF Express
                     active: true
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 components:
   securitySchemes:
     BearerAuth:
       type: http
       scheme: bearer
       description: Bearer token authentication required for most endpoints
-
   schemas:
     TrackingResponse:
       type: object
       properties:
         entity:
-          $ref: '#/components/schemas/Entity'
+          $ref: "#/components/schemas/Entity"
         events:
           type: array
           items:
-            $ref: '#/components/schemas/TrackingEvent'
-
+            $ref: "#/components/schemas/TrackingEvent"
     StatusResponse:
       type: object
       description: Latest status information for a shipment
@@ -219,42 +228,39 @@ components:
         additional:
           type: object
           description: Additional status metadata
-
     PushResponse:
       type: object
       properties:
         status:
           type: string
-          example: "OK"
+          example: OK
         updatedEntities:
           type: integer
           description: Number of entities successfully updated
         failedEntities:
           type: integer
           description: Number of entities that failed to process
-
     OperatorsResponse:
       type: object
       properties:
         operators:
           type: array
           items:
-            $ref: '#/components/schemas/Operator'
-
+            $ref: "#/components/schemas/Operator"
     Entity:
       type: object
       properties:
         id:
           type: string
           description: Tracking ID in slug format
-          example: "sfex-SF888877776666"
+          example: sfex-SF1234123412341
         type:
           type: string
-          example: "waybill"
+          example: waybill
         uuid:
           type: string
-          description: Unique identifier
-          example: "37ebed64-f8fb-457b-be21-5df1f519fbc4"
+          description: Unique identifier in UUIDv7
+          example: 019c1e4d-d030-457b-be21-5df1f519fbc4
         createdAt:
           type: string
           format: date-time
@@ -270,7 +276,6 @@ components:
             processingTimeMs:
               type: number
               description: Server-side processing time in milliseconds
-
     TrackingEvent:
       type: object
       properties:
@@ -310,97 +315,90 @@ components:
             sourceData:
               type: object
               description: Raw carrier API response data (included when fulldata=true)
-
     Operator:
       type: object
       properties:
         code:
           type: string
           description: Operator code used in tracking IDs
-          example: "fdx"
+          example: fdx
         name:
           type: string
           description: Full operator name
-          example: "FedEx"
+          example: FedEx
         active:
           type: boolean
           description: Whether the operator is currently active
-
     ErrorResponse:
       type: object
       properties:
         error:
           type: string
           description: Error code in format "HTTPSTATUS-CODE"
-          example: "400-01"
+          example: 400-01
         message:
           type: string
           description: Human-readable error message
-          example: "Tracking ID is required"
-
+          example: Tracking ID is required
   responses:
     BadRequest:
       description: Bad request - invalid parameters or request format
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
           examples:
             missing_tracking_id:
               value:
-                error: "400-01"
-                message: "Tracking ID is required"
+                error: 400-01
+                message: Tracking ID is required
             invalid_tracking_number:
               value:
-                error: "400-02"
-                message: "Invalid tracking number format"
+                error: 400-02
+                message: Invalid tracking number format
             missing_parameter:
               value:
-                error: "400-03"
-                message: "Missing required parameter"
-
+                error: 400-03
+                message: Missing required parameter
     Unauthorized:
       description: Authentication failed
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
           examples:
             missing_header:
               value:
-                error: "401-01"
-                message: "Missing or malformed Authorization header"
+                error: 401-01
+                message: Missing or malformed Authorization header
             invalid_token:
               value:
-                error: "401-02"
-                message: "Invalid authentication token"
-
+                error: 401-02
+                message: Invalid authentication token
     Forbidden:
       description: Client not authorized for this operation
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
           example:
-            error: "403-01"
-            message: "Client not authorized for this operator"
-
+            error: 403-01
+            message: Client not authorized for this operator
     NotFound:
       description: No data available from carrier
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
           example:
-            error: "404-01"
-            message: "No data available from carrier"
-
+            error: 404-01
+            message: No data available from carrier
     InternalServerError:
       description: Internal server error
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             error: "500"
-            message: "Internal Server Error"
+            message: Internal Server Error
