@@ -158,9 +158,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/PushResponse"
               example:
-                status: OK
-                updatedEntities: 5
-                failedEntities: 0
+                eventsReceived: 5
+                eventsAdded: 3
+                eventsDuplicate: 2
+                createdTrackingIds: ['fdx-123412341234']
+                updatedTrackingIds: []
+                unchangedTrackingIds: ['fdx-567856785678']
+                failedTrackingIds: []
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -231,15 +235,35 @@ components:
     PushResponse:
       type: object
       properties:
-        status:
-          type: string
-          example: OK
-        updatedEntities:
+        eventsReceived:
           type: integer
-          description: Number of entities successfully updated
-        failedEntities:
+          description: Total events submitted
+        eventsAdded:
           type: integer
-          description: Number of entities that failed to process
+          description: Total events were actually persisted
+        eventsDuplicate:
+          type: integer
+          description: Total events exist in the system
+        createdTrackingIds:
+          type: array
+          items:
+            type: string
+            description: Tracking IDs of new entities created
+        updatedTrackingIds:
+          type: array
+          items:
+            type: string
+            description: Tracking IDs with new event appended
+        unchangedTrackingIds:
+          type: array
+          item:
+            type: string
+            description: Tracking IDs that fully up-to-date
+        failedTrackingIds:
+          type: array
+          items:
+            type: string
+            description: Tracking IDs that failed to be processed
     OperatorsResponse:
       type: object
       properties:
