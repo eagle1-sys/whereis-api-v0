@@ -138,18 +138,35 @@ paths:
           schema:
             type: string
             enum:
-              - fdx
-              - sfex
               - eg1
-            example: fdx
+            example: eg1
       requestBody:
         required: true
         description: Tracking data structure depends on the operator
         content:
           application/json:
             schema:
-              type: object
-              description: Operator-specific tracking data format
+              $ref: "#/components/schemas/PushRequestBody"
+            examples:
+              eg1:
+                summary: Eg1 push data
+                value:
+                  eg1DataVersion: 1
+                  events:
+                    - trackingNum: "123412341234"
+                      status: 3000
+                      what: "Transport Bill Created"
+                      whom: "Eagle1"
+                      when: "2024-11-11T14:16:48-06:00"
+                      where: "Customer location"
+                      notes: "Shipment information sent to FedEx"
+                    - trackingNum: "567856785678"
+                      status: 3100
+                      what: "Received by Carrier"
+                      whom: "Eagle1"
+                      when: "2024-11-12T08:30:00-06:00"
+                      where: "San Francisco, CA"
+                      notes: "Package picked up"
       responses:
         "200":
           description: Successfully processed push data
@@ -216,22 +233,85 @@ components:
       type: object
       description: Latest status information for a shipment
       properties:
+        id:
+          type: string
+          description: Tracking ID
+          example: "sfex-SF1234123412341"
         status:
           type: integer
           description: Standardized status code
+          example: 3500
         what:
           type: string
           description: Human-readable status description
+          example: "Delivered"
         when:
           type: string
           format: date-time
           description: Timestamp of status
+          example: "2024-11-11T14:16:48-06:00"
         where:
           type: string
           description: Location description
-        additional:
-          type: object
-          description: Additional status metadata
+          example: "SUGINAMI-KU, TOKYO"
+        notes:
+          type: string
+          description: Description of event
+          example: ""
+    PushRequestBody:
+      type: object
+      required:
+        - eg1DataVersion
+        - events
+      properties:
+        eg1DataVersion:
+          type: integer
+          description: Version of the Eagle1 data format
+          example: 1
+        events:
+          type: array
+          description: Array of tracking events to push
+          items:
+            $ref: "#/components/schemas/PushEvent"
+    PushEvent:
+      type: object
+      required:
+        - trackingNum
+        - status
+        - what
+        - whom
+        - when
+        - where
+      properties:
+        trackingNum:
+          type: string
+          description: Carrier's tracking number (without operator prefix)
+          example: "888877776666"
+        status:
+          type: integer
+          description: Standardized status code (3000-3500 range)
+          example: 3000
+        what:
+          type: string
+          description: Human-readable event description
+          example: "Transport Bill Created"
+        whom:
+          type: string
+          description: Party responsible for event
+          example: "Eg1"
+        when:
+          type: string
+          format: date-time
+          description: Timestamp of event occurrence
+          example: "2024-11-11T14:16:48-06:00"
+        where:
+          type: string
+          description: Location description
+          example: "Customer location"
+        notes:
+          type: string
+          description: Additional context or details
+          example: "Shipment information sent to Eg1"
     PushResponse:
       type: object
       properties:
