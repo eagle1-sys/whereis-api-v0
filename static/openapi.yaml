@@ -178,9 +178,9 @@ paths:
                 eventsReceived: 5
                 eventsAdded: 3
                 eventsDuplicate: 2
-                createdTrackingIds: ['fdx-123412341234']
+                createdTrackingIds: ['eg1-123412341234']
                 updatedTrackingIds: []
-                unchangedTrackingIds: ['fdx-567856785678']
+                unchangedTrackingIds: ['eg1-567856785678']
                 failedTrackingIds: []
         "400":
           $ref: "#/components/responses/BadRequest"
@@ -336,7 +336,7 @@ components:
             description: Tracking IDs with new event appended
         unchangedTrackingIds:
           type: array
-          item:
+          items:
             type: string
             description: Tracking IDs that fully up-to-date
         failedTrackingIds:
