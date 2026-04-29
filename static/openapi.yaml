@@ -246,16 +246,24 @@ components:
           description: Total events exist in the system
         createdTrackingIds:
           type: array
-          description: New entities created
+          items:
+            type: string
+            description: Tracking IDs of new entities created
         updatedTrackingIds:
           type: array
-          description: Existing entity with new event appended
+          items:
+            type: string
+            description: Tracking IDs with new event appended
         unchangedTrackingIds:
           type: array
-          description: Entity already fully up-to-date
+          item:
+            type: string
+            description: Tracking IDs that fully up-to-date
         failedTrackingIds:
           type: array
-          description: DB exception
+          items:
+            type: string
+            description: Tracking IDs that failed to be processed
     OperatorsResponse:
       type: object
       properties:
