@@ -153,20 +153,20 @@ paths:
                 value:
                   eg1DataVersion: 1
                   events:
-                    - trackingNum: "123412341234"
+                    - trackingNum: "ACME-11112222"
                       status: 3000
                       what: "Transport Bill Created"
-                      whom: "Eagle1"
+                      whom: "ACME Logistics"
                       when: "2024-11-11T14:16:48-06:00"
                       where: "Customer location"
                       notes: "Shipment information sent to FedEx"
-                    - trackingNum: "567856785678"
+                    - trackingNum: "ACME-33334444"
                       status: 3100
                       what: "Received by Carrier"
-                      whom: "Eagle1"
+                      whom: "ACME Logistics"
                       when: "2024-11-12T08:30:00-06:00"
                       where: "San Francisco, CA"
-                      notes: "Package picked up"
+                      notes: "Package picked up (duplicated event)"
       responses:
         "200":
           description: Successfully processed push data
@@ -178,9 +178,9 @@ paths:
                 eventsReceived: 2
                 eventsAdded: 1
                 eventsDuplicate: 1
-                createdTrackingIds: ['eg1-123412341234']
+                createdTrackingIds: ['eg1-ACME11112222']
                 updatedTrackingIds: []
-                unchangedTrackingIds: ['eg1-567856785678']
+                unchangedTrackingIds: ['eg1-ACME33334444']
                 failedTrackingIds: []
         "400":
           $ref: "#/components/responses/BadRequest"
@@ -317,33 +317,33 @@ components:
       properties:
         eventsReceived:
           type: integer
-          description: Total events submitted
+          description: Total events received from the pushed data
         eventsAdded:
           type: integer
-          description: Total events were actually persisted
+          description: Total events have been successfully added
         eventsDuplicate:
           type: integer
-          description: Total events exist in the system
+          description: Total events flagged as duplicates thus ignored
         createdTrackingIds:
           type: array
           items:
             type: string
-            description: Tracking IDs of new entities created
+            description: Tracking IDs successfully newly created
         updatedTrackingIds:
           type: array
           items:
             type: string
-            description: Tracking IDs with new event appended
+            description: Tracking IDs with successful data updates
         unchangedTrackingIds:
           type: array
           items:
             type: string
-            description: Tracking IDs that fully up-to-date
+            description: Tracking IDs that remained unchanged because duplicated events detected
         failedTrackingIds:
           type: array
           items:
             type: string
-            description: Tracking IDs that failed to be processed
+            description: Tracking IDs with failed and ignored data inputs
     OperatorsResponse:
       type: object
       properties:
