@@ -175,9 +175,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/PushResponse"
               example:
-                eventsReceived: 5
-                eventsAdded: 3
-                eventsDuplicate: 2
+                eventsReceived: 2
+                eventsAdded: 1
+                eventsDuplicate: 1
                 createdTrackingIds: ['eg1-123412341234']
                 updatedTrackingIds: []
                 unchangedTrackingIds: ['eg1-567856785678']
