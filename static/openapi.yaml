@@ -153,14 +153,14 @@ paths:
                 value:
                   eg1DataVersion: 1
                   events:
-                    - trackingNum: "ACME-11112222"
+                    - trackingNum: "ACME11112222"
                       status: 3000
                       what: "Transport Bill Created"
                       whom: "ACME Logistics"
                       when: "2024-11-11T14:16:48-06:00"
-                      where: "Customer location"
-                      notes: "Shipment information sent to FedEx"
-                    - trackingNum: "ACME-33334444"
+                      where: "New York, NY"
+                      notes: "Shipment information sent to ACME Logistics"
+                    - trackingNum: "ACME33334444"
                       status: 3100
                       what: "Received by Carrier"
                       whom: "ACME Logistics"
@@ -169,7 +169,7 @@ paths:
                       notes: "Package picked up (duplicated event)"
       responses:
         "200":
-          description: Successfully processed push data
+          description: Successfully processed data
           content:
             application/json:
               schema:
@@ -178,9 +178,9 @@ paths:
                 eventsReceived: 2
                 eventsAdded: 1
                 eventsDuplicate: 1
-                createdTrackingIds: ['eg1-ACME-11112222']
+                createdTrackingIds: ['eg1-ACME11112222']
                 updatedTrackingIds: []
-                unchangedTrackingIds: ['eg1-ACME-33334444']
+                unchangedTrackingIds: ['eg1-ACME33334444']
                 failedTrackingIds: []
         "400":
           $ref: "#/components/responses/BadRequest"
@@ -343,7 +343,7 @@ components:
           type: array
           items:
             type: string
-            description: Tracking IDs that failed due to processing or persistence errors (thrown exceptions)
+            description: Tracking IDs that failed due to processing errors
     OperatorsResponse:
       type: object
       properties:
