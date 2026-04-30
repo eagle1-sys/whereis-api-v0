@@ -178,9 +178,9 @@ paths:
                 eventsReceived: 2
                 eventsAdded: 1
                 eventsDuplicate: 1
-                createdTrackingIds: ['eg1-ACME11112222']
+                createdTrackingIds: ['eg1-ACME-11112222']
                 updatedTrackingIds: []
-                unchangedTrackingIds: ['eg1-ACME33334444']
+                unchangedTrackingIds: ['eg1-ACME-33334444']
                 failedTrackingIds: []
         "400":
           $ref: "#/components/responses/BadRequest"
@@ -338,12 +338,12 @@ components:
           type: array
           items:
             type: string
-            description: Tracking IDs that remained unchanged because duplicated events detected
+            description: Tracking IDs that remained unchanged because duplicate events were ignored
         failedTrackingIds:
           type: array
           items:
             type: string
-            description: Tracking IDs with failed and ignored data inputs
+            description: Tracking IDs that failed due to processing or persistence errors (thrown exceptions)
     OperatorsResponse:
       type: object
       properties:
