@@ -118,8 +118,8 @@ test: check_docker ## Run 'deno task test' in the api container
 	@echo "=> Running 'deno task test' within the whereis-api container ..."
 	@docker exec -it whereis-api-v0 deno task test
 
-api_key: check_docker ## Run 'deno task initkey' in the api container. Usage: make api_key ARGS="--user=xxx --key=yyy"
-	@echo "=> Running 'deno task initkey' within the whereis-api container ..."
+api_key: check_docker ## Run 'deno task api_key' in the api container. Usage: make api_key ARGS="--user=xxx --key=yyy"
+	@echo "=> Running 'deno task api_key' within the whereis-api container ..."
 	@docker exec -it whereis-api-v0 deno task -q api_key $(ARGS)
 
 status: check_docker ## Show the status of the api and postgres containers
