@@ -3,7 +3,7 @@
   "tasks": {
     "check": "deno lint && deno check .",
     "test": "deno task check && deno test --allow-env --allow-read --allow-net tests/main-test.ts",
-    "initkey": "deno task check && deno run --allow-env --allow-read --allow-net --allow-ffi src/db/init_key.ts",
+    "initkey": "deno run -q --allow-env --allow-read --allow-net --allow-ffi src/db/init_key.ts",
     "watch": "deno run --allow-env --allow-read --allow-net src/tools/watcher.ts",
     "version": "deno run --allow-env --allow-read src/tools/version.ts"
   },
