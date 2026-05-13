@@ -115,19 +115,17 @@ update: build ## Build whereis-api docker image and restart api and postgres ser
 test: check_docker ## Run 'deno task test' in the api container
 	@echo "=> Checking deno version"
 	@docker exec -it whereis-api-v0 deno --version
-	@echo "=> Running 'deno task test' within api container ..."
+	@echo "=> Running 'deno task test' within the whereis-api container ..."
 	@docker exec -it whereis-api-v0 deno task test
 
-initkey: check_docker ## Run 'deno task initkey' in the api container. Usage: make initkey key=xxx user=xxx
-	@echo "=> Checking deno version"
-	@docker exec -it whereis-api-v0 deno --version
-	@echo "=> Running 'deno task initkey' within api container ..."
-	@ARGS=""; \
-	if [ -n "$(key)" ]; then ARGS="$$ARGS --key=$(key)"; fi; \
-	if [ -n "$(user)" ]; then ARGS="$$ARGS --user=$(user)"; fi; \
-	docker exec -it whereis-api-v0 deno task initkey $$ARGS
+api_key: check_docker ## Run 'deno task api_key' in the api container. Usage: make api_key ARGS="--user=xxx --key=yyy"
+	@echo "=> Running 'deno task api_key' within the whereis-api container ..."
+	@docker exec -it whereis-api-v0 deno task -q api_key $(ARGS)
 
 status: check_docker ## Show the status of the api and postgres containers
+	@echo ""
+	@docker exec -it whereis-api-v0 deno task -q version
+	@echo ""
 	@docker ps -a --format "table {{.Image}}\t{{.Status}}\t{{.Ports}}\t{{.Names}}" --filter "name=whereis"
 
 stop: check_docker ## Stop and remove api and postgres service containers
