@@ -62,7 +62,7 @@ async function syncRoutes() {
   let inProcessTrackingNums: Record<string, unknown>;
   try {
     inProcessTrackingNums = await getDbClient().getInProcessingTrackingNums();
-    logger.info(`${whereIsAPI("data_monitor")} Fetching in-process tracking numbers: ${Object.keys(inProcessTrackingNums).length} tracking numbers`);
+    logger.info(`${whereIsAPI("data_monitor")} Fetching in-process tracking numbers: ${Object.keys(inProcessTrackingNums).length}`);
 
     // Group tracking numbers by operator
     const groupedTrackingNums = groupTrackingNumsByOperator(inProcessTrackingNums);

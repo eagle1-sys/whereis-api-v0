@@ -11,6 +11,7 @@
  */
 
 import postgres from "postgresjs";
+
 import {DatabaseWrapper} from "./db_wrapper.ts";
 
 import {whereIsAPI, logger} from "../tools/logger.ts";
@@ -114,7 +115,7 @@ export class PostgresWrapper implements DatabaseWrapper {
       return { entityInserted: 0, eventsInserted: 0 };
     }
 
-    await this.sql.begin(async (tx) => {
+    await this.sql.begin(async (tx: postgres.TransactionSql) => {
       entityInserted = await this.insertEntityRecord(tx, entity);
       // insert events
       if (entityInserted === 1) {
@@ -151,7 +152,7 @@ export class PostgresWrapper implements DatabaseWrapper {
     let eventsDeleted = 0;
     const updateMethodText = DataUpdateMethod.getDisplayText(updateMethod);
 
-    await this.sql.begin(async (tx) => {
+    await this.sql.begin(async (tx: postgres.TransactionSql) => {
       // update the entity record
       // step 1: update the entity record ONLY when the entity is completed
       if (entity.isCompleted()) {
@@ -198,7 +199,7 @@ export class PostgresWrapper implements DatabaseWrapper {
     }
 
     let inserted = 0;
-    await this.sql.begin(async (tx) => {
+    await this.sql.begin(async (tx: postgres.TransactionSql) => {
       // delete entity and events
       await this.deleteEntityAndEvents(tx, trackingId);
 
