@@ -6,7 +6,15 @@ FROM denoland/deno AS base
 LABEL Maintainer="Eagle1 Systems"
 LABEL Description="EG1: Whereis API served by deno runtime"
 
-# Copy all files from the current directory into container - WORKDIR
+# Default DB_TYPE
+ARG DB_TYPE=sqlite
+ENV DB_TYPE=$DB_TYPE
+
+# Only run this when DB_TYPE=sqlite
+RUN if [ "$DB_TYPE" = "sqlite" ]; then \
+        mkdir -p /data && chown -R deno:deno /data; \
+    fi
+
 WORKDIR /app
 COPY . .
 
@@ -15,10 +23,8 @@ RUN <<CMD
 set -e  # Exit on any error
 set -u  # Exit on undefined variables
 set -x  # Print commands as they execute
-# deno update
 deno cache src/main/main.ts
 deno check .
-deno lint
 CMD
 
 # Create temp warmup file to trigger the download/cache
@@ -52,6 +58,10 @@ ARG APP_BUILD_DATE=unknown
 ENV APP_VERSION=${APP_VERSION}
 ENV APP_BUILD=${APP_BUILD}
 ENV APP_BUILD_DATE=${APP_BUILD_DATE}
+
+# Fix ownership and drop to non-root
+RUN chown -R deno:deno /app /deno-dir
+USER deno
 
 # Run the app with specified permissions
 CMD ["run", "--allow-run", "--allow-net", "--allow-env", "--allow-read", "src/main/main.ts"]
