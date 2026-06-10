@@ -13,9 +13,9 @@ cpu_kind = "shared"
 cpus = 1
 memory = "512mb"
 
-# [[mounts]]  # for sqlite
-# destination = "/data"
-# source = "_CHANGEME_vol_"
+[[mounts]]  # for sqlite
+destination = "/data"
+source = "_CHANGEME_vol_"
 
 [env]
 APP_ENV = "qa"
