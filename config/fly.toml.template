@@ -14,6 +14,7 @@ force_https = true
 auto_stop_machines = 'stop'
 auto_start_machines = true
 min_machines_running = 1
+max_machines_running = 1
 processes = ['app']
 
 [checks]
@@ -40,13 +41,18 @@ cpu_kind = "shared"
 cpus = 1
 memory = "512mb"
 
+# [[mounts]]  # for sqlite
+# destination = "/data"
+# source = "_CHANGEME_vol_"
+
 [env]
 APP_ENV = "qa"
-DB_HOST = "_CHANGEME_.internal"
-DB_USER = "whereis_user"
-DB_PASSWORD = "_CHANGEME_"
 WHEREIS_API_URL = "https://_CHANGEME_.fly.dev"
 WHEREIS_API_KEY = "eagle1"
+DB_TYPE = "sqlite"   # or postgres
+# DB_HOST = "_CHANGEME_.internal"  # for postgres only
+# DB_USER = "whereis_user"
+# DB_PASSWORD = "_CHANGEME_"
 
 # GRAFANA_USER = "_CHANGEME_"
 # GRAFANA_URL = "https://grafana.example.com/"
