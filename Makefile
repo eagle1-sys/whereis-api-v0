@@ -125,6 +125,7 @@ api_key: check_docker ## Run 'deno task api_key' in the api container. Usage: ma
 status: check_docker ## Show the status of the api and postgres containers
 	@echo ""
 	@docker exec -it whereis-api-v0 deno task -q version
+	@docker exec -it whereis-api-v0 deno -v
 	@echo ""
 	@docker ps -a --format "table {{.Image}}\t{{.Status}}\t{{.Ports}}\t{{.Names}}" --filter "name=whereis"
 
