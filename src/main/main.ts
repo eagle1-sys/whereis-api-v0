@@ -36,7 +36,7 @@ const schedulerArgs = [
   "--allow-net",
   "--allow-write",
   "--allow-ffi",
-  "src/main/schedule.ts",
+  "src/main/scheduler.ts",
 ];
 
 function spawnApi(): Deno.ChildProcess {
