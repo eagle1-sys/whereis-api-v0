@@ -9,13 +9,35 @@
  * @license BSD 3-Clause License
  */
 import { getDbClient } from "../db/dbutil.ts";
-import {whereIsAPI, logger} from "../tools/logger.ts";
+import { whereIsAPI, logger } from "../tools/logger.ts";
 import { requestWhereIs } from "./gateway.ts";
 import { AppError, Entity, OperatorRegistry, TrackingID } from "./model.ts";
-import {initApp} from "./app.ts";
-import {postAction} from "./post_actions.ts";
+import { initApp } from "./app.ts";
+import { postAction } from "./post_actions.ts";
 
 await initApp();
+
+// Add process exit handlers for better logging
+Deno.addSignalListener("SIGTERM", () => {
+  logger.info(`${whereIsAPI("startup")} Scheduler received SIGTERM, shutting down gracefully`);
+  Deno.exit(0);
+});
+
+Deno.addSignalListener("SIGINT", () => {
+  logger.info(`${whereIsAPI("startup")} Scheduler received SIGINT, shutting down gracefully`);
+  Deno.exit(0);
+});
+
+// Log uncaught errors
+globalThis.addEventListener("error", (event) => {
+  logger.error(`${whereIsAPI("exception")} Uncaught error in scheduler: ${event.message}`);
+  logger.error(`${whereIsAPI("exception")} Stack: ${event.error?.stack}`);
+});
+
+// Log unhandled promise rejections
+globalThis.addEventListener("unhandledrejection", (event) => {
+  logger.error(`${whereIsAPI("exception")} Unhandled promise rejection in scheduler: ${event.reason}`);
+});
 
 /**
  * Starts a scheduler that periodically synchronizes tracking routes.
