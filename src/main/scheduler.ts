@@ -49,10 +49,21 @@ globalThis.addEventListener("unhandledrejection", (event) => {
 const intervalStr = Deno.env.get("APP_PULL_INTERVAL");
 const parsed = Number.parseInt(intervalStr ?? "", 10);
 const interval = Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
+
 Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
-  await syncRoutes();
+  // await syncRoutes();
+  const timeout = (interval - 1) * 60_000;
+  await Promise.race([
+    syncRoutes(),
+    new Promise<void>((_, reject) =>
+      setTimeout(() => reject(new Error("syncRoutes timed out")), timeout)
+    ),
+  ]);
+  logger.info(`${whereIsAPI("startup")} Scheduler started: every ${interval} minute(s).`);
 }).then((_r) => {
   logger.info(`${whereIsAPI("startup")} Scheduler started: every ${interval} minute(s).`);
+}).catch((err) => {
+  handleError(err, "Deno.cron: Sync routes");
 });
 
 /**
@@ -70,6 +81,8 @@ Deno.cron("Record active tracking NO", {hour:2, minute:0}, async () => {
   }
 }).then((_r) => {
   logger.info(`${whereIsAPI("startup")} Scheduler started: daily at 02:00 for recording active tracking numbers.`);
+}).catch((err) => {
+  handleError(err, "Deno.cron: Record active tracking NO");
 });
 
 /**
@@ -102,15 +115,19 @@ async function syncRoutes() {
       for (let idx = 0; idx < trackingIdBatches.length; idx++) {
         const trackingIds: Record<string,unknown> = trackingIdBatches[idx];
 
-        if (Object.keys(trackingIds).length === 1) {
-          // Process tracking numbers one by one(eg: sfex)
-          const [id] = Object.keys(trackingIds);
-          logger.info(`${whereIsAPI("data_monitor")} Process auto-pull for trackingId: ${id}`);
-          await processTrackingIds(operator, [TrackingID.parse(id)], trackingIds[id] as Record<string, string>);
-        } else {
-          // Process tracking numbers in batches(eg: fdx)
-          const ids = Object.keys(trackingIds).map((id) => TrackingID.parse(id));
-          await processTrackingIds(operator, ids, {});
+        try {
+          if (Object.keys(trackingIds).length === 1) {
+             // Process tracking numbers one by one(eg: sfex)
+            const [id] = Object.keys(trackingIds);
+            logger.info(`${whereIsAPI("data_monitor")} Process auto-pull for trackingId: ${id}`);
+            await processTrackingIds(operator, [TrackingID.parse(id)], trackingIds[id] as Record<string, string>);
+          } else {
+            // Process tracking numbers in batches(eg: fdx)
+            const ids = Object.keys(trackingIds).map((id) => TrackingID.parse(id));
+            await processTrackingIds(operator, ids, {});
+          }
+        } catch (err) {
+          handleError(err, `syncRoutes batch ${idx} for ${operator}`);
         }
       }
     }
@@ -182,15 +199,18 @@ async function processTrackingIds(operator: string, trackingIds: TrackingID[], p
 
   // step 2: compare eventIds in the database and fresh eventIds
   for (const entity of entities) {
-    const eventIdsInDb: string[] = await getDbClient().queryEventIds(TrackingID.parse(entity.id));
-    // update the database on-demand
-    const {dataChanged, eventIdsNew, eventIdsToBeRemoved} = entity.compare(eventIdsInDb);
-    if (dataChanged) {
-      await getDbClient().updateEntity(entity, updateMethod, eventIdsNew, eventIdsToBeRemoved);
+    try {
+      const eventIdsInDb: string[] = await getDbClient().queryEventIds(TrackingID.parse(entity.id));
+      // update the database on-demand
+      const {dataChanged, eventIdsNew, eventIdsToBeRemoved} = entity.compare(eventIdsInDb);
+      if (dataChanged) {
+        await getDbClient().updateEntity(entity, updateMethod, eventIdsNew, eventIdsToBeRemoved);
+      }
+      // post-processing
+      postAction(entity);
+    } catch (err) {
+      handleError(err, `processTrackingIds entity ${entity.id}`);
     }
-
-    // post-processing
-    postAction(entity);
   }
 }
 
