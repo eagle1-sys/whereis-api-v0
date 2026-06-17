@@ -1,5 +1,5 @@
 /**
- * @file schedule.ts
+ * @file scheduler.ts
  * @description Scheduler for synchronizing tracking routes with external data.
  * This module sets up a cron job to periodically fetch in-process tracking numbers,
  * query their latest status, and update the database accordingly. It handles
