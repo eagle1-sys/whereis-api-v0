@@ -52,7 +52,7 @@ const interval = Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
 
 Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
   const timeout = (interval / 2) * 60_000;
-  logger.info(`${whereIsAPI("startup")} Sync Routes cron job started: every ${interval} min, with a timeout ${timeout / 60_000} min`);
+  logger.info(`${whereIsAPI("startup")} ==> Sync Routes cron job started: every ${interval} min, with a timeout ${timeout / 60_000} min`);
 
   await Promise.race([
     syncRoutes(),
