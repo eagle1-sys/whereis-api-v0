@@ -10,6 +10,11 @@ LABEL Description="EG1: Whereis API served by deno runtime"
 ARG DB_TYPE=sqlite
 ENV DB_TYPE=$DB_TYPE
 
+# Install basic utils to help debug issues 
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends procps util-linux && \
+    rm -rf /var/lib/apt/lists/*
+
 # Only run this when DB_TYPE=sqlite
 RUN if [ "$DB_TYPE" = "sqlite" ]; then \
         mkdir -p /data && chown -R deno:deno /data; \
@@ -64,7 +69,7 @@ RUN chown -R deno:deno /app /deno-dir
 USER deno
 
 # Run the app with specified permissions
-CMD ["run", "--allow-run", "--allow-net", "--allow-env", "--allow-read", "src/main/main.ts"]
+CMD ["run", "--allow-run", "--allow-sys", "--allow-net", "--allow-env", "--allow-read", "src/main/main.ts"]
 
 # Set up health check to monitor the service process
 HEALTHCHECK --start-period=20s --start-interval=2s --interval=5s --timeout=1s --retries=3 \
