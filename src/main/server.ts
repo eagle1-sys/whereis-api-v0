@@ -1,19 +1,20 @@
 /**
- * @file Server.ts
+ * @file server.ts
  * @description Implements a Hono-based server for tracking package status and location information.
  * Handles HTTP requests, database operations, and carrier API integrations with Bearer token authentication.
  *
  * @copyright (c) 2025, the Eagle1 authors
  * @license BSD 3-Clause License
  */
+
 import { cors } from "hono/cors";
 import { Context, Hono, HonoRequest, Next } from "hono";
 import { ContentfulStatusCode } from "hono/utils/http-status";
-import { getDbClient} from "../db/dbutil.ts";
-import {whereIsAPI, logger} from "../tools/logger.ts";
-import {getExtraParams, processPushData, requestWhereIs, validateParams, validateStoredEntity} from "./gateway.ts";
-import {ApiParams, Entity, OperatorRegistry, TrackingID, AppError,} from "./model.ts";
-import {postAction} from "./post_actions.ts";
+import { getDbClient } from "../db/dbutil.ts";
+import { whereIsAPI, logger } from "../tools/logger.ts";
+import { getExtraParams, processPushData, requestWhereIs, validateParams, validateStoredEntity } from "./gateway.ts";
+import { ApiParams, Entity, OperatorRegistry, TrackingID, AppError } from "./model.ts";
+import { postAction } from "./post_actions.ts";
 
 declare module "hono" {
   // noinspection JSUnusedGlobalSymbols

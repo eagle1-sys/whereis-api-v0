@@ -8,8 +8,8 @@
  */
 
 import { HonoRequest } from "hono/request";
-import {AppError, Entity, OperatorRegistry, TrackingID} from "./model.ts";
-import {OperatorModule} from "./operator.ts";
+import { AppError, Entity, OperatorRegistry, TrackingID } from "./model.ts";
+import { OperatorModule } from "./operator.ts";
 
 // Define a type for the operator status
 type OperatorStatus = {

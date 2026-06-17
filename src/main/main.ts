@@ -25,7 +25,7 @@ const apiArgs = [
   "--allow-read",
   "--allow-write",
   "--allow-ffi",
-  "src/main/api.ts",
+  "src/main/api_server.ts",
 ];
 
 const schedulerArgs = [

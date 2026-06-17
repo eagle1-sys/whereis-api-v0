@@ -8,6 +8,7 @@
  * @copyright (c) 2025, the Eagle1 authors
  * @license BSD 3-Clause License
  */
+
 import { getDbClient } from "../db/dbutil.ts";
 import { whereIsAPI, logger } from "../tools/logger.ts";
 import { requestWhereIs } from "./gateway.ts";
