@@ -59,9 +59,9 @@ Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
       setTimeout(() => reject(new Error("syncRoutes timed out")), timeout)
     ),
   ]);
-  logger.info(`${whereIsAPI("startup")} Scheduler started: every ${interval} minute(s).`);
+  logger.info(`${whereIsAPI("startup")} Scheduler started: every ${interval} min`);
 }).then((_r) => {
-  logger.info(`${whereIsAPI("startup")} Scheduler started: every ${interval} minute(s).`);
+  logger.info(`${whereIsAPI("startup")} Scheduler process finished`);
 }).catch((err) => {
   handleError(err, "Deno.cron: Sync routes");
 });
@@ -80,7 +80,7 @@ Deno.cron("Record active tracking NO", {hour:2, minute:0}, async () => {
     handleError(err, 'pushActiveTrackingNo');
   }
 }).then((_r) => {
-  logger.info(`${whereIsAPI("startup")} Scheduler started: daily at 02:00 for recording active tracking numbers.`);
+  logger.info(`${whereIsAPI("startup")} Scheduler started: daily at 02:00 for recording active tracking numbers`);
 }).catch((err) => {
   handleError(err, "Deno.cron: Record active tracking NO");
 });
