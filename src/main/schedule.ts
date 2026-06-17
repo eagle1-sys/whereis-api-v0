@@ -32,11 +32,13 @@ Deno.addSignalListener("SIGINT", () => {
 globalThis.addEventListener("error", (event) => {
   logger.error(`${whereIsAPI("exception")} Uncaught error in scheduler: ${event.message}`);
   logger.error(`${whereIsAPI("exception")} Stack: ${event.error?.stack}`);
+  Deno.exit(1);
 });
 
 // Log unhandled promise rejections
 globalThis.addEventListener("unhandledrejection", (event) => {
   logger.error(`${whereIsAPI("exception")} Unhandled promise rejection in scheduler: ${event.reason}`);
+  Deno.exit(1);
 });
 
 /**
