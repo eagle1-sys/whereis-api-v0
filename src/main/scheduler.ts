@@ -59,7 +59,7 @@ Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
       setTimeout(() => reject(new Error("syncRoutes timed out")), timeout)
     ),
   ]);
-  logger.info(`${whereIsAPI("startup")} Scheduler started: every ${interval} min`);
+  logger.info(`${whereIsAPI("startup")} Scheduler started: every ${interval} min, with a timeout ${timeout / 60_000} min`);
 }).then((_r) => {
   logger.info(`${whereIsAPI("startup")} Scheduler process finished`);
 }).catch((err) => {
