@@ -22,6 +22,7 @@ APP_ENV = "qa"
 WHEREIS_API_URL = "https://_CHANGEME_.fly.dev"
 WHEREIS_API_KEY = "eagle1"
 DB_TYPE = "sqlite"   # or postgres
+TINI_SUBREAPER = true  # fly will use tini as the init process within container
 # DB_HOST = "_CHANGEME_.internal"  # for postgres only
 # DB_USER = "whereis_user"
 # DB_PASSWORD = "_CHANGEME_"

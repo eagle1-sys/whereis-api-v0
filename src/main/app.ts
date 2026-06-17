@@ -21,9 +21,10 @@ import {
   OperatorRegistry,
   StatusCode,
 } from "./model.ts";
-import {registerOperatorModule, setOperatorStatus} from "./gateway.ts";
-import {whereIsAPI, logger} from "../tools/logger.ts";
-import {initConnection} from "../db/dbutil.ts";
+
+import { registerOperatorModule, setOperatorStatus } from "./gateway.ts";
+import { whereIsAPI, logger } from "../tools/logger.ts";
+import { initConnection } from "../db/dbutil.ts";
 
 export async function initApp(): Promise<void> {
   await loadEnv(); // load environment variable first
@@ -31,6 +32,7 @@ export async function initApp(): Promise<void> {
   const appVersion = Deno.env.get("APP_VERSION") ?? "unknown";
   const appBuild = Deno.env.get("APP_BUILD") ?? "unknown";
   const appBuildDate = Deno.env.get("APP_BUILD_DATE") ?? "unknown";
+
   logger.info(`${whereIsAPI("startup")} Whereis API ${appVersion}; build ${appBuild}, ${appBuildDate} (${Deno.env.get("APP_ENV")})`);
   logger.info(`${whereIsAPI("startup")} deno ${Deno.version.deno}, setting: ${navigator.hardwareConcurrency} threads.`);
 
