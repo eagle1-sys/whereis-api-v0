@@ -51,15 +51,15 @@ const parsed = Number.parseInt(intervalStr ?? "", 10);
 const interval = Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
 
 Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
-  // await syncRoutes();
   const timeout = (interval / 2) * 60_000;
+  logger.info(`${whereIsAPI("startup")} Sync Routes cron job started: every ${interval} min, with a timeout ${timeout / 60_000} min`);
+
   await Promise.race([
     syncRoutes(),
     new Promise<void>((_, reject) =>
       setTimeout(() => reject(new Error("syncRoutes timed out")), timeout)
     ),
   ]);
-  logger.info(`${whereIsAPI("startup")} Sync Routes cron job started: every ${interval} min, with a timeout ${timeout / 60_000} min`);
 }).then((_r) => {
   logger.info(`${whereIsAPI("startup")} Sync Routes cron job finished`);
 }).catch((err) => {
