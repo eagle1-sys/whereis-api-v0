@@ -1,5 +1,5 @@
 /**
- * @file schedule.ts
+ * @file scheduler.ts
  * @description Scheduler for synchronizing tracking routes with external data.
  * This module sets up a cron job to periodically fetch in-process tracking numbers,
  * query their latest status, and update the database accordingly. It handles
@@ -8,14 +8,39 @@
  * @copyright (c) 2025, the Eagle1 authors
  * @license BSD 3-Clause License
  */
+
 import { getDbClient } from "../db/dbutil.ts";
-import {whereIsAPI, logger} from "../tools/logger.ts";
+import { whereIsAPI, logger } from "../tools/logger.ts";
 import { requestWhereIs } from "./gateway.ts";
 import { AppError, Entity, OperatorRegistry, TrackingID } from "./model.ts";
-import {initApp} from "./app.ts";
-import {postAction} from "./post_actions.ts";
+import { initApp } from "./app.ts";
+import { postAction } from "./post_actions.ts";
 
 await initApp();
+
+// Add process exit handlers for better logging
+Deno.addSignalListener("SIGTERM", () => {
+  logger.info(`${whereIsAPI("startup")} Scheduler received SIGTERM, shutting down gracefully`);
+  Deno.exit(0);
+});
+
+Deno.addSignalListener("SIGINT", () => {
+  logger.info(`${whereIsAPI("startup")} Scheduler received SIGINT, shutting down gracefully`);
+  Deno.exit(0);
+});
+
+// Log uncaught errors
+globalThis.addEventListener("error", (event) => {
+  logger.error(`${whereIsAPI("exception")} Uncaught error in scheduler: ${event.message}`);
+  logger.error(`${whereIsAPI("exception")} Stack: ${event.error?.stack}`);
+  Deno.exit(1);
+});
+
+// Log unhandled promise rejections
+globalThis.addEventListener("unhandledrejection", (event) => {
+  logger.error(`${whereIsAPI("exception")} Unhandled promise rejection in scheduler: ${event.reason}`);
+  Deno.exit(1);
+});
 
 /**
  * Starts a scheduler that periodically synchronizes tracking routes.
@@ -24,10 +49,21 @@ await initApp();
 const intervalStr = Deno.env.get("APP_PULL_INTERVAL");
 const parsed = Number.parseInt(intervalStr ?? "", 10);
 const interval = Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
+
 Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
-  await syncRoutes();
+  // await syncRoutes();
+  const timeout = (interval / 2) * 60_000;
+  await Promise.race([
+    syncRoutes(),
+    new Promise<void>((_, reject) =>
+      setTimeout(() => reject(new Error("syncRoutes timed out")), timeout)
+    ),
+  ]);
+  logger.info(`${whereIsAPI("startup")} Scheduler started: every ${interval} min, with a timeout ${timeout / 60_000} min`);
 }).then((_r) => {
-  logger.info(`${whereIsAPI("startup")} Scheduler started: every ${interval} minute(s).`);
+  logger.info(`${whereIsAPI("startup")} Scheduler process finished`);
+}).catch((err) => {
+  handleError(err, "Deno.cron: Sync routes");
 });
 
 /**
@@ -44,7 +80,9 @@ Deno.cron("Record active tracking NO", {hour:2, minute:0}, async () => {
     handleError(err, 'pushActiveTrackingNo');
   }
 }).then((_r) => {
-  logger.info(`${whereIsAPI("startup")} Scheduler started: daily at 02:00 for recording active tracking numbers.`);
+  logger.info(`${whereIsAPI("startup")} Scheduler started: daily at 02:00 for recording active tracking numbers`);
+}).catch((err) => {
+  handleError(err, "Deno.cron: Record active tracking NO");
 });
 
 /**
@@ -77,15 +115,19 @@ async function syncRoutes() {
       for (let idx = 0; idx < trackingIdBatches.length; idx++) {
         const trackingIds: Record<string,unknown> = trackingIdBatches[idx];
 
-        if (Object.keys(trackingIds).length === 1) {
-          // Process tracking numbers one by one(eg: sfex)
-          const [id] = Object.keys(trackingIds);
-          logger.info(`${whereIsAPI("data_monitor")} Process auto-pull for trackingId: ${id}`);
-          await processTrackingIds(operator, [TrackingID.parse(id)], trackingIds[id] as Record<string, string>);
-        } else {
-          // Process tracking numbers in batches(eg: fdx)
-          const ids = Object.keys(trackingIds).map((id) => TrackingID.parse(id));
-          await processTrackingIds(operator, ids, {});
+        try {
+          if (Object.keys(trackingIds).length === 1) {
+             // Process tracking numbers one by one(eg: sfex)
+            const [id] = Object.keys(trackingIds);
+            logger.info(`${whereIsAPI("data_monitor")} Process auto-pull for trackingId: ${id}`);
+            await processTrackingIds(operator, [TrackingID.parse(id)], trackingIds[id] as Record<string, string>);
+          } else {
+            // Process tracking numbers in batches(eg: fdx)
+            const ids = Object.keys(trackingIds).map((id) => TrackingID.parse(id));
+            await processTrackingIds(operator, ids, {});
+          }
+        } catch (err) {
+          handleError(err, `syncRoutes batch ${idx} for ${operator}`);
         }
       }
     }
@@ -157,15 +199,18 @@ async function processTrackingIds(operator: string, trackingIds: TrackingID[], p
 
   // step 2: compare eventIds in the database and fresh eventIds
   for (const entity of entities) {
-    const eventIdsInDb: string[] = await getDbClient().queryEventIds(TrackingID.parse(entity.id));
-    // update the database on-demand
-    const {dataChanged, eventIdsNew, eventIdsToBeRemoved} = entity.compare(eventIdsInDb);
-    if (dataChanged) {
-      await getDbClient().updateEntity(entity, updateMethod, eventIdsNew, eventIdsToBeRemoved);
+    try {
+      const eventIdsInDb: string[] = await getDbClient().queryEventIds(TrackingID.parse(entity.id));
+      // update the database on-demand
+      const {dataChanged, eventIdsNew, eventIdsToBeRemoved} = entity.compare(eventIdsInDb);
+      if (dataChanged) {
+        await getDbClient().updateEntity(entity, updateMethod, eventIdsNew, eventIdsToBeRemoved);
+      }
+      // post-processing
+      postAction(entity);
+    } catch (err) {
+      handleError(err, `processTrackingIds entity ${entity.id}`);
     }
-
-    // post-processing
-    postAction(entity);
   }
 }
 
