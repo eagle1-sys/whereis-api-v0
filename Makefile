@@ -87,6 +87,10 @@ check_docker: # -- Check if Docker is installed and the daemon is running
 	@echo "=> Docker is running."
 
 init_db: check_docker config/create-whereis-db.sql # -- Initialize the postgres container and load initial data
+	@if [ -z "$(COMPOSE_DB_SERVICE)" ]; then \
+		echo "=> No database service configured for DB_TYPE=$(DB_TYPE). Skipping init_db."; \
+		exit 0; \
+	fi
 	@echo "=> Starting up database service '$(COMPOSE_DB_SERVICE)'..."
 	@docker compose -f $(COMPOSE_FILE) up $(COMPOSE_DB_SERVICE) -d
 	@echo "=> Waiting for database to become healthy..."
