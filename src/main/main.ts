@@ -107,8 +107,6 @@ async function monitorAndRestartScheduler() {
   while (!shuttingDown) {
     const status = await schedulerCmd.status;
 
-    if (shuttingDown) break;
-
     if (status.success) {
       logger.info("[main] Scheduler exited normally, not restarting.");
       break;
