@@ -61,8 +61,6 @@ Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
     ),
   ]);
   logger.info(`${whereIsAPI("startup")} => syncRoutes cron job ended`);
-}).then((_r) => {
-  logger.info(`${whereIsAPI("startup")} => syncRoutes cron job ended`);
 }).catch((err) => {
   handleError(err, "Deno.cron: Sync routes");
 });
@@ -218,7 +216,7 @@ function handleError(err: unknown, context: string):void {
     }
   } else {
     if (err instanceof Error) {
-      logger.error(`${context}: ${err.message}`);
+      logger.error(`${whereIsAPI("exception")} ${context}: ${err.message}`);
       if (err.stack) {
         logger.error(`${whereIsAPI("exception")} Stack trace: ${err.stack}`);
       }
