@@ -543,11 +543,11 @@ function parseURL(req: HonoRequest): [TrackingID, Record<string, string>, Record
   return [trackingID, extraParams, queryParams];
 }
 
-function validateQueryParams(params: Record<string, string>, validParams?: Set<string>,): string[] {
+function validateQueryParams(params: Record<string, string>, validParams: Set<string>): string[] {
   const invalidParams: string[] = [];
 
   Object.keys(params).forEach((key) => {
-    if (validParams === undefined || !validParams.has(key)) {
+    if (!validParams.has(key)) {
       invalidParams.push(key);
     }
   });
