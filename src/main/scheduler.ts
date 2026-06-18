@@ -61,8 +61,6 @@ Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
     ),
   ]);
   logger.info(`${whereIsAPI("startup")} => syncRoutes cron job ended`);
-}).then((_r) => {
-  logger.info(`${whereIsAPI("startup")} => syncRoutes cron job ended`);
 }).catch((err) => {
   handleError(err, "Deno.cron: Sync routes");
 });
