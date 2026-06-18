@@ -43,7 +43,7 @@ export async function initConnection() {
 async function initPgConnection() : Promise<postgres.Sql> {
   let sql: postgres.Sql;
   const dbHost = Deno.env.get("DB_HOST");
-  const dbPort = Number(Deno.env.get("DB_PORT") ?? "5432")
+  const dbPort = Number(Deno.env.get("DB_PORT") ?? "5432");
   if (!dbHost) {
     throw new AppError("500-01", `ERR-DBUTIL-A - DB_HOST environment variable is not set.`);
   }
