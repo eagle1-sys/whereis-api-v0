@@ -458,7 +458,7 @@ async function refreshEntityFromProvider(trackingID: TrackingID, parsedParams: R
 async function getEntityFromDbOrProvider(trackingID: TrackingID, parsedParams: Record<string, string>): Promise<Entity | undefined> {
   let entity = await getDbClient().queryEntity(trackingID);
 
-  if(entity) {
+  if (entity) {
     // Throws AppError if validation fails
     validateStoredEntity(trackingID.operator, entity, parsedParams);
   } else {
