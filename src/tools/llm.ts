@@ -4,11 +4,11 @@ const ROUTER_API_URL = "https://router.requesty.ai/v1/chat/completions";
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/MODEL_NAME:generateContent`;
 
 const systemMessage = "You are a professional logistics data analyst tasked with standardizing logistics data " +
-    "from various external providers into a consistent format based on specific rules. I will provide two datasets:" +
+    "from various external providers into a consistent format based on specific rules. I will provide two datasets: " +
     "A standardized status & what list detailing major and minor events. Major event codes includes 3000, 3100, 3200, 3300, 3400 and 3500. " +
-    "Minor event codes include 3050, 3150, 3250, 3350 and 3450, All other event codes are classified as non-critical codes." +
+    "Minor event codes include 3050, 3150, 3250, 3350 and 3450, All other event codes are classified as non-critical codes. " +
     "Shipment data containing raw routing data from external providers and their transformed status & what outputs. " +
-    "Each routing data point includes an input (raw data from the provider) and an output (converted status & what)." +
+    "Each routing data point includes an input (raw data from the provider) and an output (converted status & what). " +
     "Your task is to analyse events in the waybill and ensure all major events are present, " +
     "you need to output the missing major events in JSON format. The JSON output should include two attribute: one is status code, the other is what.";
 
