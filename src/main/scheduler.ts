@@ -60,7 +60,7 @@ Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
       setTimeout(() => reject(new Error("syncRoutes timed out")), timeout)
     ),
   ]);
-  logger.info(`${whereIsAPI("startup")} ==> syncRoutes cron job ended`);
+  logger.info(`${whereIsAPI("startup")} --> syncRoutes cron job ended`);
 }).catch((err) => {
   handleError(err, "Deno.cron: Sync routes");
 });
