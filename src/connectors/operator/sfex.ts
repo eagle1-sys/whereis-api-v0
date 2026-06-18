@@ -296,7 +296,7 @@ export class Sfex implements OperatorModule {
       throw new AppError("500-02", `ERR-SFEX-F - getRoute(${response.status})`);
     }
 
-    return await getResponseJSON(response, "ERR-SFEX-G - getRoute")
+    return await getResponseJSON(response, "ERR-SFEX-G - getRoute");
   }
 
   /**
