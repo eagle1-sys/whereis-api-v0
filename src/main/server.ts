@@ -459,7 +459,7 @@ async function refreshEntityFromProvider(trackingID: TrackingID, parsedParams: R
 async function getEntityFromDbOrProvider(trackingID: TrackingID, parsedParams: Record<string, string>): Promise<Entity | undefined> {
   let entity = await getDbClient().queryEntity(trackingID);
 
-  if(entity) {
+  if (entity) {
     // Throws AppError if validation fails
     validateStoredEntity(trackingID.operator, entity, parsedParams);
   } else {
@@ -533,7 +533,7 @@ function parseURL(req: HonoRequest): [TrackingID, Record<string, string>, Record
   const extraParams = getExtraParams(operator, req);
 
   const success = validateParams(operator, trackingID, extraParams);
-  if(success) {
+  if (success) {
     const validParamsSet: string[] = ApiParams.getParamNames("whereis", trackingID.operator);
     const invalidParams = validateQueryParams(queryParams, new Set(validParamsSet));
     if (invalidParams.length > 0) {
