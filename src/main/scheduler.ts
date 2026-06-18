@@ -89,7 +89,7 @@ async function syncRoutes() {
     // Group tracking numbers by operator
     const groupedTrackingNums = groupTrackingNumsByOperator(inProcessTrackingNums);
     for (const [operator, trackingNums] of Object.entries(groupedTrackingNums)) {
-      const batchSize = OperatorRegistry.getBatchSize(operator)
+      const batchSize = OperatorRegistry.getBatchSize(operator);
       if (batchSize <= 0) {
         logger.error(`${whereIsAPI("exception")} Invalid batch size for operator ${operator}, skipping`);
         continue;
