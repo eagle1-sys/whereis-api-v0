@@ -532,7 +532,7 @@ function parseURL(req: HonoRequest): [TrackingID, Record<string, string>, Record
   const extraParams = getExtraParams(operator, req);
 
   const success = validateParams(operator, trackingID, extraParams);
-  if(success) {
+  if (success) {
     const validParamsSet: string[] = ApiParams.getParamNames("whereis", trackingID.operator);
     const invalidParams = validateQueryParams(queryParams, new Set(validParamsSet));
     if (invalidParams.length > 0) {
