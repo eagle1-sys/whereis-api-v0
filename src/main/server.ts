@@ -404,12 +404,13 @@ app.get("/web-health", (c: Context) => {
  * GET /app-health - App health check endpoint
  */
 app.get("/app-health", async (c: Context) => {
-  if (getDbClient() === undefined) {
+  const dbClient = getDbClient();
+  if (!dbClient) {
     logger.info(`${whereIsAPI("startup")} DB connection is not ready`);
     return c.text("INIT", 200);
   }
   // Test the connection by executing a simple query
-  const testResult = await getDbClient().ping();
+  const testResult = await dbClient.ping();
   if (testResult) {
     return c.text("UP", 200);
   }
