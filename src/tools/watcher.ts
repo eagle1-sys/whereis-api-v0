@@ -163,7 +163,7 @@ async function analyseLog(args: string[]): Promise<void> {
 
     // step 4: extract log messages and convert them for future processing
     const values = result[0]["values"];
-    const messages = getLogMessages(values)
+    const messages = getLogMessages(values);
 
     // todo: step 5: analyse the logs
     console.log(JSON.stringify(messages, null, 2));
