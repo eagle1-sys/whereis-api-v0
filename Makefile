@@ -60,7 +60,7 @@ help: ## Show this help message
 whereis: check_docker config/*.sample ## Initial setup: create configs, initialize the DB, and start services. Use 'update' for subsequent starts.
 	@echo "=> Creating initial configuration files..."
 	@for f in config/*.sample; do \
-		target_file=$$(basename "$$f" .sample); \
+		target_file="config/$$(basename "$$f" .sample)"; \
 		if [ ! -e "$$target_file" ]; then \
 			echo "  -> Creating '$$target_file' from sample"; \
 			cp "$$f" "$$target_file"; \
