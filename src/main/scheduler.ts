@@ -218,7 +218,7 @@ function handleError(err: unknown, context: string):void {
     }
   } else {
     if (err instanceof Error) {
-      logger.error(`${context}: ${err.message}`);
+      logger.error(`${whereIsAPI("exception")} ${context}: ${err.message}`);
       if (err.stack) {
         logger.error(`${whereIsAPI("exception")} Stack trace: ${err.stack}`);
       }
