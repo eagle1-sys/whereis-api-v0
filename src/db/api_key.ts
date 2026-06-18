@@ -58,12 +58,27 @@ function generateApiKey(length: number = 48): string {
   const chars =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-  // Generate random bytes and map to alphanumeric characters
-  const randomBytes = crypto.getRandomValues(new Uint8Array(length));
-  const key = Array.from(randomBytes)
-    .map((byte) => chars[byte % chars.length])
-    .join("");
-  return `sk-${key}`;
+  // Use rejection sampling to avoid modulo bias when mapping random bytes to characters.
+  const maxUnbiased = Math.floor(256 / chars.length) * chars.length;
+  const keyChars: string[] = [];
+
+  while (keyChars.length < length) {
+    const randomBytes = crypto.getRandomValues(
+      new Uint8Array(length - keyChars.length),
+    );
+
+    for (const byte of randomBytes) {
+      if (byte >= maxUnbiased) {
+        continue;
+      }
+      keyChars.push(chars[byte % chars.length]);
+      if (keyChars.length === length) {
+        break;
+      }
+    }
+  }
+
+  return `sk-${keyChars.join("")}`;
 }
 
 // Execute the main function and handle any uncaught errors
