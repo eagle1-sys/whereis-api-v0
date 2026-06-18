@@ -52,7 +52,7 @@ const interval = Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
 
 Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
   const timeout = (interval / 2) * 60_000;
-  logger.info(`${whereIsAPI("startup")} => syncRoutes cron job started: every ${interval} min, with a timeout ${timeout / 60_000} min`);
+  logger.info(`${whereIsAPI("startup")} ==> syncRoutes cron job started: every ${interval} min, with a timeout ${timeout / 60_000} min`);
 
   await Promise.race([
     syncRoutes(),
@@ -60,7 +60,7 @@ Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
       setTimeout(() => reject(new Error("syncRoutes timed out")), timeout)
     ),
   ]);
-  logger.info(`${whereIsAPI("startup")} => syncRoutes cron job ended`);
+  logger.info(`${whereIsAPI("startup")} ==> syncRoutes cron job ended`);
 }).catch((err) => {
   handleError(err, "Deno.cron: Sync routes");
 });
@@ -82,7 +82,7 @@ async function syncRoutes() {
   let inProcessTrackingNums: Record<string, unknown>;
   try {
     inProcessTrackingNums = await getDbClient().getInProcessingTrackingNums();
-    logger.info(`${whereIsAPI("data_monitor")} => => Fetching in-process tracking numbers: ${Object.keys(inProcessTrackingNums).length}`);
+    logger.info(`${whereIsAPI("data_monitor")} --> Fetching in-process tracking numbers: ${Object.keys(inProcessTrackingNums).length}`);
 
     // Group tracking numbers by operator
     const groupedTrackingNums = groupTrackingNumsByOperator(inProcessTrackingNums);
