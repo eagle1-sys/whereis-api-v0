@@ -327,7 +327,7 @@ app.post("/v0/push/:operator", async (c: Context) => {
   } catch (error) {
     if (error instanceof AppError) throw error;
     const errorMessage = error instanceof Error ? error.message : String(error);
-    throw new AppError("500-01", `500AA: server - DATA_PROCESSING_FAILED: ${errorMessage}`);
+    throw new AppError("500-01", `500-01: server - DATA_PROCESSING_FAILED: ${errorMessage}`);
   }
 
   let eventsReceived = 0;
