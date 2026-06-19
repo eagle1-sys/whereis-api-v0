@@ -55,6 +55,10 @@ function parseArgs(args: string[]) {
  * Generates a unique, URL-safe API key with a given length.
  */
 function generateApiKey(length: number = 48): string {
+  if (!Number.isInteger(length) || length < 16 || length > 128) {
+    throw new RangeError("API key length must be an integer between 16 and 128.");
+  }
+
   const chars =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
