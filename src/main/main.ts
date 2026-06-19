@@ -80,6 +80,9 @@ async function shutdown() {
   if (shuttingDown) return;
   shuttingDown = true;
 
+  Deno.removeSignalListener("SIGINT", shutdown);
+  Deno.removeSignalListener("SIGTERM", shutdown);
+
   logger.info("\n[main] Shutting down...");
 
   try {
