@@ -25,12 +25,12 @@ async function main(): Promise<void> {
   await initConnection();
 
   // step 3: generate API key
-  let { user = "formal_user", key = "" } = parseArgs(Deno.args);
+  let { user = "default_user", key = "" } = parseArgs(Deno.args);
   if (!key) {
     key = generateApiKey();
   }
 
-  // step 3: write API key to the database
+  // step 4: write API key to the database
   const inserted = await getDbClient().insertToken(key, user);
   // Just output the API key to console (Avoid writing to grafana)
   if (!inserted) {
@@ -44,7 +44,14 @@ function parseArgs(args: string[]) {
   const result: Record<string, string> = {};
   args.forEach((arg) => {
     if (arg.startsWith("--")) {
-      const [key, value] = arg.slice(2).split("=");
+      const rawArg = arg.slice(2);
+      const separatorIndex = rawArg.indexOf("=");
+      if (separatorIndex <= 0 || separatorIndex === rawArg.length - 1) {
+        return;
+      }
+
+      const key = rawArg.slice(0, separatorIndex);
+      const value = rawArg.slice(separatorIndex + 1);
       result[key] = value;
     }
   });
@@ -55,6 +62,10 @@ function parseArgs(args: string[]) {
  * Generates a unique, URL-safe API key with a given length.
  */
 function generateApiKey(length: number = 48): string {
+  if (!Number.isInteger(length) || length < 16 || length > 128) {
+    throw new RangeError("API key length must be an integer between 16 and 128.");
+  }
+
   const chars =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
