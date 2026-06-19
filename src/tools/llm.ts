@@ -72,7 +72,7 @@ async function callLLMViaRequesty(model: string, messages: Array<{ role: string;
     return content.trim();
 }
 
-async function callGemini(model: string, systemIntruction: string, userMessage: string): Promise<string> {
+async function callGemini(model: string, systemInstruction: string, userMessage: string): Promise<string> {
     const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
 
     if (!geminiApiKey) {
@@ -94,7 +94,7 @@ async function callGemini(model: string, systemIntruction: string, userMessage: 
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            system_instruction: { parts: [{ text: systemIntruction }] },
+            system_instruction: { parts: [{ text: systemInstruction }] },
             contents: contents,
         }),
     });
