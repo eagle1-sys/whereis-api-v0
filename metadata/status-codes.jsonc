@@ -19,12 +19,12 @@
   // Milestone events
   "3050": "Picked Up",                              // minor
   "3100": "Received by Carrier",                    // major
-  "3150": "Customs Clearance: Export In-Progress",  // minor
-  "3200": "Customs Clearance: Export Released",     // major
+  "3150": "Export Customs Clearance In-Progress",   // minor
+  "3200": "Export Customs Cleared",                 // major
   "3250": "In-Transit to Destination",              // minor
   "3300": "Arrived at Destination",                 // major
-  "3350": "Customs Clearance: Import In-Progress",  // minor
-  "3400": "Customs Clearance: Import Released",     // major
+  "3350": "Import Customs Clearance In-Progress",   // minor
+  "3400": "Import Customs Cleared",                 // major
   "3450": "Final Delivery In-Progress",             // minor
   "3500": "Delivered"                               // major
 }
