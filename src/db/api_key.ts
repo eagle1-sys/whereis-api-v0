@@ -25,7 +25,7 @@ async function main(): Promise<void> {
   await initConnection();
 
   // step 3: generate API key
-  let { user = "formal_user", key = "" } = parseArgs(Deno.args);
+  let { user = "default_user", key = "" } = parseArgs(Deno.args);
   if (!key) {
     key = generateApiKey();
   }
