@@ -34,6 +34,7 @@ declare module "hono" {
 const app = new Hono();
 
 const RESTRICTED_CLIENT_TOKEN = "eagle1";
+const RESTRICTED_CLIENT_OPERATOR_CODE = "eg1";
 // Bearer Auth middleware
 const customBearerAuth = async (c: Context, next: Next) => {
   const authHeader = c.req.header("Authorization");
@@ -58,7 +59,7 @@ const customBearerAuth = async (c: Context, next: Next) => {
       const idx = trackingId.trim().indexOf("-");
       if (idx !== -1) {
         const operatorCode = trackingId.substring(0, idx);
-        if (operatorCode !== 'eg1') {
+        if (operatorCode !== RESTRICTED_CLIENT_OPERATOR_CODE) {
           // The client API key is not authorized for this request.
           throw new AppError("403-01", "ERR-SERVER-H: CLIENT_AUTHORIZATION");
         }
