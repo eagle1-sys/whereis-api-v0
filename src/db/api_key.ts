@@ -30,7 +30,7 @@ async function main(): Promise<void> {
     key = generateApiKey();
   }
 
-  // step 3: write API key to the database
+  // step 4: write API key to the database
   const inserted = await getDbClient().insertToken(key, user);
   // Just output the API key to console (Avoid writing to grafana)
   if (!inserted) {
