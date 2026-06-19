@@ -5,7 +5,7 @@ const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/
 
 const systemMessage = "You are a professional logistics data analyst tasked with standardizing logistics data " +
     "from various external providers into a consistent format based on specific rules. I will provide two datasets: " +
-    "A standardized status & what list detailing major and minor events. Major event codes includes 3000, 3100, 3200, 3300, 3400 and 3500. " +
+    "A standardized status & what list detailing major and minor events. Major event codes include 3000, 3100, 3200, 3300, 3400 and 3500. " +
     "Minor event codes include 3050, 3150, 3250, 3350 and 3450, All other event codes are classified as non-critical codes. " +
     "Shipment data containing raw routing data from external providers and their transformed status & what outputs. " +
     "Each routing data point includes an input (raw data from the provider) and an output (converted status & what). " +
@@ -72,7 +72,7 @@ async function callLLMViaRequesty(model: string, messages: Array<{ role: string;
     return content.trim();
 }
 
-async function callGemini(model: string, systemIntruction: string, userMessage: string): Promise<string> {
+async function callGemini(model: string, systemInstruction: string, userMessage: string): Promise<string> {
     const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
 
     if (!geminiApiKey) {
@@ -94,7 +94,7 @@ async function callGemini(model: string, systemIntruction: string, userMessage: 
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            system_instruction: { parts: [{ text: systemIntruction }] },
+            system_instruction: { parts: [{ text: systemInstruction }] },
             contents: contents,
         }),
     });
