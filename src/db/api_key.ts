@@ -44,7 +44,14 @@ function parseArgs(args: string[]) {
   const result: Record<string, string> = {};
   args.forEach((arg) => {
     if (arg.startsWith("--")) {
-      const [key, value] = arg.slice(2).split("=");
+      const rawArg = arg.slice(2);
+      const separatorIndex = rawArg.indexOf("=");
+      if (separatorIndex <= 0 || separatorIndex === rawArg.length - 1) {
+        return;
+      }
+
+      const key = rawArg.slice(0, separatorIndex);
+      const value = rawArg.slice(separatorIndex + 1);
       result[key] = value;
     }
   });
