@@ -25,16 +25,22 @@ async function main(): Promise<void> {
   await initConnection();
 
   // step 3: generate API key
-  let { user = "default_user", key = "" } = parseArgs(Deno.args);
-  if (!key) {
-    key = generateApiKey();
-  }
+  const parsedArgs = parseArgs(Deno.args);
+  const { user = "default_user", key: parsedKey = "" } = parsedArgs;
+  const key = parsedKey || generateApiKey();
 
   // step 4: write API key to the database
-  const inserted = await getDbClient().insertToken(key, user);
+  let inserted = false;
+  try {
+    inserted = await getDbClient().insertToken(key, user);
+  } catch (err) {
+    console.log(`Failed to insert API key ${key} for user ${user}: ${err}`);
+    Deno.exit(1);
+  }
+
   // Just output the API key to console (Avoid writing to grafana)
   if (!inserted) {
-    console.log(`Token ${key} already exists or could not be inserted.`);
+    console.log(`Token ${key} already exists or was not inserted.`);
   } else {
     console.log(`API key ${key} has been saved to the database.`);
   }
@@ -47,6 +53,7 @@ function parseArgs(args: string[]) {
       const rawArg = arg.slice(2);
       const separatorIndex = rawArg.indexOf("=");
       if (separatorIndex <= 0 || separatorIndex === rawArg.length - 1) {
+        console.warn(`Ignoring malformed argument: ${arg}. Expected format --key=value.`);
         return;
       }
 
@@ -60,8 +67,9 @@ function parseArgs(args: string[]) {
 
 /**
  * Generates a unique, URL-safe API key with a given length.
+ * Exported to enable dedicated unit tests for bounds/validation and output format.
  */
-function generateApiKey(length: number = 48): string {
+export function generateApiKey(length: number = 48): string {
   if (!Number.isInteger(length) || length < 16 || length > 128) {
     throw new RangeError("API key length must be an integer between 16 and 128.");
   }
