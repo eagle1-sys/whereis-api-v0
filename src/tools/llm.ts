@@ -10,7 +10,7 @@ const systemMessage = "You are a professional logistics data analyst tasked with
     "Shipment data containing raw routing data from external providers and their transformed status & what outputs. " +
     "Each routing data point includes an input (raw data from the provider) and an output (converted status & what). " +
     "Your task is to analyse events in the waybill and ensure all major events are present, " +
-    "you need to output the missing major events in JSON format. The JSON output should include two attribute: one is status code, the other is what.";
+    "you need to output the missing major events in JSON format. The JSON output should include two attributes: one is status code, the other is what.";
 
 export async function checkStatusViaRequesty(data: Array<Record<string, unknown>>, jsonStatusCode: Record<string, unknown>): Promise<string> {
     const userPrompt = `The standardized status & what list is: ${JSON.stringify(jsonStatusCode)}` +
