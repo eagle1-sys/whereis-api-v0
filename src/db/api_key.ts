@@ -47,6 +47,7 @@ function parseArgs(args: string[]) {
       const rawArg = arg.slice(2);
       const separatorIndex = rawArg.indexOf("=");
       if (separatorIndex <= 0 || separatorIndex === rawArg.length - 1) {
+        console.warn(`Ignoring malformed argument: ${arg}. Expected format --key=value.`);
         return;
       }
 
