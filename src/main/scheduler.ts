@@ -72,10 +72,10 @@ Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
  * querying their status, and updating the database if new events are found.
  * Handles database transactions and ensures proper rollback on errors.
  *
- *  * Different operators are processed differently:
- *  * - SFEX: Processed individually with their specific params (e.g., phone number)
- *  * - FDX: Processed in batches of up to 30, with no additional params required
- *  *
+ * Different operators are processed differently:
+ * - SFEX: Processed individually with their specific params (e.g., phone number)
+ * - FDX: Processed in batches of up to 30, with no additional params required
+ *
  * @throws {Error} If an error occurs during database operations or external requests.
  */
 async function syncRoutes() {
