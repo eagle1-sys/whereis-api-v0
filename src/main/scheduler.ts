@@ -106,6 +106,7 @@ async function syncRoutes() {
           } else {
             // Process tracking numbers in batches(eg: fdx)
             const ids = Object.keys(trackingIds).map((id) => TrackingID.parse(id));
+            logger.info(`${whereIsAPI("data_monitor")} Processing ${operator.toUpperCase()} batch ${idx + 1}/${trackingIdBatches.length} with ${ids.length} tracking numbers`);  
             await processTrackingIds(operator, ids, {});
           }
         } catch (err) {
