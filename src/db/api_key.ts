@@ -28,9 +28,8 @@ async function main(): Promise<void> {
   const parsedArgs = parseArgs(Deno.args);
   const { user = "default_user", key: parsedKey = "" } = parsedArgs;
   const key = parsedKey || generateApiKey();
-
   // step 4: write API key to the database
-  let inserted = false;
+  let inserted = 0;
   try {
     inserted = await getDbClient().insertToken(key, user);
   } catch (err) {
@@ -53,7 +52,9 @@ function parseArgs(args: string[]) {
       const rawArg = arg.slice(2);
       const separatorIndex = rawArg.indexOf("=");
       if (separatorIndex <= 0 || separatorIndex === rawArg.length - 1) {
-        console.warn(`Ignoring malformed argument: ${arg}. Expected format --key=value.`);
+        console.warn(
+          `Ignoring malformed argument: ${arg}. Expected format --key=value.`,
+        );
         return;
       }
 
@@ -71,7 +72,9 @@ function parseArgs(args: string[]) {
  */
 export function generateApiKey(length: number = 48): string {
   if (!Number.isInteger(length) || length < 16 || length > 128) {
-    throw new RangeError("API key length must be an integer between 16 and 128.");
+    throw new RangeError(
+      "API key length must be an integer between 16 and 128.",
+    );
   }
 
   const chars =
