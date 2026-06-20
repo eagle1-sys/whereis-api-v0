@@ -31,10 +31,17 @@ async function main(): Promise<void> {
   }
 
   // step 4: write API key to the database
-  const inserted = await getDbClient().insertToken(key, user);
+  let inserted = false;
+  try {
+    inserted = await getDbClient().insertToken(key, user);
+  } catch (err) {
+    console.log(`Failed to insert API key ${key} for user ${user}: ${err}`);
+    Deno.exit(1);
+  }
+
   // Just output the API key to console (Avoid writing to grafana)
   if (!inserted) {
-    console.log(`Token ${key} already exists or could not be inserted.`);
+    console.log(`Token ${key} already exists or was not inserted.`);
   } else {
     console.log(`API key ${key} has been saved to the database.`);
   }
