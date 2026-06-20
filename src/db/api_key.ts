@@ -60,8 +60,9 @@ function parseArgs(args: string[]) {
 
 /**
  * Generates a unique, URL-safe API key with a given length.
+ * Exported to enable dedicated unit tests for bounds/validation and output format.
  */
-function generateApiKey(length: number = 48): string {
+export function generateApiKey(length: number = 48): string {
   if (!Number.isInteger(length) || length < 16 || length > 128) {
     throw new RangeError("API key length must be an integer between 16 and 128.");
   }
