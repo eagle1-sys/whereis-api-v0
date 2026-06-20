@@ -80,6 +80,9 @@ async function shutdown() {
   if (shuttingDown) return;
   shuttingDown = true;
 
+  Deno.removeSignalListener("SIGINT", shutdown);
+  Deno.removeSignalListener("SIGTERM", shutdown);
+
   logger.info("\n[main] Shutting down...");
 
   try {
@@ -124,16 +127,19 @@ async function monitorAndRestartScheduler() {
   }
 }
 
-monitorAndRestartScheduler().catch((err) => {
-  logger.error(`[main] Scheduler monitor failed: ${err}`);
-  if (!shuttingDown) {
-    Deno.exit(1);
-  }
-});
+await Promise.race([
+  monitorAndRestartScheduler().catch((err) => {
+    logger.error(`[main] Scheduler monitor failed: ${err}`);
+    if (!shuttingDown) {
+      Deno.exit(1);
+    }
+  }),
+  (async () => {
+    const apiStatus = await apiCmd.status;
 
-const apiStatus = await apiCmd.status;
-
-if (!shuttingDown) {
-  logger.error(`[main] API process exited with code ${apiStatus.code}, shutting down.`);
-  await shutdown();
-}
+    if (!shuttingDown) {
+      logger.error(`[main] API process exited with code ${apiStatus.code}, shutting down.`);
+      await shutdown();
+    }
+  })(),
+]);
