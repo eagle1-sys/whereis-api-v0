@@ -95,7 +95,7 @@ async function syncRoutes() {
       const trackingIdBatches: Record<string, unknown>[] = getTrackingIdBatches(trackingNums, batchSize);
 
       for (let idx = 0; idx < trackingIdBatches.length; idx++) {
-        const trackingIds: Record<string,unknown> = trackingIdBatches[idx];
+        const trackingIds: Record<string, unknown> = trackingIdBatches[idx];
 
         try {
           if (Object.keys(trackingIds).length === 1) {
