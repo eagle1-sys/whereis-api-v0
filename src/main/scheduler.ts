@@ -177,7 +177,7 @@ function getTrackingIdBatches(trackingIds: Record<string, unknown>, batchSize: n
 async function processTrackingIds(operator: string, trackingIds: TrackingID[], params: Record<string, string>): Promise<void> {
   const updateMethod = "auto-pull";
   // step 1: fetch latest status from external data provider
-  const entities: Entity[] = await requestWhereIs(operator, trackingIds, params as Record<string, string>, updateMethod);
+  const entities: Entity[] = await requestWhereIs(operator, trackingIds, params, updateMethod);
   if (entities.length === 0) return;
 
   // step 2: compare eventIds in the database and fresh eventIds
