@@ -57,11 +57,12 @@ globalThis.addEventListener("unhandledrejection", (event) => {
 const intervalStr = Deno.env.get("APP_PULL_INTERVAL");
 const parsed = Number.parseInt(intervalStr ?? "", 10);
 const interval = Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
+const MILLISECONDS_PER_MINUTE = 60_000;
 
 Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
-  const timeout = (interval / 2) * 60_000;
+  const timeout = (interval / 2) * MILLISECONDS_PER_MINUTE;
   logger.info(
-    `${whereIsAPI("startup")} ==> syncRoutes cron job started: every ${interval} min, with a timeout ${timeout / 60_000} min`,
+    `${whereIsAPI("startup")} ==> syncRoutes cron job started every ${interval} min, times out after ${timeout / MILLISECONDS_PER_MINUTE} min`,
   );
 
   await Promise.race([
@@ -80,10 +81,10 @@ Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
  * querying their status, and updating the database if new events are found.
  * Handles database transactions and ensures proper rollback on errors.
  *
- *  * Different operators are processed differently:
- *  * - SFEX: Processed individually with their specific params (e.g., phone number)
- *  * - FDX: Processed in batches of up to 30, with no additional params required
- *  *
+ * Different operators are processed differently:
+ *  - SFEX: Processed individually with their specific params (e.g., phone number)
+ *  - FDX: Processed in batches of up to 30, with no additional params required
+ *
  * @throws {Error} If an error occurs during database operations or external requests.
  */
 async function syncRoutes() {
@@ -119,7 +120,7 @@ async function syncRoutes() {
 
         try {
           if (Object.keys(trackingIds).length === 1) {
-            // Process tracking numbers one by one(eg: sfex)
+            // Process tracking numbers one by one (eg: sfex)
             const [id] = Object.keys(trackingIds);
             logger.info(
               `${whereIsAPI("data_monitor")} Process auto-pull for trackingId: ${id}`,
@@ -135,14 +136,14 @@ async function syncRoutes() {
               TrackingID.parse(id),
             );
             logger.info(
-              `${whereIsAPI("data_monitor")} Processing ${operator.toUpperCase()} batch ${idx + 1}/${trackingIdBatches.length} with ${ids.length} tracking numbers`,
+              `${whereIsAPI("data_monitor")} Processing (${operator.toUpperCase()} batch ${idx + 1}/${trackingIdBatches.length}) with ${ids.length} tracking numbers`,
             );
             await processTrackingIds(operator, ids, {});
           }
 
           const duration = Date.now() - startMs;
           logger.info(
-            `${whereIsAPI("data_monitor")} Finished processing ${operator.toUpperCase()} batch ${idx + 1} in ${duration} ms`,
+            `${whereIsAPI("data_monitor")} Finished (${operator.toUpperCase()} batch ${idx + 1}) in ${duration} ms`,
           );
         } catch (err) {
           handleError(err, `syncRoutes batch ${idx} for ${operator}`);
@@ -224,7 +225,7 @@ async function processTrackingIds(
   const entities: Entity[] = await requestWhereIs(
     operator,
     trackingIds,
-    params as Record<string, string>,
+    params,
     updateMethod,
   );
   if (entities.length === 0) return;
