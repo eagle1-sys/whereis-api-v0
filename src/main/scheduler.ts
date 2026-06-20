@@ -99,7 +99,7 @@ async function syncRoutes() {
 
         try {
           if (Object.keys(trackingIds).length === 1) {
-             // Process tracking numbers one by one(eg: sfex)
+             // Process tracking numbers one by one (eg: sfex)
             const [id] = Object.keys(trackingIds);
             logger.info(`${whereIsAPI("data_monitor")} Process auto-pull for trackingId: ${id}`);
             await processTrackingIds(operator, [TrackingID.parse(id)], trackingIds[id] as Record<string, string>);
