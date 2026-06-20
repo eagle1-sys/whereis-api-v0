@@ -49,10 +49,11 @@ globalThis.addEventListener("unhandledrejection", (event) => {
 const intervalStr = Deno.env.get("APP_PULL_INTERVAL");
 const parsed = Number.parseInt(intervalStr ?? "", 10);
 const interval = Number.isFinite(parsed) && parsed > 0 ? parsed : 5;
+const MILLISECONDS_PER_MINUTE = 60_000;
 
 Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
-  const timeout = (interval / 2) * 60_000;
-  logger.info(`${whereIsAPI("startup")} ==> syncRoutes cron job started: every ${interval} min, with a timeout ${timeout / 60_000} min`);
+  const timeout = (interval / 2) * MILLISECONDS_PER_MINUTE;
+  logger.info(`${whereIsAPI("startup")} ==> syncRoutes cron job started: every ${interval} min, with a timeout ${timeout / MILLISECONDS_PER_MINUTE} min`);
 
   await Promise.race([
     syncRoutes(),
