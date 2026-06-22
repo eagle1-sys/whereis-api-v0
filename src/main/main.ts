@@ -40,7 +40,7 @@ const schedulerArgs = [
 ];
 
 function spawnApi(): Deno.ChildProcess {
-  logger.info(`[main] Starting API process on port ${port}...`);
+  logger.info(`[main] Starting api-server process on port ${port}...`);
 
   const proc = new Deno.Command(Deno.execPath(), {
     args: apiArgs,
@@ -48,7 +48,7 @@ function spawnApi(): Deno.ChildProcess {
     stderr: "inherit",
   }).spawn();
 
-  logger.info(`[main] API process started.`);
+  logger.info(`[main] api-server process started.`);
   return proc;
 }
 
@@ -76,6 +76,7 @@ function spawnScheduler(reason = "start"): Deno.ChildProcess {
   return proc;
 }
 
+// Start two processes
 const apiCmd = spawnApi();
 let schedulerCmd = spawnScheduler();
 let shuttingDown = false;
@@ -147,7 +148,9 @@ await Promise.all([
     const apiStatus = await apiCmd.status;
 
     if (!shuttingDown) {
-      logger.error(`[main] API process exited with code ${apiStatus.code}, shutting down.`);
+      logger.error(
+        `[main] API process exited with code ${apiStatus.code}, shutting down.`,
+      );
       await shutdown();
     }
   })(),
