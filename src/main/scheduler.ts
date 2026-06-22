@@ -131,7 +131,7 @@ async function syncRoutes() {
               trackingIds[id] as Record<string, string>,
             );
           } else {
-            // Process tracking numbers in batches(eg: fdx)
+            // Process tracking numbers in batches (eg: fdx)
             const ids = Object.keys(trackingIds).map((id) =>
               TrackingID.parse(id),
             );
