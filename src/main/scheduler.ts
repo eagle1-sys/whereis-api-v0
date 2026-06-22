@@ -65,12 +65,22 @@ Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
     `${whereIsAPI("startup")} ==> syncRoutes cron job started every ${interval} min, times out after ${timeout / MILLISECONDS_PER_MINUTE} min`,
   );
 
-  await Promise.race([
-    syncRoutes(),
-    new Promise<void>((_, reject) =>
-      setTimeout(() => reject(new Error("syncRoutes timed out")), timeout),
-    ),
-  ]);
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      syncRoutes(),
+      new Promise<void>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error("syncRoutes timed out")),
+          timeout,
+        );
+      }),
+    ]);
+  } finally {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
+  }
   logger.info(`${whereIsAPI("startup")} --> syncRoutes cron job ended`);
 }).catch((err) => {
   handleError(err, "Deno.cron: Sync routes");
