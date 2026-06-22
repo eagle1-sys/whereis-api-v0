@@ -248,7 +248,7 @@ async function processTrackingIds(
         );
       }
       // post-processing
-      postAction(entity);
+      await postAction(entity);
     } catch (err) {
       handleError(err, `processTrackingIds entity ${entity.id}`);
     }
