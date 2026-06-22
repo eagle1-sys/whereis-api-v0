@@ -127,7 +127,7 @@ async function monitorAndRestartScheduler() {
   }
 }
 
-await Promise.race([
+await Promise.all([
   monitorAndRestartScheduler().catch((err) => {
     logger.error(`[main] Scheduler monitor failed: ${err}`);
     if (!shuttingDown) {
