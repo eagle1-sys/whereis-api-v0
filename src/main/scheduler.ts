@@ -65,12 +65,22 @@ Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
     `${whereIsAPI("startup")} ==> syncRoutes cron job started every ${interval} min, times out after ${timeout / MILLISECONDS_PER_MINUTE} min`,
   );
 
-  await Promise.race([
-    syncRoutes(),
-    new Promise<void>((_, reject) =>
-      setTimeout(() => reject(new Error("syncRoutes timed out")), timeout),
-    ),
-  ]);
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      syncRoutes(),
+      new Promise<void>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error("syncRoutes timed out")),
+          timeout,
+        );
+      }),
+    ]);
+  } finally {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
+  }
   logger.info(`${whereIsAPI("startup")} --> syncRoutes cron job ended`);
 }).catch((err) => {
   handleError(err, "Deno.cron: Sync routes");
@@ -88,7 +98,7 @@ Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
  * @throws {Error} If an error occurs during database operations or external requests.
  */
 async function syncRoutes() {
-  let inProcessTrackingNums: Record<string, unknown>;
+  let inProcessTrackingNums: Record<string, unknown> = {};
   try {
     inProcessTrackingNums = await getDbClient().getInProcessingTrackingNums();
     logger.info(
@@ -131,7 +141,7 @@ async function syncRoutes() {
               trackingIds[id] as Record<string, string>,
             );
           } else {
-            // Process tracking numbers in batches(eg: fdx)
+            // Process tracking numbers in batches (eg: fdx)
             const ids = Object.keys(trackingIds).map((id) =>
               TrackingID.parse(id),
             );
@@ -248,7 +258,7 @@ async function processTrackingIds(
         );
       }
       // post-processing
-      postAction(entity);
+      await postAction(entity);
     } catch (err) {
       handleError(err, `processTrackingIds entity ${entity.id}`);
     }
