@@ -150,7 +150,7 @@ prune: ## Remove all unused Docker data (dangling images, build cache)
 
 logs: check_docker ## Follow the logs from the api and postgres services
 	@echo "=> Tailing logs (press Ctrl+C to stop)..."
-	@docker compose -f $(COMPOSE_FILE) logs -f
+	@docker compose -f $(COMPOSE_FILE) logs -t -f
 
 
 # - EOF -
