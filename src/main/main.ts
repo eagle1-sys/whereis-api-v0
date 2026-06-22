@@ -52,6 +52,8 @@ function spawnApi(): Deno.ChildProcess {
   return proc;
 }
 
+const schedulerProcs = new Set<Deno.ChildProcess>();
+
 function spawnScheduler(reason = "start"): Deno.ChildProcess {
   if (reason === "restart") {
     logger.info("[main] Restarting scheduler process...");
@@ -64,6 +66,11 @@ function spawnScheduler(reason = "start"): Deno.ChildProcess {
     stdout: "inherit",
     stderr: "inherit",
   }).spawn();
+
+  schedulerProcs.add(proc);
+  proc.status.finally(() => {
+    schedulerProcs.delete(proc);
+  });
 
   logger.info("[main] Scheduler process started.");
   return proc;
@@ -91,15 +98,17 @@ async function shutdown() {
     // already exited
   }
 
-  try {
-    schedulerCmd.kill("SIGTERM");
-  } catch {
-    // already exited
+  for (const proc of schedulerProcs) {
+    try {
+      proc.kill("SIGTERM");
+    } catch {
+      // already exited
+    }
   }
 
   await Promise.allSettled([
     apiCmd.status,
-    schedulerCmd.status,
+    ...Array.from(schedulerProcs, (proc) => proc.status),
   ]);
 
   logger.info("[main] Shutdown complete.");
