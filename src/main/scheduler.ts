@@ -88,7 +88,7 @@ Deno.cron("Sync routes", { minute: { every: interval } }, async () => {
  * @throws {Error} If an error occurs during database operations or external requests.
  */
 async function syncRoutes() {
-  let inProcessTrackingNums: Record<string, unknown>;
+  let inProcessTrackingNums: Record<string, unknown> = {};
   try {
     inProcessTrackingNums = await getDbClient().getInProcessingTrackingNums();
     logger.info(
