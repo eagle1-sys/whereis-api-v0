@@ -176,7 +176,20 @@ function groupTrackingNumsByOperator(
   const groupedByOperator: Record<string, Record<string, unknown>> = {};
 
   for (const [id, params] of Object.entries(inProcessTrackingNums)) {
+    if (!id.includes("-")) {
+      logger.warn(
+        `${whereIsAPI("sync")} Skipping malformed tracking ID without operator separator: ${id}`,
+      );
+      continue;
+    }
+
     const [operator] = id.split("-");
+    if (!operator) {
+      logger.warn(
+        `${whereIsAPI("sync")} Skipping malformed tracking ID with empty operator: ${id}`,
+      );
+      continue;
+    }
 
     if (!groupedByOperator[operator]) {
       groupedByOperator[operator] = {};
