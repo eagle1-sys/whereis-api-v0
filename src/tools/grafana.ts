@@ -32,7 +32,9 @@ export class Grafana {
   ) {
     this.GRAFANA_USER = grafanaUser;
     this.GRAFANA_API_KEY = grafanaApiKey;
-    this.GRAFANA_QUERY_URL = grafanaURL + "loki/api/v1/query_range";
+    this.GRAFANA_QUERY_URL =
+      (grafanaURL.endsWith("/") ? grafanaURL : grafanaURL + "/") +
+      "loki/api/v1/query_range";
     this.GRAFANA_SOURCE = grafanaSource;
 
     // Initialize the worker
@@ -49,21 +51,28 @@ export class Grafana {
 
   public static getInstance(): Grafana | undefined {
     if (!Grafana.instance && !Grafana.initialized) {
+      Grafana.initialized = true;
+
       const grafanaURL = Deno.env.get("GRAFANA_URL") || "";
       const grafanaUser = Deno.env.get("GRAFANA_USER") || "";
       const grafanaApiKey = Deno.env.get("GRAFANA_API_KEY") || "";
+      const hostname = "whereis-api-node";
+
       if (grafanaURL && grafanaUser && grafanaApiKey) {
         Grafana.instance = new Grafana(
           grafanaUser,
           grafanaApiKey,
           grafanaURL,
-          Deno.hostname(),
+          hostname,
         );
         console.info(
           `Grafana logging enabled: URL=${grafanaURL}, User=${grafanaUser}`,
         );
+      } else {
+        console.info(
+          "Grafana logging disabled (missing GRAFANA_URL, GRAFANA_USER, or GRAFANA_API_KEY). Falling back to local logging.",
+        );
       }
-      Grafana.initialized = true; // <-- must be here, not inside the inner if
     }
     return Grafana.instance;
   }

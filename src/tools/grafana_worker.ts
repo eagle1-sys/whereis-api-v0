@@ -1,13 +1,12 @@
 import { httpPost } from "./util.ts";
 
-const grafanaURL = Deno.env.get("GRAFANA_URL") as string;
-const GRAFANA_USER = Deno.env.get("GRAFANA_USER") as string;
-const GRAFANA_API_KEY = Deno.env.get("GRAFANA_API_KEY") as string;
-const normalizedURL = grafanaURL.endsWith("/") ? grafanaURL : grafanaURL + "/";
-const GRAFANA_PUSH_URL = normalizedURL + "loki/api/v1/push";
+const grafanaURL = Deno.env.get("GRAFANA_URL") ?? "";
+const GRAFANA_USER = Deno.env.get("GRAFANA_USER") ?? "";
+const GRAFANA_API_KEY = Deno.env.get("GRAFANA_API_KEY") ?? "";
+const GRAFANA_PUSH_URL = `${grafanaURL.replace(/\/$/, "")}/loki/api/v1/push`;
 
 console.log(
-  `Logging configured to send to Grafana at ${grafanaURL} as user ${GRAFANA_USER}`,
+  `Logging configured to send to Grafana at ${GRAFANA_PUSH_URL} as user ${GRAFANA_USER}`,
 );
 
 self.addEventListener("message", async (e) => {

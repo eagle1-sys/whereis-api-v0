@@ -14,7 +14,6 @@
  */
 import { loadEnv } from "../main/app.ts";
 import { initConnection } from "./dbutil.ts";
-import { whereIsAPI, logger } from "../tools/logger.ts";
 import { getDbClient } from "./dbutil.ts";
 
 async function main(): Promise<void> {
@@ -105,6 +104,6 @@ export function generateApiKey(length: number = 48): string {
 
 // Execute the main function and handle any uncaught errors
 main().catch((err) => {
-  logger.error(`${whereIsAPI("exception")} Failed to start application:${err}`);
+  console.error(`Failed to start application: ${err}`);
   Deno.exit(1);
 });
