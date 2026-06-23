@@ -152,5 +152,14 @@ logs: check_docker ## Follow the logs from the api and postgres services
 	@echo "=> Tailing logs (press Ctrl+C to stop)..."
 	@docker compose -f $(COMPOSE_FILE) logs -t -f
 
+fly_deploy: check_docker ## Deploy to fly.io
+	 @if [ -f fly.toml ]; then \
+	  fly deploy \
+	    --build-arg APP_VERSION="$$(git describe --abbrev=0 --tags 2>/dev/null || echo 'unknown')" \
+	    --build-arg APP_BUILD="$$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')" \
+	    --build-arg APP_BUILD_DATE="$$(date -u +'%Y-%m-%d')"; \
+	 else \
+	    echo "Missing fly.toml"; \
+ fi
 
 # - EOF -
