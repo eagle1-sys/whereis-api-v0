@@ -42,6 +42,8 @@ async function main(): Promise<void> {
   } else {
     console.log(`API key ${key} has been saved to the database.`);
   }
+
+  Deno.exit(0);
 }
 
 function parseArgs(args: string[]) {
