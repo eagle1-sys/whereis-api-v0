@@ -53,19 +53,10 @@ export class Grafana {
     if (!Grafana.instance && !Grafana.initialized) {
       Grafana.initialized = true;
 
-      const denoEnv = (globalThis as any).Deno;
-      let grafanaURL = "";
-      let grafanaUser = "";
-      let grafanaApiKey = "";
-      let hostname = "whereis-api-node";
-
-      try {
-        grafanaURL = denoEnv?.env.get("GRAFANA_URL") || "";
-        grafanaUser = denoEnv?.env.get("GRAFANA_USER") || "";
-        grafanaApiKey = denoEnv?.env.get("GRAFANA_API_KEY") || "";
-      } catch (e) {
-        // Ignore errors (e.g., missing permissions)
-      }
+      const grafanaURL = Deno.env.get("GRAFANA_URL") || "";
+      const grafanaUser = Deno.env.get("GRAFANA_USER") || "";
+      const grafanaApiKey = Deno.env.get("GRAFANA_API_KEY") || "";
+      const hostname = "whereis-api-node";
 
       if (grafanaURL && grafanaUser && grafanaApiKey) {
         Grafana.instance = new Grafana(
