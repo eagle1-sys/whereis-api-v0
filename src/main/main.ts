@@ -72,7 +72,7 @@ function spawnScheduler(reason = "start"): Deno.ChildProcess {
     schedulerProcs.delete(proc);
   });
 
-  logger.info("[main] Scheduler process started.");
+  logger.info("[main] scheduler process started.");
   return proc;
 }
 
