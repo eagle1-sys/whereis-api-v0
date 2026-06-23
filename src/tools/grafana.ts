@@ -59,12 +59,11 @@ export class Grafana {
           grafanaURL,
           Deno.hostname(),
         );
-      } else {
         console.info(
-          `Grafana logging disabled: missing environment variables GRAFANA_URL, GRAFANA_USER and GRAFANA_API_KEY.`,
+          `Grafana logging enabled: URL=${grafanaURL}, User=${grafanaUser}`,
         );
       }
-      Grafana.initialized = true;
+      Grafana.initialized = true; // <-- must be here, not inside the inner if
     }
     return Grafana.instance;
   }
