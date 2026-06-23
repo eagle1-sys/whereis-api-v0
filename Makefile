@@ -118,7 +118,7 @@ test: check_docker ## Run 'deno task test' in the api container
 	@echo "=> Running 'deno task test' within the whereis-api container ..."
 	@docker exec -it whereis-api-v0 deno task test
 
-api_key: check_docker ## Run 'deno task api_key' in the api container. Usage: make api_key ARGS="--user=xxx --key=yyy"
+api-key: check_docker ## Run 'deno task api_key' in the api container. Usage: make api_key ARGS="--user=xxx --key=yyy"
 	@echo "=> Running 'deno task api_key' within the whereis-api container ..."
 	@docker exec -it whereis-api-v0 deno task -q api_key $(ARGS)
 
@@ -152,7 +152,7 @@ logs: check_docker ## Follow the logs from the api and postgres services
 	@echo "=> Tailing logs (press Ctrl+C to stop)..."
 	@docker compose -f $(COMPOSE_FILE) logs -t -f
 
-fly_deploy: check_docker ## Deploy to fly.io
+fly-deploy: check_docker ## Deploy to fly.io
 	 @if [ -f fly.toml ]; then \
 	  fly deploy \
 	    --build-arg APP_VERSION="$$(git describe --abbrev=0 --tags 2>/dev/null || echo 'unknown')" \
