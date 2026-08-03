@@ -816,7 +816,8 @@ export class OperatorRegistry {
         .filter(([_, details]) => details.active === true)
         .map(([code, details]) => ({
           code: code,
-          name: details.name as string
+          name: details.name as string,
+          active: details.active as boolean
         }));
   }
 
