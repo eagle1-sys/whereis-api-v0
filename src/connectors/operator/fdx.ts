@@ -56,18 +56,20 @@ export class Fdx implements OperatorModule {
       AR: function (_entity: Entity, sourceData: Record<string, unknown>): number {
         const locationType = sourceData["locationType"] as string;
         const eventDescription = sourceData["eventDescription"] as string;
-        if (_entity.additional.isCrossBorder) {
-          if (locationType === "DESTINATION_FEDEX_FACILITY" ||
-              (locationType === "SORT_FACILITY" && /destination/i.test(eventDescription))) {
-            return 3300;            // At destination sort facility
-          }
 
-          // Check for arrival in the destination country for cross-border shipments
+        // This applies to all shipments
+        if (locationType === "DESTINATION_FEDEX_FACILITY" ||
+            (locationType === "SORT_FACILITY" && /destination/i.test(eventDescription))) {
+          return 3300;  // At destination sort facility
+        }
+
+        // Check for arrival in the destination country for cross-border shipments
+        if (_entity.additional.isCrossBorder) {
           const scanLocation = sourceData["scanLocation"] as Record<string, unknown> | null;
           const destAddress = _entity.additional.destination as string | undefined;
           const destCountryName = scanLocation?.["countryName"] as string | undefined;
           if (/arrived/i.test(eventDescription) && destAddress && destCountryName && destAddress.endsWith(destCountryName)) {
-            return 3300; // Arrived at Destination
+            return 3300;  // Arrived at Destination
           }
         }
 
