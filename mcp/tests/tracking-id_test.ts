@@ -76,6 +76,25 @@ Deno.test("rejects an over-long FedEx tracking number", () => {
 Deno.test("rejects SF Express without phone_last4", () => {
   const error = inputErrorFor("sfex-SF1234123412341");
   assert(error.message.includes("phone_last4"));
+
+  const emptyError = inputErrorFor("sfex-SF1234123412341", "   ");
+  assert(emptyError.message.includes("phone_last4"));
+});
+
+Deno.test("treats an empty phone_last4 as omitted for FedEx and eg1", () => {
+  assertEquals(
+    normalizeTrackingId("fdx-888877776666", "").phoneLast4,
+    undefined,
+  );
+  assertEquals(
+    normalizeTrackingId("eg1-ACME11112222", "   ").phoneLast4,
+    undefined,
+  );
+});
+
+Deno.test("trims a non-empty SF Express phone_last4", () => {
+  const result = normalizeTrackingId("sfex-SF1234123412341", " 6993 ");
+  assertEquals(result.phoneLast4, "6993");
 });
 
 Deno.test("rejects a non-four-digit SF Express phone", () => {

@@ -39,7 +39,8 @@ function normalizePhone(
     }
     return String(phone);
   }
-  return phone.trim();
+  const trimmedPhone = phone.trim();
+  return trimmedPhone.length === 0 ? undefined : trimmedPhone;
 }
 
 /**
