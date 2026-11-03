@@ -13,4 +13,7 @@
 **/*.sample
 **/*.bak.*
 
+# The MCP server is a separate local integration and is not part of the API image.
+mcp/
+
 # - EOF -

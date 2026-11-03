@@ -111,6 +111,29 @@ const response = await fetch(url, {
 
 ---
 
+## MCP server (experimental)
+
+The `mcp/` directory exposes the tracking API as
+[Model Context Protocol](https://modelcontextprotocol.io) tools so AI hosts
+(Claude Desktop, VS Code, Cursor, DeepSeek Harness) can track shipments directly.
+
+Tools: `list_operators`, `get_latest_status`, and `track_shipment`, plus a
+`whereis://reference/status-codes` resource. The server is read-only by default;
+the push endpoint is exposed only when `WHEREIS_MCP_ENABLE_WRITE=true`.
+
+```bash
+# Put a full API key in .env (gitignored) or export it:
+echo "WHEREIS_API_KEY=sk-..." >> .env
+
+deno task mcp        # stdio, for local MCP hosts
+deno task mcp:http   # Streamable HTTP on http://127.0.0.1:8038/mcp
+```
+
+See [mcp/README.md](mcp/README.md) for client configuration, self-hosting, and
+security notes.
+
+---
+
 # Getting started
 
 There are only three commands to deploy locally with Docker! Detailed, step-by-step instructions can be found in the [How-to Guide](https://github.com/eagle1-sys/whereis-api-v0/wiki/How%E2%80%90to:-Local-DEV-deployment-using-docker).

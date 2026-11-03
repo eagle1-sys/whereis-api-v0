@@ -61,6 +61,9 @@ jobs:
       - name: Run type check
         run: deno check .
 
+      - name: Run MCP tests
+        run: deno task mcp:test
+
       - name: Set env vars for main branch
         if: github.ref_name == 'develop'
         run: |
