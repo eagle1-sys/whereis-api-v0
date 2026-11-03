@@ -13,7 +13,8 @@
 **/*.sample
 **/*.bak.*
 
-# The MCP server is a separate local integration and is not part of the API image.
-mcp/
+# The API serves /mcp from src/main/mcp.ts, so mcp/src ships with the image.
+# Its tests do not.
+mcp/tests/
 
 # - EOF -
