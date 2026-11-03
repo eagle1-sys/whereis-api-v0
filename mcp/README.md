@@ -303,6 +303,7 @@ For a shared HTTP server instead, use `transport: streamable-http`,
 ```bash
 deno task check      # lint + type check
 deno task mcp:test   # unit, in-memory, HTTP, and stdio tests
+make test            # the API suite and the MCP suite, both in the container
 ```
 
 The tests use an injected fetch and a local mock API; they do not need a real
