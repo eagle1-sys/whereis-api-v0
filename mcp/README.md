@@ -139,6 +139,12 @@ hosted endpoint cannot spend the operator's quota. Set `MCP_ENABLED=false` to
 leave `/mcp` unmounted, and point `WHEREIS_API_URL` at the API's own origin
 (`http://localhost:8037` in the container) so the tools call it locally.
 
+The MCP transport tears a request down on `request.signal`, and Deno's legacy
+semantics abort that signal as soon as a response is returned, which can cut an
+event stream short. `src/main/main.ts` therefore starts the API with
+`--unstable-no-legacy-abort`, so the signal fires on a real disconnect instead.
+Starting `src/main/api_server.ts` by hand should pass the same flag.
+
 ## Client configuration
 
 Replace the absolute paths with your checkout and Deno binary

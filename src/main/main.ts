@@ -17,6 +17,11 @@ const port = Deno.env.get("PORT") || "8037";
 const apiArgs = [
   "serve",
   "--parallel",
+  // The MCP transport listens on `request.signal` to tear a request down, and
+  // the legacy semantics abort that signal as soon as a response is returned,
+  // which can cut a server-sent event stream short. This opts into aborting on
+  // a real disconnect instead. See https://docs.deno.com/go/unstable-no-legacy-abort.
+  "--unstable-no-legacy-abort",
   "--port",
   port,
   "--allow-sys",
