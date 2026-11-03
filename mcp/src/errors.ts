@@ -129,8 +129,10 @@ export function mapApiError(
   const hint = inactiveOperator
     ? INACTIVE_OPERATOR_HINT
     : (HINTS[code] ?? httpHint ?? DEFAULT_HINT);
-  const retryable = httpStatus === 429 || httpStatus >= 500 ||
-    code === "429-01";
+  // A missing operator module is a deployment gap, not a transient failure:
+  // retrying it only delays the hint the caller needs.
+  const retryable = !inactiveOperator &&
+    (httpStatus === 429 || httpStatus >= 500 || code === "429-01");
 
   return new WhereisError({
     code,

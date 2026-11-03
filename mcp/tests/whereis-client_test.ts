@@ -199,7 +199,7 @@ Deno.test("maps 401 and 403 responses to configuration hints", async () => {
 });
 
 Deno.test("explains an inactive local operator module", async () => {
-  const { fetchImpl } = recordingFetch(() =>
+  const { fetchImpl, calls } = recordingFetch(() =>
     jsonResponse({
       error: "500-01",
       message:
@@ -222,6 +222,8 @@ Deno.test("explains an inactive local operator module", async () => {
   assertEquals(error.code, "500-01");
   assert(error.hint.includes("FDX_CLIENT_ID"));
   assert(error.hint.includes("api.eg1.io"));
+  assertEquals(error.retryable, false);
+  assertEquals(calls.length, 1);
 });
 
 Deno.test("retries a retryable status once", async () => {

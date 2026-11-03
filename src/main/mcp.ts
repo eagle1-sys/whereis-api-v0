@@ -14,7 +14,11 @@
  */
 
 import type { Hono } from "hono";
-import { loadConfig, type McpConfig } from "../../mcp/src/config.ts";
+import {
+  DEFAULT_API_URL,
+  loadConfig,
+  type McpConfig,
+} from "../../mcp/src/config.ts";
 import { mountMcp } from "../../mcp/src/mount.ts";
 import { getDbClient } from "../db/dbutil.ts";
 import { logger, whereIsAPI } from "../tools/logger.ts";
@@ -58,6 +62,16 @@ export async function mountMcpEndpoint(app: Hono): Promise<boolean> {
     config,
     authenticate: (token) => getDbClient().isTokenValid(token),
   });
+
+  // Without an explicit origin the tools HTTP-call the public API instead of
+  // this instance, which works but doubles the hop and hides local carriers.
+  if (config.apiUrl === DEFAULT_API_URL) {
+    logger.warn(
+      `${
+        whereIsAPI("startup")
+      } MCP tools will call ${DEFAULT_API_URL}; set WHEREIS_API_URL to this instance's origin (http://localhost:8037 in the container) to keep tool calls local.`,
+    );
+  }
 
   logger.info(
     `${
