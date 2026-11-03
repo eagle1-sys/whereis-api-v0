@@ -74,6 +74,9 @@ const HINTS: Record<string, string> = {
 const DEFAULT_HINT =
   "Retry once. If the problem persists, check WHEREIS_API_URL and the Eagle1 API status.";
 
+const INACTIVE_OPERATOR_HINT =
+  "The configured API has no active data source for this operator. For a local stack, set FDX_CLIENT_ID/FDX_CLIENT_SECRET or SFEX_PARTNER_ID/SFEX_CHECK_WORD in source-api-keys.env and recreate the container. The hosted API at https://api.eg1.io already has carrier credentials.";
+
 /** Parses a Retry-After header expressed in seconds. */
 function parseRetryAfterMs(value: string | null): number | undefined {
   if (!value) return undefined;
@@ -120,7 +123,12 @@ export function mapApiError(
   }
 
   const httpHint = HINTS[String(httpStatus)];
-  const hint = HINTS[code] ?? httpHint ?? DEFAULT_HINT;
+  const inactiveOperator = message.includes(
+    "ERR-GATEWAY-C: Operator module not found",
+  ) || message.includes("INACTIVE_OPERATOR");
+  const hint = inactiveOperator
+    ? INACTIVE_OPERATOR_HINT
+    : (HINTS[code] ?? httpHint ?? DEFAULT_HINT);
   const retryable = httpStatus === 429 || httpStatus >= 500 ||
     code === "429-01";
 

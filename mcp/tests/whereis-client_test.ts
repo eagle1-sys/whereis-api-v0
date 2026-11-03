@@ -198,6 +198,32 @@ Deno.test("maps 401 and 403 responses to configuration hints", async () => {
   assert(forbiddenError.hint.includes("restricted"));
 });
 
+Deno.test("explains an inactive local operator module", async () => {
+  const { fetchImpl } = recordingFetch(() =>
+    jsonResponse({
+      error: "500-01",
+      message:
+        "Internal Server Error:  [ERR-GATEWAY-C: Operator module not found: fdx]",
+    }, 500)
+  );
+  const backend = new HttpWhereisBackend(
+    makeConfig(),
+    fetchImpl,
+    async () => {},
+  );
+
+  const error = await expectWhereisError(() =>
+    backend.trackShipment({
+      trackingId: normalizeTrackingId("fdx-888877776666"),
+      refresh: true,
+    })
+  );
+
+  assertEquals(error.code, "500-01");
+  assert(error.hint.includes("FDX_CLIENT_ID"));
+  assert(error.hint.includes("api.eg1.io"));
+});
+
 Deno.test("retries a retryable status once", async () => {
   let attempts = 0;
   const { fetchImpl, calls } = recordingFetch(() => {
