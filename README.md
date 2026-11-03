@@ -129,6 +129,18 @@ deno task mcp        # stdio, for local MCP hosts
 deno task mcp:http   # Streamable HTTP on http://127.0.0.1:8038/mcp
 ```
 
+The API server also serves the endpoint at `/mcp` on its own port, so a running
+stack needs no extra process:
+
+```bash
+curl -sS http://localhost:8037/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+Requests without a key get the public tools; `Authorization: Bearer <key>` runs
+the tools as that key's owner. Set `MCP_ENABLED=false` to turn the endpoint off.
+
 See [mcp/README.md](mcp/README.md) for client configuration, self-hosting, and
 security notes.
 

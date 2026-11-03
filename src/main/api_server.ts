@@ -8,6 +8,7 @@
  */
 import { app } from "./server.ts";
 import { initApp } from "./app.ts";
+import { mountMcpEndpoint } from "./mcp.ts";
 import { whereIsAPI, logger } from "../tools/logger.ts";
 
 /**
@@ -20,6 +21,7 @@ import { whereIsAPI, logger } from "../tools/logger.ts";
  */
 async function main(): Promise<void> {
     await initApp();
+    await mountMcpEndpoint(app);
 }
 
 // Execute the main function and handle any uncaught errors

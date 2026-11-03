@@ -113,6 +113,32 @@ when exposing it beyond your machine.
 
 Health check: `GET /healthz`.
 
+### Mounted on the API (`/mcp`)
+
+The API server also serves the same endpoint at `/mcp` on its own port, so a
+deployment needs neither a second process nor a reverse proxy:
+
+```bash
+curl -sS http://localhost:8037/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+```
+
+The mounted endpoint authenticates per request instead of with a single
+`MCP_AUTH_TOKEN`:
+
+| Request                                   | Served as                                                                                               |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| No `Authorization` header                 | anonymous; `list_operators` and `get_latest_status` work, `track_shipment` returns a key-required error |
+| `Authorization: Bearer <Whereis API key>` | that key's owner; every tool works, and the API sees the caller's own key                               |
+| Unknown key                               | `401` with `WWW-Authenticate: Bearer`                                                                   |
+
+An anonymous request never falls back to a key configured on the server, so a
+hosted endpoint cannot spend the operator's quota. Set `MCP_ENABLED=false` to
+leave `/mcp` unmounted, and point `WHEREIS_API_URL` at the API's own origin
+(`http://localhost:8037` in the container) so the tools call it locally.
+
 ## Client configuration
 
 Replace the absolute paths with your checkout and Deno binary

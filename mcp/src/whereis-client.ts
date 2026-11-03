@@ -72,7 +72,7 @@ interface RequestOptions {
 }
 
 const API_KEY_HINT =
-  "Add WHEREIS_API_KEY to the environment or the repo .env file. Generate a full key with `deno task api_key`; the seeded `eagle1` token is restricted.";
+  "Generate a full key with `deno task api_key`, then set WHEREIS_API_KEY, or send `Authorization: Bearer <key>` when the endpoint is hosted by the Whereis API. The seeded `eagle1` token is restricted.";
 
 const defaultSleep: SleepLike = (milliseconds) =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
