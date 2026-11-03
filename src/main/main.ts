@@ -14,14 +14,42 @@ import { logger } from "../tools/logger.ts";
 
 const port = Deno.env.get("PORT") || "8037";
 
+/**
+ * The MCP transport tears a request down on `request.signal`, and Deno's legacy
+ * semantics abort that signal as soon as a response is returned, which can cut a
+ * server-sent event stream short. `--unstable-no-legacy-abort` opts into
+ * aborting on a real disconnect instead.
+ *
+ * The flag is unstable, and a build without it refuses to start the child with
+ * "unexpected argument". Probing the runtime keeps a pinned older Deno usable
+ * instead of failing at child startup.
+ * See https://docs.deno.com/go/unstable-no-legacy-abort.
+ */
+function supportsNoLegacyAbort(): boolean {
+  try {
+    const probe = new Deno.Command(Deno.execPath(), {
+      args: ["serve", "--unstable-no-legacy-abort", "--help"],
+      stdout: "null",
+      stderr: "null",
+    }).outputSync();
+    return probe.success;
+  } catch {
+    return false;
+  }
+}
+
+const noLegacyAbort = supportsNoLegacyAbort();
+
+if (!noLegacyAbort) {
+  logger.warn(
+    "[main] This Deno build rejects --unstable-no-legacy-abort; the MCP endpoint will serve with legacy request.abort semantics.",
+  );
+}
+
 const apiArgs = [
   "serve",
   "--parallel",
-  // The MCP transport listens on `request.signal` to tear a request down, and
-  // the legacy semantics abort that signal as soon as a response is returned,
-  // which can cut a server-sent event stream short. This opts into aborting on
-  // a real disconnect instead. See https://docs.deno.com/go/unstable-no-legacy-abort.
-  "--unstable-no-legacy-abort",
+  ...(noLegacyAbort ? ["--unstable-no-legacy-abort"] : []),
   "--port",
   port,
   "--allow-sys",

@@ -143,7 +143,9 @@ The MCP transport tears a request down on `request.signal`, and Deno's legacy
 semantics abort that signal as soon as a response is returned, which can cut an
 event stream short. `src/main/main.ts` therefore starts the API with
 `--unstable-no-legacy-abort`, so the signal fires on a real disconnect instead.
-Starting `src/main/api_server.ts` by hand should pass the same flag.
+The flag is unstable, so startup probes for it first and falls back to the
+legacy semantics with a warning on a Deno build that rejects it. Starting
+`src/main/api_server.ts` by hand should pass the same flag when available.
 
 ## Client configuration
 
