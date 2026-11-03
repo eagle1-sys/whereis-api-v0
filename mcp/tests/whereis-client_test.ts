@@ -291,8 +291,10 @@ Deno.test("honors Retry-After when backing off", async () => {
 });
 
 Deno.test("maps a timeout to a retryable TIMEOUT error", async () => {
-  const fetchImpl: FetchLike = (_url, init) =>
-    new Promise((_resolve, reject) => {
+  let attempts = 0;
+  const fetchImpl: FetchLike = (_url, init) => {
+    attempts += 1;
+    return new Promise((_resolve, reject) => {
       const signal = init?.signal;
       if (signal?.aborted === true) {
         reject(new DOMException("Aborted", "AbortError"));
@@ -304,6 +306,7 @@ Deno.test("maps a timeout to a retryable TIMEOUT error", async () => {
         { once: true },
       );
     });
+  };
 
   const backend = new HttpWhereisBackend(
     makeConfig({ requestTimeoutMs: 25 }),
@@ -319,6 +322,67 @@ Deno.test("maps a timeout to a retryable TIMEOUT error", async () => {
 
   assertEquals(error.code, "TIMEOUT");
   assertEquals(error.retryable, true);
+  assertEquals(attempts, 3);
+});
+
+Deno.test("does not retry a timeout when refreshing from the carrier", async () => {
+  let attempts = 0;
+  const fetchImpl: FetchLike = (_url, init) => {
+    attempts += 1;
+    return new Promise((_resolve, reject) => {
+      const signal = init?.signal;
+      if (signal?.aborted === true) {
+        reject(new DOMException("Aborted", "AbortError"));
+        return;
+      }
+      signal?.addEventListener(
+        "abort",
+        () => reject(new DOMException("Aborted", "AbortError")),
+        { once: true },
+      );
+    });
+  };
+
+  const backend = new HttpWhereisBackend(
+    makeConfig({ refreshTimeoutMs: 25 }),
+    fetchImpl,
+    async () => {},
+  );
+
+  const error = await expectWhereisError(() =>
+    backend.trackShipment({
+      trackingId: normalizeTrackingId("fdx-888877776666"),
+      refresh: true,
+    })
+  );
+
+  assertEquals(error.code, "TIMEOUT");
+  assertEquals(attempts, 1);
+});
+
+Deno.test("still retries a network error when refreshing", async () => {
+  let attempts = 0;
+  const { fetchImpl } = recordingFetch(() => {
+    attempts += 1;
+    if (attempts === 1) {
+      throw new TypeError("network down");
+    }
+    return jsonResponse({ entity: { id: "fdx-888877776666" }, events: [] });
+  });
+
+  const backend = new HttpWhereisBackend(
+    makeConfig(),
+    fetchImpl,
+    async () => {},
+  );
+
+  const result = await backend.trackShipment({
+    trackingId: normalizeTrackingId("fdx-888877776666"),
+    refresh: true,
+  });
+
+  assertEquals(attempts, 2);
+  assertEquals(result.id, "fdx-888877776666");
 });
 
 Deno.test("reports a non-JSON upstream error", async () => {

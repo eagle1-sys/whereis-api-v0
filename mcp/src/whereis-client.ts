@@ -66,6 +66,8 @@ interface RequestOptions {
   timeoutMs: number;
   requireAuth?: boolean;
   retries: number;
+  /** Defaults to true; set false when a timeout should not be retried. */
+  retryOnTimeout?: boolean;
   signal?: AbortSignal;
 }
 
@@ -146,6 +148,9 @@ export class HttpWhereisBackend implements WhereisBackend {
           : this.config.requestTimeoutMs,
         requireAuth: true,
         retries: request.refresh ? 1 : 2,
+        // A refresh timeout means the carrier pull is still slow; retrying
+        // would start another pull. Network failures remain retryable.
+        retryOnTimeout: !request.refresh,
         signal: request.signal,
       },
     );
@@ -190,7 +195,13 @@ export class HttpWhereisBackend implements WhereisBackend {
           });
 
         lastError = whereisError;
-        if (!whereisError.retryable || attempt >= options.retries) {
+        const timeoutRetryDisabled = whereisError.code === "TIMEOUT" &&
+          options.retryOnTimeout === false;
+        if (
+          !whereisError.retryable ||
+          timeoutRetryDisabled ||
+          attempt >= options.retries
+        ) {
           throw whereisError;
         }
 
