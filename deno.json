@@ -5,7 +5,10 @@
     "test": "deno task check && deno test --allow-env --allow-read --allow-net tests/main-test.ts",
     "api_key": "deno run -q --allow-env --allow-read --allow-net --allow-ffi src/db/api_key.ts",
     "watch": "deno run --allow-env --allow-read --allow-net src/tools/watcher.ts",
-    "version": "deno run --allow-env --allow-read src/tools/version.ts"
+    "version": "deno run --allow-env --allow-read src/tools/version.ts",
+    "mcp": "deno run --allow-env --allow-net --allow-read mcp/src/stdio.ts",
+    "mcp:http": "deno run --allow-env --allow-net --allow-read mcp/src/http.ts",
+    "mcp:test": "deno test --allow-env --allow-net --allow-read --allow-run mcp/tests/"
   },
   "imports": {
     "@std/dotenv": "jsr:@std/dotenv",
@@ -18,6 +21,10 @@
     "@std/fmt": "jsr:@std/fmt",
     "@std/encoding": "jsr:@std/encoding",
     "@std/uuid": "jsr:@std/uuid",
+    "@modelcontextprotocol/server": "npm:@modelcontextprotocol/server@2.4.0",
+    "@modelcontextprotocol/client": "npm:@modelcontextprotocol/client@2.4.0",
+    "@modelcontextprotocol/hono": "npm:@modelcontextprotocol/hono@2.0.2",
+    "zod": "npm:zod@^4.2.0",
     "hono": "jsr:@hono/hono",
     "postgresjs": "https://deno.land/x/postgresjs/mod.js",
     "@cross/log": "jsr:@cross/log",

@@ -402,6 +402,9 @@ components:
         notes:
           type: string
           description: Additional context or details
+        sourceData:
+          type: object
+          description: Raw carrier API response data (included at the event root when fulldata=true)
         additional:
           type: object
           properties:
@@ -416,9 +419,6 @@ components:
             updatedAt:
               type: string
               format: date-time
-            sourceData:
-              type: object
-              description: Raw carrier API response data (included when fulldata=true)
     Operator:
       type: object
       properties:

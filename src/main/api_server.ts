@@ -8,6 +8,7 @@
  */
 import { app } from "./server.ts";
 import { initApp } from "./app.ts";
+import { mountMcpEndpoint } from "./mcp.ts";
 import { whereIsAPI, logger } from "../tools/logger.ts";
 
 /**
@@ -20,15 +21,23 @@ import { whereIsAPI, logger } from "../tools/logger.ts";
  */
 async function main(): Promise<void> {
     await initApp();
+    await mountMcpEndpoint(app);
 }
 
-// Execute the main function and handle any uncaught errors
-main().catch((err) => {
+// Start initialization once. `deno serve` accepts connections as soon as this
+// module is imported, so the fetch handler waits for startup rather than letting
+// a request reach an uninitialized database or an unmounted /mcp.
+const startup = main();
+
+startup.catch((err) => {
     logger.error(`${whereIsAPI("exception")} Failed to start application:${err}`);
     Deno.exit(1);
 });
 
 // Export the fetch handler for deno serve
 export default {
-    fetch: app.fetch,
+    async fetch(request: Request): Promise<Response> {
+        await startup;
+        return await app.fetch(request);
+    },
 } satisfies Deno.ServeDefaultExport;
