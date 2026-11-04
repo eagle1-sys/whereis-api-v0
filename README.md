@@ -120,9 +120,11 @@ The `mcp/` directory exposes the tracking API as
 Tools: `list_operators`, `get_latest_status`, and `track_shipment`, plus a
 `whereis://reference/status-codes` resource. The tool set is read-only by
 default. An extra write tool, `push_tracking_events`, appears only when
-`WHEREIS_MCP_ENABLE_WRITE=true`; it pushes events for the `eg1` operator
-through `POST /v0/push/eg1`, which is a separate REST route gated by an API
-key and unaffected by that flag.
+`WHEREIS_MCP_ENABLE_WRITE=true` and the call carries an API key: a keyless write
+fails with `AUTH_REQUIRED` before reaching the API, so anonymous clients are
+never offered the tool. It pushes events for the `eg1` operator through
+`POST /v0/push/eg1`, which is a separate REST route gated by an API key and
+unaffected by that flag.
 
 ```bash
 # Put a full API key in .env (gitignored) or export it:

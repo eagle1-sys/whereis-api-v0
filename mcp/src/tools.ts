@@ -213,7 +213,10 @@ export function registerTools(
       }),
   );
 
-  if (config.enableWrite) {
+  // A write tool without a key can only fail: `pushEvents` requires auth and
+  // rejects before the request leaves the process. Advertising it would make
+  // an anonymous `tools/list` promise a call it cannot serve.
+  if (config.enableWrite && config.apiKey !== undefined) {
     server.registerTool(
       "push_tracking_events",
       {

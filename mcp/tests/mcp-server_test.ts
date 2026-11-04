@@ -188,6 +188,21 @@ Deno.test("does not register the write tool by default", async () => {
   }
 });
 
+Deno.test("hides the write tool when no API key is configured", async () => {
+  const connected = await connect(
+    makeConfig({ enableWrite: true, apiKey: undefined }),
+  );
+  try {
+    const result = await connected.client.listTools();
+    assert(
+      !result.tools.some((tool) => tool.name === "push_tracking_events"),
+      "a keyless server cannot push, so it must not advertise the tool",
+    );
+  } finally {
+    await disconnect(connected);
+  }
+});
+
 Deno.test("registers and calls the write tool when enabled", async () => {
   const connected = await connect(makeConfig({ enableWrite: true }));
   try {

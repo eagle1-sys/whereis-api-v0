@@ -89,6 +89,21 @@ Deno.test("serves anonymous callers without an API key", async () => {
   assertEquals(configs[0].apiKey, undefined);
 });
 
+Deno.test("does not offer anonymous callers the write tool", async () => {
+  const { app } = mount({ config: makeConfig({ enableWrite: true }) });
+
+  const response = await app.request("http://localhost:8037/mcp", {
+    method: "POST",
+    headers: MCP_HEADERS,
+    body: listTools(),
+  });
+
+  assertEquals(response.status, 200);
+  const text = await response.text();
+  assert(text.includes("track_shipment"));
+  assert(!text.includes("push_tracking_events"));
+});
+
 Deno.test("forwards the caller's API key to the backend", async () => {
   const { app, configs } = mount({
     authenticate: (token) => token === "caller-key",
