@@ -15,7 +15,7 @@ During COVID, we wanted to systematically track critical packages containing mas
 1. This prototype is written in TypeScript and runs on the [Deno runtime](https://deno.com).
 2. We have defined [standard status codes](metadata/status-codes.jsonc) and a consistent format for global logistics data.
 3. Initially it supports two logistics operators: FedEx and SF Express, with a [future roadmap](https://github.com/eagle1-sys/whereis-api-v0/discussions/97) planned. Code review is on [DeepWiki](https://deepwiki.com/eagle1-sys/whereis-api-v0).
-4. Every deployment also serves a [Model Context Protocol](https://modelcontextprotocol.io) endpoint at `/mcp`, so the same tracking tools work in AI hosts (Claude Desktop, VS Code, Cursor, DeepSeek Harness) without a second service.
+4. By default, every deployment also serves a [Model Context Protocol](https://modelcontextprotocol.io) endpoint at `/mcp` (set `MCP_ENABLED=false` to leave it unmounted), so the same tracking tools work in AI hosts (Claude Desktop, VS Code, Cursor, DeepSeek Harness) without a second service.
 
 ### Intentions
 - **Beyond Simple Mapping**: Transform raw carrier data into meaningful, standardized information.
@@ -52,7 +52,7 @@ Point an MCP-capable host at the hosted server. No API key is needed for the pub
 }
 ```
 
-> VS Code uses the same shape under a top-level `servers` key; Cursor and Claude Desktop read `mcpServers`.
+> VS Code uses the same shape under a top-level `servers` key, and Cursor reads `mcpServers`. Claude Desktop adds remote servers through Customize → Connectors; `claude_desktop_config.json` is its local-server path.
 
 Then ask "Where is fdx-888877776666?" and the host calls `get_latest_status`. Full history needs `Authorization: Bearer <key>` so the host can call `track_shipment`; `sfex-…` IDs also need the recipient's last four phone digits. See [mcp/README.md](mcp/README.md) for per-client setup.
 
