@@ -53,11 +53,11 @@ const HINTS: Record<string, string> = {
   "400-05":
     "Use exactly one hyphen between the operator and tracking number, e.g. `fdx-888877776666`.",
   "401-01":
-    "WHEREIS_API_KEY is not configured for this MCP server. Add it to the environment or the repo .env file.",
+    "No API key was sent. Full history requires an `Authorization: Bearer <key>` header; the latest status does not.",
   "401-02":
-    "The configured WHEREIS_API_KEY was rejected. Check that it was copied correctly.",
+    "The API key was rejected. Check that it was copied correctly.",
   "403-01":
-    "This API key is restricted to the `eg1` operator. Generate a full key with `deno task api_key` and update WHEREIS_API_KEY.",
+    "This API key is restricted to the `eg1` operator. Use a full key for FedEx or SF Express; on a self-hosted server, generate one with `deno task api_key` and set WHEREIS_API_KEY.",
   "404-01":
     "The carrier has no data for this tracking ID. Verify the number, or the shipment may be older than the carrier's retention window.",
   "404-02": "This operator does not support push.",

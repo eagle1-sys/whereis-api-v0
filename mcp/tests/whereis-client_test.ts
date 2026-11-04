@@ -134,7 +134,9 @@ Deno.test("fails fast when a tracking call has no API key", async () => {
     })
   );
 
-  assertEquals(error.code, "CONFIG");
+  assertEquals(error.code, "AUTH_REQUIRED");
+  assert(error.message.includes("requires a Whereis API key"));
+  assert(error.hint.includes("Authorization: Bearer"));
   assert(error.hint.includes("WHEREIS_API_KEY"));
   assertEquals(calls.length, 0);
 });

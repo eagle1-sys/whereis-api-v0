@@ -72,7 +72,7 @@ interface RequestOptions {
 }
 
 const API_KEY_HINT =
-  "Generate a full key with `deno task api_key`, then set WHEREIS_API_KEY, or send `Authorization: Bearer <key>` when the endpoint is hosted by the Whereis API. The seeded `eagle1` token is restricted.";
+  "Send `Authorization: Bearer <key>` from the MCP client to use this tool. For a self-hosted server, generate a full key with `deno task api_key` and set WHEREIS_API_KEY. The seeded `eagle1` token is restricted to the eg1 operator.";
 
 const defaultSleep: SleepLike = (milliseconds) =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -223,8 +223,9 @@ export class HttpWhereisBackend implements WhereisBackend {
   ): Promise<T> {
     if (options.requireAuth === true && !this.config.apiKey) {
       throw new WhereisError({
-        code: "CONFIG",
-        message: "WHEREIS_API_KEY is not configured for this MCP server.",
+        code: "AUTH_REQUIRED",
+        message:
+          "Full shipment history requires a Whereis API key. The latest status does not.",
         hint: API_KEY_HINT,
         retryable: false,
       });
