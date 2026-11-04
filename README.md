@@ -118,8 +118,11 @@ The `mcp/` directory exposes the tracking API as
 (Claude Desktop, VS Code, Cursor, DeepSeek Harness) can track shipments directly.
 
 Tools: `list_operators`, `get_latest_status`, and `track_shipment`, plus a
-`whereis://reference/status-codes` resource. The server is read-only by default;
-the push endpoint is exposed only when `WHEREIS_MCP_ENABLE_WRITE=true`.
+`whereis://reference/status-codes` resource. The tool set is read-only by
+default. An extra write tool, `push_tracking_events`, appears only when
+`WHEREIS_MCP_ENABLE_WRITE=true`; it pushes events for the `eg1` operator
+through `POST /v0/push/eg1`, which is a separate REST route gated by an API
+key and unaffected by that flag.
 
 ```bash
 # Put a full API key in .env (gitignored) or export it:
@@ -140,7 +143,9 @@ curl -sS http://localhost:8037/mcp \
 ```
 
 Requests without a key get the public tools; `Authorization: Bearer <key>` runs
-the tools as that key's owner. Set `MCP_ENABLED=false` to turn the endpoint off.
+the tools as that key's owner. The server's own `WHEREIS_API_KEY` is never used
+for anonymous requests on this endpoint; it only seeds the local servers above.
+Set `MCP_ENABLED=false` to turn the endpoint off.
 
 See [mcp/README.md](mcp/README.md) for client configuration, self-hosting, and
 security notes.
