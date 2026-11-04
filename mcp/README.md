@@ -116,14 +116,17 @@ Health check: `GET /healthz`.
 ### Mounted on the API (`/mcp`)
 
 The API server also serves the same endpoint at `/mcp` on its own port, so a
-deployment needs neither a second process nor a reverse proxy:
+deployment needs neither a second process nor a reverse proxy. The hosted
+deployment is `https://api.eg1.io/mcp`:
 
 ```bash
-curl -sS http://localhost:8037/mcp \
+curl -sS https://api.eg1.io/mcp \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
+
+For a self-hosted stack, use `http://localhost:8037/mcp` in place of that URL.
 
 The mounted endpoint authenticates per request instead of with a single
 `MCP_AUTH_TOKEN`:
