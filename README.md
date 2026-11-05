@@ -197,3 +197,8 @@ make whereis
 ```
 
 That's it. Enjoy!
+
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the branch, review, and
+deployment workflow.
