@@ -451,9 +451,10 @@ export class Sfex implements OperatorModule {
    * cannot stand in for the landing, and the anchor does not depend on the
    * customs city.
    *
-   * SF sometimes logs the import release before that arrival scan. In that case
-   * the scan is a late facility scan, so the earliest event after the leg is
-   * used instead, and the 3300 stays before the 3400.
+   * SF sometimes logs the import release before that arrival scan, and a scan
+   * can also be reported late. In both cases the earliest event after the leg is
+   * used instead, but only once the shipment is delivered: waiting until then
+   * keeps the anchor from moving under readers on the next pull.
    */
   private static get3300BaseEventAtCountryEntry(entity: Entity): Event | undefined {
     let importCustoms = -1;
