@@ -492,9 +492,10 @@ export class Sfex implements OperatorModule {
   /**
    * Finds the base event for generating a supplementary 3400 status event (Customs Clearance: Import Released).
    *
-   * A 3400 reported anywhere after the first customs event (3350) wins over
-   * generating one, even when another 3350 follows it. Otherwise the candidate
-   * is searched from the last customs event: export clearance in the origin also
+   * A 3400 reported for the last customs location, or after it, wins over
+   * generating one, even when another 3350 follows it. A 3400 recorded only in
+   * the origin does not suppress the destination supplement. The candidate is
+   * searched from the last customs event: export clearance in the origin also
    * maps to 3350, and a departure from the origin hub is not evidence that import
    * clearance finished. A departure that is still heading into customs is skipped.
    *
@@ -509,25 +510,30 @@ export class Sfex implements OperatorModule {
    * @returns The Event object that can serve as the base for a 3400 status event, or undefined if no suitable event is found.
    */
   static get3400BaseEvent(entity: Entity): Event | undefined {
-    let firstCustomsIndex = -1;
     let lastCustomsIndex = -1;
 
     for (let i = 0; i < entity.events.length; i++) {
       if (entity.events[i].status === 3350) {
-        if (firstCustomsIndex < 0) {
-          firstCustomsIndex = i;
-        }
         lastCustomsIndex = i;
       }
     }
-    if (firstCustomsIndex < 0) {
+    if (lastCustomsIndex < 0) {
       return undefined;
     }
 
-    // Any real 3400 after the first customs event means SF reported the
-    // clearance itself; a later 3350 must not make it look missing.
-    for (let i = firstCustomsIndex + 1; i < entity.events.length; i++) {
-      if (entity.events[i].status === 3400) {
+    // A real 3400 for the last customs location, or after it, means SF reported
+    // the clearance itself; a repeated 3350 must not make it look missing. A 3400
+    // recorded in the origin (different location, before the destination customs
+    // event) does not suppress the destination supplement.
+    const lastCustomsEvent = entity.events[lastCustomsIndex];
+    for (let i = 0; i < entity.events.length; i++) {
+      const event = entity.events[i];
+      if (event.status !== 3400) {
+        continue;
+      }
+      const samePlace = event.where !== undefined &&
+        event.where === lastCustomsEvent.where;
+      if (samePlace || i > lastCustomsIndex) {
         return undefined;
       }
     }

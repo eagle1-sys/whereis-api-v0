@@ -36,6 +36,9 @@ jobs:
       - name: Run type check
         run: deno check .
 
+      - name: Run SFEx mapping tests
+        run: deno test -A tests/sfex-mapping-test.ts
+
       - name: Run MCP tests
         run: deno task mcp:test
 

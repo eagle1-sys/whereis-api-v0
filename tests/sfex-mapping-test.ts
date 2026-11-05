@@ -205,6 +205,25 @@ export function sfexMappingTest() {
     assertEquals(Sfex.get3300BaseEvent(entity), stationA);
   });
 
+  Deno.test("SFEx: an origin 3400 does not suppress the import supplement", () => {
+    const departure = event(
+      3004,
+      "2026-10-24T16:28:54+08:00",
+      "广州市",
+      "快件离开 【广州机场关务组】，已在发往 下一站 的路上",
+    );
+    const entity = entityWith(
+      event(3350, "2026-10-19T18:07:55+08:00", "香港", "清关进行中,请耐心等候"),
+      event(3400, "2026-10-20T08:00:00+08:00", "香港", "已清关"),
+      event(3004, "2026-10-20T23:48:29+08:00", "香港", "快件离开 【香港青衣轉運中心】，已在发往  【广州机场关务组】 的路上"),
+      event(3350, "2026-10-21T07:52:22+08:00", "广州市", "清关进行中,请耐心等候"),
+      departure,
+    );
+
+    assertEquals(Sfex.isMissing3400(entity), true);
+    assertEquals(Sfex.get3400BaseEvent(entity), departure);
+  });
+
   Deno.test("SFEx: isHeadingToCustoms separates departures into and out of customs", () => {
     assert(Sfex.isHeadingToCustoms(
       event(3004, "2026-10-20T23:48:29+08:00", "香港", "已在发往  【广州机场关务组】 的路上"),
@@ -224,3 +243,7 @@ export function sfexMappingTest() {
     );
   });
 }
+
+// Registered at module load so `deno test tests/sfex-mapping-test.ts`
+// discovers the tests; `tests/main-test.ts` imports this file for the same reason.
+sfexMappingTest();
