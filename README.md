@@ -197,3 +197,5 @@ make whereis
 ```
 
 That's it. Enjoy!
+
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow.
