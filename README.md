@@ -1,7 +1,9 @@
-# Eagle1 Whereis API
+# Eagle1 Whereis API + MCP
+
+Track any shipment with one simple API — or let an AI agent do it over MCP.
 
 ## Goal
-Built for developers. Fully open-source. Track any shipment with one simple API.
+Built for developers and AI agents. Fully open-source. Track any shipment with one simple API or MCP.
 
 ### Problem
 Since different logistics providers have their own APIs and data formats, integrating various logistics data poses a significant challenge for app developers.
@@ -13,6 +15,7 @@ During COVID, we wanted to systematically track critical packages containing mas
 1. This prototype is written in TypeScript and runs on the [Deno runtime](https://deno.com).
 2. We have defined [standard status codes](metadata/status-codes.jsonc) and a consistent format for global logistics data.
 3. Initially it supports two logistics operators: FedEx and SF Express, with a [future roadmap](https://github.com/eagle1-sys/whereis-api-v0/discussions/97) planned. Code review is on [DeepWiki](https://deepwiki.com/eagle1-sys/whereis-api-v0).
+4. By default, every deployment also serves a [Model Context Protocol](https://modelcontextprotocol.io) endpoint at `/mcp` (set `MCP_ENABLED=false` to leave it unmounted), so the same tracking tools work in AI hosts (Claude Desktop, VS Code, Cursor, DeepSeek Harness) without a second service.
 
 ### Intentions
 - **Beyond Simple Mapping**: Transform raw carrier data into meaningful, standardized information.
@@ -23,7 +26,35 @@ During COVID, we wanted to systematically track critical packages containing mas
 - [Wiki](https://github.com/eagle1-sys/whereis-api-v0/wiki)
 - [Real-world use case](https://github.com/orgs/eagle1-sys/discussions/429#discussioncomment-16349481)
 
+## Two ways to use it
+
+| Surface    | Endpoint                 | API key                                                                  | Use it from                                       |
+| ---------- | ------------------------ | ------------------------------------------------------------------------ | ------------------------------------------------- |
+| REST API   | `https://api.eg1.io/v0`  | Bearer for full history; the latest status is public                     | Your code                                         |
+| Hosted MCP | `https://api.eg1.io/mcp` | none for `list_operators` / `get_latest_status`; Bearer for full history | Claude Desktop, VS Code, Cursor, DeepSeek Harness |
+
+Both share the same [standard status codes](metadata/status-codes.jsonc), and the MCP tools call the same `/v0` routes. The payload shape differs: the REST API returns `{entity, events}`, whereas `track_shipment` flattens it into a single object — shipment fields at the top level, `additional` fields hoisted into each event, and `eventCount` / `truncated` / `omittedEventCount` beside `events`. Both are open source and self-hostable: `make whereis` runs the API with `/mcp` mounted, using your own keys.
+
 ## Examples
+
+### Track from an AI host (MCP)
+
+Point an MCP-capable host at the hosted server. No API key is needed for the public tools:
+
+```json
+{
+  "mcpServers": {
+    "whereis": {
+      "type": "http",
+      "url": "https://api.eg1.io/mcp"
+    }
+  }
+}
+```
+
+> VS Code uses the same shape under a top-level `servers` key, and Cursor reads `mcpServers`. Claude Desktop adds remote servers through Settings → Connectors; `claude_desktop_config.json` is its local-server configuration path.
+
+Then ask "Where is fdx-888877776666?" and the host calls `get_latest_status`. Full history needs `Authorization: Bearer <key>` so the host can call `track_shipment`; `sfex-…` IDs also need the recipient's last four phone digits. See [mcp/README.md](mcp/README.md) for per-client setup.
 
 ### Track locations over time
 
@@ -110,11 +141,11 @@ const response = await fetch(url, {
 
 ---
 
-## MCP server (experimental)
+## MCP server
 
-The `mcp/` directory exposes the tracking API as
-[Model Context Protocol](https://modelcontextprotocol.io) tools so AI hosts
-(Claude Desktop, VS Code, Cursor, DeepSeek Harness) can track shipments directly.
+The read tools are production-ready; only the write tool is opt-in.
+
+The hosted endpoint is `https://api.eg1.io/mcp`. The `mcp/` directory exposes the same tracking API as [Model Context Protocol](https://modelcontextprotocol.io) tools, so AI hosts (Claude Desktop, VS Code, Cursor, DeepSeek Harness) can track shipments directly. Run it locally with `deno task mcp` (stdio) or `deno task mcp:http` (`http://127.0.0.1:8038/mcp`).
 
 Tools: `list_operators`, `get_latest_status`, and `track_shipment`, plus a
 `whereis://reference/status-codes` resource. The tool set is read-only by
@@ -137,11 +168,13 @@ The API server also serves the endpoint at `/mcp` on its own port, so a running
 stack needs no extra process:
 
 ```bash
-curl -sS http://localhost:8037/mcp \
+curl -sS https://api.eg1.io/mcp \
   -H 'Content-Type: application/json' \
   -H 'Accept: application/json, text/event-stream' \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
+
+For a self-hosted stack, use `http://localhost:8037/mcp` in place of that URL.
 
 Requests without a key get the public tools; `Authorization: Bearer <key>` runs
 the tools as that key's owner. The server's own `WHEREIS_API_KEY` is never used
