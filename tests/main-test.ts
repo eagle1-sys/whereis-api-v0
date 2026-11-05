@@ -85,6 +85,7 @@ import { isOperatorActive } from "../src/main/gateway.ts";
 import { getTokenFromFdXTest } from "./get-fdx-token-test.ts";
 import { getEventsFromFdxTest } from "./get-fdx-events-test.ts";
 import { getRoutesFromSfexTest } from "./get-sfex-routes-test.ts";
+import "./sfex-mapping-test.ts";
 import { whereisApiTest } from "./whereis-api-test.ts";
 import { statusApiTest } from "./status-api-test.ts";
 import { pushDataTest } from "./push-data-test.ts";

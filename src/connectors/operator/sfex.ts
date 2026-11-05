@@ -25,6 +25,16 @@ export class Sfex implements OperatorModule {
   // then it is considered that 3400 is missing.
   private static readonly POST_3400_STATUSES: number[] = [3004, 3450, 3500] as const;
 
+  // A departure that is still heading into a customs facility is not evidence of
+  // clearance: "leaving the HK hub, on the way to the Guangzhou customs post" is
+  // followed by customs clearance again at the destination. Export clearance in
+  // the origin country also maps to 3350, so without this guard a 3400 would be
+  // generated in the origin before the shipment has even arrived. The pattern
+  // matches zh-CN remarks, which is what SF returns today (no language parameter
+  // is sent).
+  private static readonly HEADING_TO_CUSTOMS =
+    /(?:发往|前往)[^，。,;；]*?(?:关务组|清关|报关|海关)/;
+
   // If the entity contains 3250 and the subsequent statuses include [3002, 3003, 3004, 3350, 3400, 3500],
   // then it is considered that 3300 is missing.
   private static readonly POST_3300_STATUSES: number[] = [3002, 3003, 3004, 3350, 3400, 3450, 3500] as const;
@@ -362,42 +372,38 @@ export class Sfex implements OperatorModule {
 
   /**
    * Checks if a 3300 status event (Arrived At Destination) is missing from the entity's events.
-   * This function is used to determine if a supplementary 3300 event needs to be added. It assumes a 3300 event is
-   * missing if an in-transit event (3250) has occurred, but the arrival event (3300) has not, and a subsequent
-   * event from a predefined list has already been recorded.
+   *
+   * Two patterns are covered: a 3250 in-transit event followed by later progress,
+   * and a shipment that is out for delivery or already delivered without any
+   * arrival event. SF Express does not always emit the opCode that maps to 3250,
+   * so the delivery check is what catches cross-border shipments.
    *
    * @param entity - The Entity object containing the events to be checked.
    * @returns `true` if the 3300 status event is considered missing, otherwise `false`.
    */
   static isMissing3300(entity: Entity): boolean {
-    let isTransitToDestEventOccurred: boolean = false;
-
-    for (const event of entity.events) {
-      if (event.status === 3250) {
-        isTransitToDestEventOccurred = true;
-      }
-
-      // If a 3300 status event already exists in the entity
-      if (event.status === 3300) {
-        return false;
-      }
-
-      if (isTransitToDestEventOccurred && Sfex.POST_3300_STATUSES.includes(event.status)) {
-        return true;
-      }
+    if (entity.events.some((event) => event.status === 3300)) {
+      return false;
     }
-    return false;
+    return Sfex.get3300BaseEvent(entity) !== undefined;
   }
 
   /**
    * Finds the base event for generating a supplementary 3300 status event (Arrived At Destination).
-   * This function searches for the first event that occurs after an in-transit event (3250) and has a status
-   * indicating further progression in the shipment process.
    *
    * @param entity - The Entity object containing the events to be searched.
    * @returns The Event object that can serve as the base for a 3300 status event, or undefined if no suitable event is found.
    */
   static get3300BaseEvent(entity: Entity): Event | undefined {
+    return Sfex.get3300BaseEventInTransit(entity) ??
+      Sfex.get3300BaseEventAtDelivery(entity);
+  }
+
+  /**
+   * Finds the first event after an in-transit event (3250) that shows further
+   * progression in the shipment process.
+   */
+  private static get3300BaseEventInTransit(entity: Entity): Event | undefined {
     let isTransitToDestEventOccurred: boolean = false;
 
     for (const event of entity.events) {
@@ -414,6 +420,65 @@ export class Sfex implements OperatorModule {
   }
 
   /**
+   * Finds the destination arrival for a shipment that is out for delivery (3450)
+   * or delivered (3500): the last "arrived" event (3002) before the delivery
+   * event. Without this, shipments whose SF route never reports opCode 105 would
+   * never get a 3300.
+   *
+   * Only events after the last customs event are considered, so an origin
+   * arrival cannot stand in for the destination, and the fallback stays limited
+   * to shipments that actually went through customs. The arrival must precede
+   * the first delivery event; a later arrival is used only when the route has no
+   * arrival before delivery (a failed attempt followed by a re-route).
+   */
+  private static get3300BaseEventAtDelivery(entity: Entity): Event | undefined {
+    let customsIndex = -1;
+
+    for (let i = 0; i < entity.events.length; i++) {
+      const status = entity.events[i].status;
+      if (status === 3350 || status === 3400) {
+        customsIndex = i;
+      }
+    }
+    if (customsIndex < 0) {
+      return undefined;
+    }
+
+    let arrivalBeforeDelivery: Event | undefined;
+    let firstArrivalAfterDelivery: Event | undefined;
+    let isOutForDelivery: boolean = false;
+
+    for (let i = customsIndex + 1; i < entity.events.length; i++) {
+      const event = entity.events[i];
+      if (event.status === 3002) {
+        if (!isOutForDelivery) {
+          arrivalBeforeDelivery = event;
+        } else if (firstArrivalAfterDelivery === undefined) {
+          firstArrivalAfterDelivery = event;
+        }
+      } else if (event.status === 3450 || event.status === 3500) {
+        isOutForDelivery = true;
+      }
+    }
+
+    if (!isOutForDelivery) {
+      return undefined;
+    }
+    return arrivalBeforeDelivery ?? firstArrivalAfterDelivery;
+  }
+
+  /**
+   * Checks whether an event's notes describe a departure that is still heading
+   * into a customs facility (as opposed to leaving one).
+   *
+   * @param event - The event to inspect.
+   * @returns `true` when the event is en route to customs, otherwise `false`.
+   */
+  static isHeadingToCustoms(event: Event): boolean {
+    return Sfex.HEADING_TO_CUSTOMS.test(event.notes ?? "");
+  }
+
+  /**
    * Checks if a 3400 status event (Customs Clearance: Import Released) is missing from the entity's events.
    * This function is used to determine if a supplementary 3400 event needs to be added to the tracking history.
    *
@@ -421,43 +486,66 @@ export class Sfex implements OperatorModule {
    * @returns A boolean indicating whether a 3400 status event is missing (true) or not (false).
    */
   static isMissing3400(entity: Entity): boolean {
-    // If the current entity contains 3350: Customs Clearance: Import In-Progress
-    let isCustomsEventOccurred: boolean = false;
-
-    for (const event of entity.events) {
-      if (event.status === 3350) {
-        isCustomsEventOccurred = true;
-      }
-
-      // If a 3400 status event already exists in the entity
-      if (event.status === 3400) {
-        return false;
-      }
-
-      if (isCustomsEventOccurred && Sfex.POST_3400_STATUSES.includes(event.status)) {
-        return true;
-      }
-    }
-    return false;
+    return Sfex.get3400BaseEvent(entity) !== undefined;
   }
 
   /**
    * Finds the base event for generating a supplementary 3400 status event (Customs Clearance: Import Released).
-   * This function searches for the first event that occurs after a customs event (3350) and has a status
-   * indicating further progression in the shipment process.
+   *
+   * A 3400 reported for the last customs location, or after it, wins over
+   * generating one, even when another 3350 follows it. A 3400 recorded only in
+   * the origin does not suppress the destination supplement. The candidate is
+   * searched from the last customs event: export clearance in the origin also
+   * maps to 3350, and a departure from the origin hub is not evidence that import
+   * clearance finished. A departure that is still heading into customs is skipped.
+   *
+   * Known limitation: a route whose only customs event so far is the origin
+   * clearance, and whose departure remark does not mention customs (e.g. "发往
+   * 【深圳】"), still yields an origin 3400. The scheduler re-pulls the shipment
+   * and compare() drops that event once the destination customs event arrives,
+   * so the error is transient. Detecting it earlier needs a signal the SF route
+   * does not provide.
    *
    * @param entity - The Entity object containing the events to be searched.
    * @returns The Event object that can serve as the base for a 3400 status event, or undefined if no suitable event is found.
    */
   static get3400BaseEvent(entity: Entity): Event | undefined {
-    let isCustomsEventOccurred: boolean = false;
+    let lastCustomsIndex = -1;
 
-    for (const event of entity.events) {
-      if (event.status === 3350) {
-        isCustomsEventOccurred = true;
+    for (let i = 0; i < entity.events.length; i++) {
+      if (entity.events[i].status === 3350) {
+        lastCustomsIndex = i;
       }
+    }
+    if (lastCustomsIndex < 0) {
+      return undefined;
+    }
 
-      if (isCustomsEventOccurred && Sfex.POST_3400_STATUSES.includes(event.status)) {
+    // A real 3400 for the last customs location, or after it, means SF reported
+    // the clearance itself; a repeated 3350 must not make it look missing. A 3400
+    // recorded in the origin (different location, before the destination customs
+    // event) does not suppress the destination supplement.
+    const lastCustomsEvent = entity.events[lastCustomsIndex];
+    for (let i = 0; i < entity.events.length; i++) {
+      const event = entity.events[i];
+      if (event.status !== 3400) {
+        continue;
+      }
+      const samePlace = event.where !== undefined &&
+        event.where === lastCustomsEvent.where;
+      if (samePlace || i > lastCustomsIndex) {
+        return undefined;
+      }
+    }
+
+    // Candidates are searched from the last customs event: a departure from the
+    // origin hub before the destination customs event must not qualify.
+    for (let i = lastCustomsIndex + 1; i < entity.events.length; i++) {
+      const event = entity.events[i];
+      if (
+        Sfex.POST_3400_STATUSES.includes(event.status) &&
+        !Sfex.isHeadingToCustoms(event)
+      ) {
         return event;
       }
     }
