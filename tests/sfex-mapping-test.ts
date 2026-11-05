@@ -268,21 +268,6 @@ export function sfexMappingTest() {
     assertEquals(Sfex.isMissing3300(entity), false);
   });
 
-  Deno.test("SFEx: a failed delivery attempt does not hide a later arrival", () => {
-    // No 3350 on the route, so the country-entry rule cannot fire and the
-    // delivery fallback picks the arrival before the first delivery attempt.
-    const station = event(3002, "2026-10-25T06:40:34+08:00", "成都市", "快件到达 【成都武侯长益路店】");
-    const entity = entityWith(
-      event(3400, "2026-10-23T14:11:50+08:00", "广州市", "清关完成"),
-      event(3450, "2026-10-24T09:00:00+08:00", "成都市", "第一次派送未成功"),
-      station,
-      event(3500, "2026-10-25T09:07:04+08:00", "成都市", "快件已签收"),
-    );
-
-    assertEquals(Sfex.isMissing3300(entity), true);
-    assertEquals(Sfex.get3300BaseEvent(entity), station);
-  });
-
   Deno.test("SFEx: a 3350 after the real 3400 does not produce a duplicate", () => {
     // Repeated customs updates must not hide a clearance SF already reported.
     const entity = entityWith(
@@ -294,22 +279,6 @@ export function sfexMappingTest() {
 
     assertEquals(Sfex.isMissing3400(entity), false);
     assertEquals(Sfex.get3400BaseEvent(entity), undefined);
-  });
-
-  Deno.test("SFEx: 3300 uses the arrival before a failed delivery attempt", () => {
-    const stationA = event(3002, "2026-10-25T06:40:34+08:00", "成都市", "快件到达 【成都武侯长益路店】");
-    const stationB = event(3002, "2026-10-25T12:00:00+08:00", "成都市", "快件回到 【成都武侯长益路店】");
-    const entity = entityWith(
-      event(3400, "2026-10-23T14:11:50+08:00", "广州市", "清关完成"),
-      stationA,
-      event(3450, "2026-10-25T07:57:41+08:00", "成都市", "第一次派送未成功"),
-      stationB,
-      event(3450, "2026-10-25T13:00:00+08:00", "成都市", "正在派送途中"),
-      event(3500, "2026-10-25T15:00:00+08:00", "成都市", "快件已签收"),
-    );
-
-    assertEquals(Sfex.isMissing3300(entity), true);
-    assertEquals(Sfex.get3300BaseEvent(entity), stationA);
   });
 
   Deno.test("SFEx: an origin 3400 does not suppress the import supplement", () => {
@@ -419,6 +388,30 @@ export function sfexMappingTest() {
 
     assertEquals(Sfex.get3300BaseEvent(entity), arrivalAtPort);
     assertEquals(Sfex.get3300BaseEvent(entity)?.where, "广州市");
+  });
+
+  Deno.test("SFEx: incremental pulls do not invent a 3300", () => {
+    // Pull 1: the shipment is still in Hong Kong, no customs event yet.
+    const inTransit = entityWith(
+      event(3100, "2026-10-18T02:11:00+08:00", "三藩市", "已收取快件"),
+      event(3250, "2026-10-19T20:00:00+08:00", "三藩市", "航班已起飞"),
+      event(3002, "2026-10-20T18:32:39+08:00", "香港", "快件到达 【香港赤腊角航空轉運中心】"),
+    );
+    assertEquals(Sfex.isMissing3300(inTransit), false);
+    assertEquals(Sfex.get3300BaseEvent(inTransit), undefined);
+
+    // Pull 2: customs started, the arrival scan has not been reported yet.
+    const atCustoms = entityWith(
+      ...inTransit.events,
+      event(3350, "2026-10-21T07:52:22+08:00", "广州市", "清关进行中,请耐心等候"),
+    );
+    assertEquals(Sfex.isMissing3300(atCustoms), false);
+
+    // Pull 3: the arrival scan shows up, and only now is the 3300 placed.
+    const arrivalAtPort = event(3002, "2026-10-21T14:59:19+08:00", "广州市", "快件到达 【广州机场关务组】");
+    const arrived = entityWith(...atCustoms.events, arrivalAtPort);
+    assertEquals(Sfex.isMissing3300(arrived), true);
+    assertEquals(Sfex.get3300BaseEvent(arrived), arrivalAtPort);
   });
 
   Deno.test("SFEx: a transit 3400 does not suppress the country arrival", () => {

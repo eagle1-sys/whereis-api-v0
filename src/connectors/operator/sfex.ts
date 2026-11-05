@@ -406,20 +406,33 @@ export class Sfex implements OperatorModule {
   /**
    * Finds the base event for generating a supplementary 3300 status event (Arrived At Destination).
    *
-   * When the route has customs events the base is the first arrival scan after
-   * the international leg, i.e. the shipment reaching the destination country
-   * at whatever airport it lands. Otherwise the older heuristics (in-transit
-   * progress, arrival before delivery) still apply.
+   * The route is re-read every few minutes, so the rules only fire once the data
+   * needed for the answer is actually there. On a cross-border route the base is
+   * the first arrival scan after the international leg - while the shipment is
+   * still in transit, nothing is generated. On a domestic route the older
+   * in-transit heuristic still applies.
    *
    * @param entity - The Entity object containing the events to be searched.
    * @returns The Event object that can serve as the base for a 3300 status event, or undefined if no suitable event is found.
    */
   static get3300BaseEvent(entity: Entity): Event | undefined {
-    if (entity.events.some((event) => event.status === 3350)) {
+    if (Sfex.isCrossBorderRoute(entity)) {
       return Sfex.get3300BaseEventAtCountryEntry(entity);
     }
-    return Sfex.get3300BaseEventInTransit(entity) ??
-      Sfex.get3300BaseEventAtDelivery(entity);
+    return Sfex.get3300BaseEventInTransit(entity);
+  }
+
+  /**
+   * Tells whether the route crosses a customs boundary: it has customs events,
+   * or it has already passed a transit region. Until then the destination
+   * country is unknown and no arrival may be inferred.
+   */
+  private static isCrossBorderRoute(entity: Entity): boolean {
+    return entity.events.some((event) =>
+      event.status === 3350 ||
+      event.status === 3400 ||
+      Sfex.isTransitRegion(event.where ?? "")
+    );
   }
 
   /**
@@ -440,7 +453,8 @@ export class Sfex implements OperatorModule {
   private static get3300BaseEventAtCountryEntry(entity: Entity): Event | undefined {
     let importCustoms = -1;
     for (const [i, event] of entity.events.entries()) {
-      if (event.status === 3350 && !Sfex.isTransitRegion(event.where ?? "")) {
+      if ((event.status === 3350 || event.status === 3400) &&
+        !Sfex.isTransitRegion(event.where ?? "")) {
         importCustoms = i;
         break;
       }
@@ -526,54 +540,6 @@ export class Sfex implements OperatorModule {
     }
 
     return undefined;
-  }
-
-  /**
-   * Finds the destination arrival for a shipment that is out for delivery (3450)
-   * or delivered (3500): the last "arrived" event (3002) before the delivery
-   * event. Without this, shipments whose SF route never reports opCode 105 would
-   * never get a 3300.
-   *
-   * Only events after the last customs event are considered, so an origin
-   * arrival cannot stand in for the destination, and the fallback stays limited
-   * to shipments that actually went through customs. The arrival must precede
-   * the first delivery event; a later arrival is used only when the route has no
-   * arrival before delivery (a failed attempt followed by a re-route).
-   */
-  private static get3300BaseEventAtDelivery(entity: Entity): Event | undefined {
-    let customsIndex = -1;
-
-    for (let i = 0; i < entity.events.length; i++) {
-      const status = entity.events[i].status;
-      if (status === 3350 || status === 3400) {
-        customsIndex = i;
-      }
-    }
-    if (customsIndex < 0) {
-      return undefined;
-    }
-
-    let arrivalBeforeDelivery: Event | undefined;
-    let firstArrivalAfterDelivery: Event | undefined;
-    let isOutForDelivery: boolean = false;
-
-    for (let i = customsIndex + 1; i < entity.events.length; i++) {
-      const event = entity.events[i];
-      if (event.status === 3002) {
-        if (!isOutForDelivery) {
-          arrivalBeforeDelivery = event;
-        } else if (firstArrivalAfterDelivery === undefined) {
-          firstArrivalAfterDelivery = event;
-        }
-      } else if (event.status === 3450 || event.status === 3500) {
-        isOutForDelivery = true;
-      }
-    }
-
-    if (!isOutForDelivery) {
-      return undefined;
-    }
-    return arrivalBeforeDelivery ?? firstArrivalAfterDelivery;
   }
 
   /**
