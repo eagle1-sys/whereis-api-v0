@@ -40,8 +40,11 @@ export class Sfex implements OperatorModule {
   private static readonly POST_3300_STATUSES: number[] = [3002, 3003, 3004, 3350, 3400, 3450, 3500] as const;
 
   // Separate customs territories the import shipments transit through. Their
-  // clearance updates are not the arrival in the destination country.
-  private static readonly TRANSIT_REGIONS: string[] = ["香港", "澳門", "澳门", "臺灣", "台湾", "台北", "高雄"];
+  // clearance updates are not the arrival in the destination country. Matched
+  // against the start of the location so street names ("香港中路") do not count.
+  private static readonly TRANSIT_REGIONS: string[] = [
+    "香港", "澳門", "澳门", "臺灣", "台湾", "台北", "臺北", "台中", "臺中", "桃园", "桃園", "高雄",
+  ];
 
   /**
    * Mapping of SF Express status codes and operation codes to internal event codes.
@@ -95,8 +98,14 @@ export class Sfex implements OperatorModule {
       }
       return 3001;    // Logistics In-Progress
     },
-    "1301": {
-      "70": 3300,     // Arrived At Destination
+    "1301": function (entity: Entity, sourceData: Record<string, unknown>): number {
+      // "待派送" is a domestic delivery stage (awaiting the courier), not the
+      // arrival in the destination country. On a cross-border route the country
+      // arrival is the arrival scan, so this stays an in-progress update.
+      if (sourceData["opCode"] === "70" && !entity.isStatusExist(3350)) {
+        return 3300;  // Arrived At Destination
+      }
+      return 3001;    // Logistics In-Progress
     },
     "401": {
       "80": 3500,     // Delivered
@@ -417,59 +426,77 @@ export class Sfex implements OperatorModule {
    * Finds the shipment's entry into the destination country (or region, for
    * mainland China): the first arrival scan after the international leg.
    *
-   * The leg ends at the last flight (3250) or transit-region event (Hong Kong,
-   * Macau, Taiwan) before customs, so the scan that follows is the landing in
-   * the destination country - it does not have to be the customs city, and a
-   * domestic connection after the landing is ignored.
+   * The import customs start is the first 3350 outside a transit region. The
+   * international leg ends at the last flight (3250) or transit-region event
+   * before it, and the import segment ends when the shipment leaves the customs
+   * post (3004). Only that segment is searched, so a domestic arrival days later
+   * cannot stand in for the landing, and the anchor does not depend on the
+   * customs city.
    *
    * SF sometimes logs the import release before that arrival scan. In that case
    * the scan is a late facility scan, so the earliest event after the leg is
    * used instead, and the 3300 stays before the 3400.
    */
   private static get3300BaseEventAtCountryEntry(entity: Entity): Event | undefined {
-    // The import customs updates are the last ones; earlier 3350s may be a
-    // transit clearance (Hong Kong), which is not the destination.
-    let customsIndex = -1;
+    let importCustoms = -1;
     for (const [i, event] of entity.events.entries()) {
-      if (event.status === 3350) {
-        customsIndex = i;
+      if (event.status === 3350 && !Sfex.isTransitRegion(event.where ?? "")) {
+        importCustoms = i;
+        break;
       }
     }
-    if (customsIndex < 0) {
+    if (importCustoms < 0) {
       return undefined;
     }
 
     let legEnd = -1;
-    for (let i = 0; i < customsIndex; i++) {
+    for (let i = 0; i < importCustoms; i++) {
       const event = entity.events[i];
-      if (event.status === 3250 || (event.where && Sfex.isTransitRegion(event.where))) {
+      if (event.status === 3250 || Sfex.isTransitRegion(event.where ?? "")) {
         legEnd = i;
       }
     }
     if (legEnd < 0) {
+      // No flight and no transit event: the country segment cannot be located.
       return undefined;
     }
 
+    let segmentEnd = entity.events.length;
+    for (let i = importCustoms + 1; i < entity.events.length; i++) {
+      if (entity.events[i].status === 3004) {
+        segmentEnd = i;
+        break;
+      }
+    }
+
+    const releaseIndex = entity.events.findIndex((event, i) =>
+      i > legEnd && event.status === 3400 && !Sfex.isTransitRegion(event.where ?? "")
+    );
+    const releaseTime = releaseIndex >= 0 && entity.events[releaseIndex].when
+      ? new Date(entity.events[releaseIndex].when!).getTime()
+      : Infinity;
+    const timeOf = (event?: Event) =>
+      event?.when ? new Date(event.when).getTime() : Infinity;
+
     let arrival: Event | undefined;
     let firstAfterLeg: Event | undefined;
-    for (let i = legEnd + 1; i < entity.events.length; i++) {
+    for (let i = legEnd + 1; i < segmentEnd; i++) {
       const event = entity.events[i];
+      if (Sfex.isTransitRegion(event.where ?? "")) {
+        continue;
+      }
       if (event.status === 3002) {
-        arrival = event;
-        break;
+        arrival ??= event;
       }
       firstAfterLeg ??= event;
     }
 
-    const release = entity.events.find((event) => event.status === 3400);
-    const releaseTime = release?.when ? new Date(release.when).getTime() : Infinity;
-    const timeOf = (event?: Event) =>
-      event?.when ? new Date(event.when).getTime() : Infinity;
-
     if (arrival && timeOf(arrival) < releaseTime) {
       return arrival;
     }
-    return firstAfterLeg && timeOf(firstAfterLeg) < releaseTime
+    // A late scan (release logged first) still needs the release as proof that
+    // the shipment is in the country; customs merely starting is not.
+    return releaseIndex >= 0 && firstAfterLeg && timeOf(firstAfterLeg) < releaseTime
       ? firstAfterLeg
       : undefined;
   }
@@ -478,7 +505,7 @@ export class Sfex implements OperatorModule {
    * Tells whether a location is a transit region rather than the destination.
    */
   private static isTransitRegion(where: string): boolean {
-    return Sfex.TRANSIT_REGIONS.some((region) => where.includes(region));
+    return Sfex.TRANSIT_REGIONS.some((region) => where.startsWith(region));
   }
 
   /**
