@@ -13,4 +13,7 @@
 **/*.sample
 **/*.bak.*
 
+# The API serves /mcp from src/main/mcp.ts, so mcp/ ships with the image,
+# tests included: `make test` runs both suites inside the container.
+
 # - EOF -

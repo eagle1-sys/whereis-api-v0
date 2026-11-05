@@ -76,7 +76,8 @@ const customBearerAuth = async (c: Context, next: Next) => {
 app.use("/*", cors({
       origin: "*",
       allowMethods: ["GET", "POST", "OPTIONS"],
-      allowHeaders: ["Content-Type", "Authorization"],
+      allowHeaders: ["Content-Type", "Authorization", "Mcp-Protocol-Version", "Mcp-Session-Id"],
+      exposeHeaders: ["Mcp-Session-Id"],
       credentials: true,
     }));
 
