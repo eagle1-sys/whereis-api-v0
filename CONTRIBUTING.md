@@ -20,13 +20,10 @@ where that discussion and this file differ, this file describes current practice
 2. **Open a PR.** Target `develop` and explain the problem, the fix, and how you verified it.
 3. **Review.** Reviewers leave comments on the PR. Answer each point and fix inside the same
    PR; do not open a follow-up PR for review feedback.
-4. **Merge (maintainers).** Reviewer feedback is resolved first. A push to `develop` then
-   deploys PROD `whereis-api-v0` through CI.
-5. **Deploy and verify (maintainers).** CI handles the PROD app. `make fly-deploy` deploys from
-   a workstation instead, using the untracked local `fly.toml`; it targets the app named there
-   (here `whereis-api-v0`), which is how the TEST app or a rollback is pushed. It ships the
-   commit in the local checkout and replaces the image CI built, so run it from the commit you
-   intend to ship. After either path, confirm the change against live shipments.
+4. **Merge (maintainers).** Reviewer feedback is resolved first, then the PR merges into
+   `develop`.
+5. **Deploy and verify (maintainers).** A push to `develop` deploys PROD `whereis-api-v0`
+   through CI. Once the deploy is up, confirm the change against live shipments.
 
 ## Review conventions
 
