@@ -185,16 +185,22 @@ export function sfexMappingTest() {
     // SF logged the import release before the arrival scan at the post, so the
     // scan is late; anchoring on it would put the 3300 after the 3400.
     const customsStart = event(3350, "2026-10-27T07:55:08+08:00", "广州市", "清关进行中,请耐心等候");
-    const entity = entityWith(
+    const lateScan = event(3002, "2026-10-28T09:00:00+08:00", "广州市", "快件到达 【广州机场关务组】");
+    const delivered = event(3500, "2026-10-29T12:06:02+08:00", "成都市", "已派送成功");
+    const beforeDelivery = entityWith(
       event(3250, "2026-10-26T20:00:00+08:00", "三藩市", "航班已起飞"),
       customsStart,
       event(3400, "2026-10-27T16:32:58+08:00", "广州市", "清关完成"),
-      event(3002, "2026-10-28T09:00:00+08:00", "广州市", "快件到达 【广州机场关务组】"),
+      lateScan,
       event(3450, "2026-10-29T08:09:02+08:00", "成都市", "正在派送途中"),
     );
 
-    assertEquals(Sfex.isMissing3300(entity), true);
-    assertEquals(Sfex.get3300BaseEvent(entity), customsStart);
+    // The fallback waits for delivery: a scan reported later cannot move it.
+    assertEquals(Sfex.get3300BaseEvent(beforeDelivery), undefined);
+
+    const deliveredEntity = entityWith(...beforeDelivery.events, delivered);
+    assertEquals(Sfex.isMissing3300(deliveredEntity), true);
+    assertEquals(Sfex.get3300BaseEvent(deliveredEntity), customsStart);
   });
 
   Deno.test("SFEx: no 3300 without an international leg", () => {
@@ -231,6 +237,7 @@ export function sfexMappingTest() {
       event(3002, "2026-10-24T16:17:28+08:00", "广州市", "快件到达 【广州机场关务组】"),
       event(3003, "2026-10-25T04:00:27+08:00", "成都市", "快件在【成都转运中心】完成分拣"),
       event(3450, "2026-10-25T07:57:41+08:00", "成都市", "正在派送途中"),
+      event(3500, "2026-10-25T09:07:04+08:00", "成都市", "快件已签收"),
     );
 
     assertEquals(Sfex.isMissing3300(entity), true);
@@ -412,6 +419,31 @@ export function sfexMappingTest() {
     const arrived = entityWith(...atCustoms.events, arrivalAtPort);
     assertEquals(Sfex.isMissing3300(arrived), true);
     assertEquals(Sfex.get3300BaseEvent(arrived), arrivalAtPort);
+  });
+
+  Deno.test("SFEx: the anchor never moves across pulls", () => {
+    // Every prefix of a canonical inbound route must either produce no 3300 or
+    // the same base as the finished route.
+    const portScan = event(3002, "2026-10-21T14:59:19+08:00", "广州市", "快件到达 【广州机场关务组】");
+    const route = [
+      event(3100, "2026-10-18T02:11:00+08:00", "三藩市", "已收取快件"),
+      event(3250, "2026-10-19T20:00:00+08:00", "三藩市", "航班已起飞"),
+      event(3002, "2026-10-20T18:32:39+08:00", "香港", "快件到达 【香港赤腊角航空轉運中心】"),
+      event(3004, "2026-10-20T23:48:29+08:00", "香港", "已在发往  【广州机场关务组】 的路上"),
+      event(3350, "2026-10-21T07:52:22+08:00", "广州市", "清关进行中,请耐心等候"),
+      portScan,
+      event(3400, "2026-10-21T15:23:20+08:00", "广州市", "清关完成"),
+      event(3450, "2026-10-23T09:33:36+08:00", "成都市", "正在派送途中"),
+      event(3500, "2026-10-23T11:50:27+08:00", "成都市", "已派送成功"),
+    ];
+
+    for (let n = 1; n <= route.length; n++) {
+      const base = Sfex.get3300BaseEvent(entityWith(...route.slice(0, n)));
+      assert(
+        base === undefined || base === portScan,
+        `pull ${n} anchored on ${base?.status} ${base?.where}`,
+      );
+    }
   });
 
   Deno.test("SFEx: a transit 3400 does not suppress the country arrival", () => {

@@ -102,7 +102,7 @@ export class Sfex implements OperatorModule {
       // "待派送" is a domestic delivery stage (awaiting the courier), not the
       // arrival in the destination country. On a cross-border route the country
       // arrival is the arrival scan, so this stays an in-progress update.
-      if (sourceData["opCode"] === "70" && !entity.isStatusExist(3350)) {
+      if (sourceData["opCode"] === "70" && !Sfex.isCrossBorderRoute(entity)) {
         return 3300;  // Arrived At Destination
       }
       return 3001;    // Logistics In-Progress
@@ -491,26 +491,35 @@ export class Sfex implements OperatorModule {
       : Infinity;
     const timeOf = (event?: Event) =>
       event?.when ? new Date(event.when).getTime() : Infinity;
+    const customsWhere = entity.events[importCustoms].where;
 
-    let arrival: Event | undefined;
     let firstAfterLeg: Event | undefined;
     for (let i = legEnd + 1; i < segmentEnd; i++) {
       const event = entity.events[i];
       if (Sfex.isTransitRegion(event.where ?? "")) {
         continue;
       }
-      if (event.status === 3002) {
-        arrival ??= event;
-      }
       firstAfterLeg ??= event;
+
+      if (event.status !== 3002) {
+        continue;
+      }
+      // Without a release yet, only an arrival at or before the customs post is
+      // trusted: a domestic arrival could otherwise be taken for the landing.
+      const settled = releaseIndex >= 0
+        ? timeOf(event) < releaseTime
+        : i < importCustoms || event.where === customsWhere;
+      if (settled) {
+        return event;
+      }
     }
 
-    if (arrival && timeOf(arrival) < releaseTime) {
-      return arrival;
+    // No usable scan yet. The fallback is only taken once the shipment is
+    // delivered, so a scan that arrives later cannot move the anchor.
+    if (!entity.events.some((event) => event.status === 3500)) {
+      return undefined;
     }
-    // A late scan (release logged first) still needs the release as proof that
-    // the shipment is in the country; customs merely starting is not.
-    return releaseIndex >= 0 && firstAfterLeg && timeOf(firstAfterLeg) < releaseTime
+    return firstAfterLeg && timeOf(firstAfterLeg) < releaseTime
       ? firstAfterLeg
       : undefined;
   }
