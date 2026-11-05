@@ -3,7 +3,7 @@
 Track any shipment with one simple API — or let an AI agent do it over MCP.
 
 ## Goal
-Built for developers and AI agents. Fully open-source. Track any shipment with one simple API, or connect an MCP-capable host and ask in plain language.
+Built for developers and AI agents. Fully open-source. Track any shipment with one simple API or MCP.
 
 ### Problem
 Since different logistics providers have their own APIs and data formats, integrating various logistics data poses a significant challenge for app developers.
