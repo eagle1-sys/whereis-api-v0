@@ -198,4 +198,7 @@ make whereis
 
 That's it. Enjoy!
 
-Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow.
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the branch, review, and
+deployment workflow.
