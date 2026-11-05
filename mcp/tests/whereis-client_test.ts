@@ -7,6 +7,7 @@
  */
 
 import { assert, assertEquals, assertRejects } from "@std/assert";
+import { DEFAULT_API_URL } from "../src/config.ts";
 import { WhereisError } from "../src/errors.ts";
 import { normalizeTrackingId } from "../src/tracking-id.ts";
 import { type FetchLike, HttpWhereisBackend } from "../src/whereis-client.ts";
@@ -223,7 +224,7 @@ Deno.test("explains an inactive local operator module", async () => {
 
   assertEquals(error.code, "500-01");
   assert(error.hint.includes("FDX_CLIENT_ID"));
-  assert(error.hint.includes("api.eg1.io"));
+  assert(error.hint.includes(DEFAULT_API_URL));
   assertEquals(error.retryable, false);
   assertEquals(calls.length, 1);
 });
