@@ -10,9 +10,10 @@ maintainer actions.
 - `hotfix/*` — for an urgent production bug: branch from `main`, then merge into both `main`
   and `develop`.
 
-Deployment follows DEV (local Docker) → TEST (`whereis-api-v0-test`) → PROD
-(`whereis-api-v0`). The background is in [discussion #82](https://github.com/orgs/eagle1-sys/discussions/82);
-where that discussion and this file differ, this file describes current practice.
+Deployment follows DEV (local Docker) → TEST (`whereis-api-v0-test`, deployed by a maintainer)
+→ PROD (`whereis-api-v0`, deployed by CI). The background is in
+[discussion #82](https://github.com/orgs/eagle1-sys/discussions/82); where that discussion and
+this file differ, this file describes current practice.
 
 ## How a change gets merged
 
