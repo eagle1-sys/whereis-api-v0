@@ -176,6 +176,35 @@ export function sfexMappingTest() {
     assertEquals(Sfex.get3300BaseEvent(entity), station);
   });
 
+  Deno.test("SFEx: a 3350 after the real 3400 does not produce a duplicate", () => {
+    // Repeated customs updates must not hide a clearance SF already reported.
+    const entity = entityWith(
+      event(3350, "2026-10-21T07:52:22+08:00", "广州市", "清关进行中,请耐心等候"),
+      event(3400, "2026-10-24T14:26:08+08:00", "广州市", "清关完成"),
+      event(3350, "2026-10-24T15:00:00+08:00", "广州市", "清关进行中,请耐心等候"),
+      event(3004, "2026-10-24T16:28:54+08:00", "广州市", "快件离开 【广州机场关务组】"),
+    );
+
+    assertEquals(Sfex.isMissing3400(entity), false);
+    assertEquals(Sfex.get3400BaseEvent(entity), undefined);
+  });
+
+  Deno.test("SFEx: 3300 uses the arrival before a failed delivery attempt", () => {
+    const stationA = event(3002, "2026-10-25T06:40:34+08:00", "成都市", "快件到达 【成都武侯长益路店】");
+    const stationB = event(3002, "2026-10-25T12:00:00+08:00", "成都市", "快件回到 【成都武侯长益路店】");
+    const entity = entityWith(
+      event(3400, "2026-10-23T14:11:50+08:00", "广州市", "清关完成"),
+      stationA,
+      event(3450, "2026-10-25T07:57:41+08:00", "成都市", "第一次派送未成功"),
+      stationB,
+      event(3450, "2026-10-25T13:00:00+08:00", "成都市", "正在派送途中"),
+      event(3500, "2026-10-25T15:00:00+08:00", "成都市", "快件已签收"),
+    );
+
+    assertEquals(Sfex.isMissing3300(entity), true);
+    assertEquals(Sfex.get3300BaseEvent(entity), stationA);
+  });
+
   Deno.test("SFEx: isHeadingToCustoms separates departures into and out of customs", () => {
     assert(Sfex.isHeadingToCustoms(
       event(3004, "2026-10-20T23:48:29+08:00", "香港", "已在发往  【广州机场关务组】 的路上"),
