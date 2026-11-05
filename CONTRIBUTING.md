@@ -24,8 +24,9 @@ where that discussion and this file differ, this file describes current practice
    deploys PROD `whereis-api-v0` through CI.
 5. **Deploy and verify (maintainers).** CI handles the PROD app. `make fly-deploy` deploys from
    a workstation instead, using the untracked local `fly.toml`; it targets the app named there
-   (here `whereis-api-v0`), which is how the TEST app or a rollback is pushed. After either
-   path, confirm the change against live shipments.
+   (here `whereis-api-v0`), which is how the TEST app or a rollback is pushed. It ships the
+   commit in the local checkout and replaces the image CI built, so run it from the commit you
+   intend to ship. After either path, confirm the change against live shipments.
 
 ## Review conventions
 
