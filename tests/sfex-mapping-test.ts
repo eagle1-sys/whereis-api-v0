@@ -32,6 +32,28 @@ function entityWith(...events: Event[]): Entity {
   return entity;
 }
 
+/**
+ * Simulates the 5-minute pulls: every prefix of the route is one pull, sorted
+ * like `convert()` does. The anchor may be absent, but once present it must be
+ * the one the finished route produces.
+ */
+function assertStableAcrossPulls(events: Event[]): Event | undefined {
+  const expected = Sfex.get3300BaseEvent(sortedEntity(events));
+  for (let n = 1; n <= events.length; n++) {
+    const base = Sfex.get3300BaseEvent(sortedEntity(events.slice(0, n)));
+    if (base !== undefined) {
+      assertEquals(base, expected, `pull ${n} produced a different anchor`);
+    }
+  }
+  return expected;
+}
+
+function sortedEntity(events: Event[]): Entity {
+  const entity = entityWith(...events);
+  entity.sortEventsByWhen();
+  return entity;
+}
+
 export function sfexMappingTest() {
   Deno.test("SFEx: no 3400 from an export-clearance event in the origin", () => {
     // Hong Kong transit clearance, then departure toward the Guangzhou customs
@@ -437,13 +459,38 @@ export function sfexMappingTest() {
       event(3500, "2026-10-23T11:50:27+08:00", "成都市", "已派送成功"),
     ];
 
-    for (let n = 1; n <= route.length; n++) {
-      const base = Sfex.get3300BaseEvent(entityWith(...route.slice(0, n)));
-      assert(
-        base === undefined || base === portScan,
-        `pull ${n} anchored on ${base?.status} ${base?.where}`,
-      );
-    }
+    assertEquals(assertStableAcrossPulls(route), portScan);
+  });
+
+  Deno.test("SFEx: no early anchor when the data is interleaved", () => {
+    // D: no scan at the post and no departure after customs; the Chengdu arrival
+    // must never be taken for the landing, even while no release is known yet.
+    const lateData = assertStableAcrossPulls([
+      event(3100, "2026-10-18T02:11:00+08:00", "三藩市", "已收取快件"),
+      event(3250, "2026-10-19T20:00:00+08:00", "三藩市", "航班已起飞"),
+      event(3002, "2026-10-20T18:32:39+08:00", "香港", "快件到达 【香港赤腊角航空轉運中心】"),
+      event(3004, "2026-10-20T23:48:29+08:00", "香港", "已在发往  【广州机场关务组】 的路上"),
+      event(3350, "2026-10-21T07:52:22+08:00", "广州市", "清关进行中,请耐心等候"),
+      event(3002, "2026-10-25T02:49:11+08:00", "成都市", "快件到达 【成都长兴转运中心】"),
+      event(3400, "2026-10-23T14:11:50+08:00", "广州市", "清关完成"),
+      event(3450, "2026-10-25T07:57:41+08:00", "成都市", "正在派送途中"),
+      event(3500, "2026-10-25T09:07:04+08:00", "成都市", "已派送成功"),
+    ]);
+    assertEquals(lateData?.status, 3350);
+    assertEquals(lateData?.where, "广州市");
+
+    // E: the post scan is logged after the release but stamped before it. The
+    // anchor is absent until the scan is there, then it is the scan for good.
+    const scan = event(3002, "2026-10-21T14:59:19+08:00", "广州市", "快件到达 【广州机场关务组】");
+    const interleaved = assertStableAcrossPulls([
+      event(3250, "2026-10-19T20:00:00+08:00", "三藩市", "航班已起飞"),
+      event(3350, "2026-10-21T07:52:22+08:00", "广州市", "清关进行中,请耐心等候"),
+      event(3400, "2026-10-23T14:11:50+08:00", "广州市", "清关完成"),
+      scan,
+      event(3450, "2026-10-25T07:57:41+08:00", "成都市", "正在派送途中"),
+      event(3500, "2026-10-25T09:07:04+08:00", "成都市", "已派送成功"),
+    ]);
+    assertEquals(interleaved, scan);
   });
 
   Deno.test("SFEx: a transit 3400 does not suppress the country arrival", () => {
@@ -494,6 +541,14 @@ export function sfexMappingTest() {
       event(3350, "2026-10-27T07:55:08+08:00", "广州市", "清关进行中,请耐心等候"),
     );
     assertEquals(Sfex.getStatusCode(crossBorder, waiting), 3001);
+
+    // No 3350 at all: the transit region and the release already prove the
+    // route is cross-border, so 待派送 still is not the country arrival.
+    const transitOnly = entityWith(
+      event(3002, "2026-10-20T18:32:39+08:00", "香港", "快件到达 【香港赤腊角航空轉運中心】"),
+      event(3400, "2026-10-21T15:00:00+08:00", "广州市", "清关完成"),
+    );
+    assertEquals(Sfex.getStatusCode(transitOnly, waiting), 3001);
 
     const domestic = entityWith(
       event(3100, "2026-10-17T02:32:23+08:00", "成都市", "已收取快件"),

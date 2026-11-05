@@ -382,6 +382,11 @@ export class Sfex implements OperatorModule {
       }
     }
 
+    // Keep the API flag and the supplement rules on the same definition.
+    if (Sfex.isCrossBorderRoute(entity)) {
+      entity.additional.isCrossBorder = true;
+    }
+
     return entity;
   }
 
@@ -477,7 +482,9 @@ export class Sfex implements OperatorModule {
 
     let segmentEnd = entity.events.length;
     for (let i = importCustoms + 1; i < entity.events.length; i++) {
-      if (entity.events[i].status === 3004) {
+      const event = entity.events[i];
+      // Leaving for another customs post (转关) does not end the import segment.
+      if (event.status === 3004 && !Sfex.isHeadingToCustoms(event)) {
         segmentEnd = i;
         break;
       }
