@@ -491,6 +491,22 @@ export function sfexMappingTest() {
       event(3500, "2026-10-25T09:07:04+08:00", "成都市", "已派送成功"),
     ]);
     assertEquals(interleaved, scan);
+
+    // F: no 3350 opcode at all; the 3400 is the import customs marker and the
+    // 待派送 event is already demoted to 3001 (see the getStatusCode tests).
+    const postScan = event(3002, "2026-10-21T14:59:19+08:00", "广州市", "快件到达 【广州机场关务组】");
+    const noCustomsStart = assertStableAcrossPulls([
+      event(3100, "2026-10-18T02:11:00+08:00", "三藩市", "已收取快件"),
+      event(3002, "2026-10-20T18:32:39+08:00", "香港", "快件到达 【香港赤腊角航空轉運中心】"),
+      event(3004, "2026-10-20T23:48:29+08:00", "香港", "已在发往  【广州机场关务组】 的路上"),
+      postScan,
+      event(3400, "2026-10-23T14:11:50+08:00", "广州市", "清关完成"),
+      event(3002, "2026-10-25T02:49:11+08:00", "成都市", "快件到达 【成都长兴转运中心】"),
+      event(3450, "2026-10-25T07:57:41+08:00", "成都市", "正在派送途中"),
+      event(3001, "2026-10-25T10:08:08+08:00", "成都市", "已与收方客户约定新派送时间"),
+      event(3500, "2026-10-29T12:06:02+08:00", "成都市", "已派送成功"),
+    ]);
+    assertEquals(noCustomsStart, postScan);
   });
 
   Deno.test("SFEx: a transit 3400 does not suppress the country arrival", () => {
