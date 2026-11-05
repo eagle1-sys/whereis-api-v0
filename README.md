@@ -52,7 +52,7 @@ Point an MCP-capable host at the hosted server. No API key is needed for the pub
 }
 ```
 
-> VS Code uses the same shape under a top-level `servers` key, and Cursor reads `mcpServers`. Claude Desktop adds remote servers through Customize → Connectors; `claude_desktop_config.json` is its local-server path.
+> VS Code uses the same shape under a top-level `servers` key, and Cursor reads `mcpServers`. Claude Desktop adds remote servers through Settings → Connectors; `claude_desktop_config.json` is its local-server configuration path.
 
 Then ask "Where is fdx-888877776666?" and the host calls `get_latest_status`. Full history needs `Authorization: Bearer <key>` so the host can call `track_shipment`; `sfex-…` IDs also need the recipient's last four phone digits. See [mcp/README.md](mcp/README.md) for per-client setup.
 
