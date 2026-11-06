@@ -12,6 +12,7 @@ services:
     environment:
       APP_ENV: dev            # dev | qa | prod
       DB_TYPE: sqlite
+      # WHEREIS_MCP_ENABLE_WRITE: "true"   # opt in to push_tracking_events
       WHEREIS_API_URL: http://localhost:8037
       WHEREIS_API_KEY: eagle1
       # GRAFANA_USER: _CHANGEME_
