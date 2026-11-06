@@ -28,10 +28,10 @@ During COVID, we wanted to systematically track critical packages containing mas
 
 ## Two ways to use it
 
-| Surface    | Endpoint                 | API key                                                                  | Use it from                                       |
-| ---------- | ------------------------ | ------------------------------------------------------------------------ | ------------------------------------------------- |
-| REST API   | `https://api.eg1.io/v0`  | Bearer for full history; the latest status is public                     | Your code                                         |
-| Hosted MCP | `https://api.eg1.io/mcp` | none for `list_operators` / `get_latest_status`; Bearer for full history | Claude Desktop, VS Code, Cursor, DeepSeek Harness |
+| Surface    | Endpoint                 | API key                                                                  |
+| ---------- | ------------------------ | ------------------------------------------------------------------------ |
+| REST API   | `https://api.eg1.io/v0`  | Bearer for full history; the latest status is public                     |
+| Hosted MCP | `https://api.eg1.io/mcp` | none for `list_operators` / `get_latest_status`; Bearer for full history |
 
 Both share the same [standard status codes](metadata/status-codes.jsonc), and the MCP tools call the same `/v0` routes. The payload shape differs: the REST API returns `{entity, events}`, whereas `track_shipment` flattens it into a single object — shipment fields at the top level, `additional` fields hoisted into each event, and `eventCount` / `truncated` / `omittedEventCount` beside `events`. Both are open source and self-hostable: `make whereis` runs the API with `/mcp` mounted, using your own keys.
 
