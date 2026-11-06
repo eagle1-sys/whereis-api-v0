@@ -284,7 +284,7 @@ The flag is read in the process that runs the MCP code, so it goes where that pr
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | Inside the API container (DEV)           | `environment:` in the Compose file `make` picks by `DB_TYPE`: `docker-compose.yaml` for sqlite, `docker-compose-pg.yaml` for postgres |
 | QA / PROD (Fly.io, `/mcp` on the API)    | `fly secrets set WHEREIS_MCP_ENABLE_WRITE=true -a <app>`; survives a redeploy                          |
-| Standalone (`deno task mcp`, `mcp:http`) | In that process's environment or its `.env`. Compose and Fly settings never reach it                   |
+| Standalone (`deno task mcp`, `mcp:http`) | In that process's environment, or in `.env` from the current folder (`WHEREIS_ENV_FILE` names another file). Compose and Fly settings never reach it |
 
 ## Security
 
