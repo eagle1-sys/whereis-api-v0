@@ -44,9 +44,8 @@ needs a **full** key. Make it inside the container — that is the database the 
 uses:
 
 ```bash
-make api-key                                  # prints a new sk-... key
-make api-key ARGS="--user=alice"              # store it under a name
-make api-key ARGS="--key=sk-your-key --user=alice" # store a key you already have
+make api-key                        # prints a new sk-... key
+make api-key ARGS="--user=alice"    # store it under a name
 ```
 
 Then send it from the client with every request, as `Authorization: Bearer sk-...`.
