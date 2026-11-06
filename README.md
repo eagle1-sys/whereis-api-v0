@@ -157,9 +157,8 @@ never offered the tool. It pushes events for the `eg1` operator through
 unaffected by that flag.
 
 ```bash
-# Create a key inside the container, then keep it in .env (gitignored) or export it:
+# Create a key in the local container; hosted servers issue their own:
 make api-key
-echo "WHEREIS_API_KEY=sk-..." >> .env
 ```
 
 The API server also serves the endpoint at `/mcp` on its own port, so a running
@@ -175,9 +174,9 @@ curl -sS https://api.eg1.io/mcp \
 For a self-hosted stack, use `http://localhost:8037/mcp` in place of that URL.
 
 Requests without a key get the public tools; `Authorization: Bearer <key>` runs
-the tools as that key's owner. The key set in the container is not used for
-endpoint requests; each request brings its own. Set `MCP_ENABLED=false` to turn
-the endpoint off.
+the tools as that key's owner. Send the key from the client — for the container
+that is a key `make api-key` made, and `api.eg1.io` / `api.eagl.io` need a key
+from the hosted server. Set `MCP_ENABLED=false` to turn the endpoint off.
 
 See [mcp/README.md](mcp/README.md) for client configuration, self-hosting, and
 security notes.

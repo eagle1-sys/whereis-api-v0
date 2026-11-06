@@ -49,17 +49,11 @@ make api-key ARGS="--user=alice"              # store it under a name
 make api-key ARGS="--key=sk-your-key --user=alice" # store a key you already have
 ```
 
-Then either export it:
+Then send it from the client with every request, as `Authorization: Bearer sk-...`.
+The container's own environment does not need it.
 
-```bash
-export WHEREIS_API_KEY=sk-...
-```
-
-or put it in the repository's `.env` file (ignored by git):
-
-```bash
-echo "WHEREIS_API_KEY=sk-..." >> .env
-```
+A key is only valid on the server that made it: a key from the local container is
+rejected by `api.eg1.io` and `api.eagl.io`, which issue their own.
 
 > The seeded `eagle1` token is intentionally restricted: it can only access
 > `eg1` and cannot push. Using it for `fdx`/`sfex` returns `403-01`. Generate a
@@ -91,7 +85,7 @@ Each request is authenticated on its own:
 | Request                                   | Served as                                                                                               |
 | ----------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | No `Authorization` header                 | anonymous; `list_operators` and `get_latest_status` work, `track_shipment` returns a key-required error |
-| `Authorization: Bearer <Whereis API key>` | that key's owner; every tool works, and the API sees the caller's own key                               |
+| `Authorization: Bearer <full key from this server>` | runs as that key's owner, and the API sees the caller's own key. A restricted `eagle1` key reaches only `eg1`; the write tool also needs the flag |
 | Unknown key                               | `401` with `WWW-Authenticate: Bearer`                                                                   |
 
 Smoke test:
@@ -139,7 +133,7 @@ the key travels in the `Authorization` header.
   brings its own, so an anonymous caller never spends the operator's quota.
 - The write tool is off by default. If you enable it, it always targets the
   `eg1` operator and still requires a full API key.
-- `.env` is covered by the repository's `*.env` ignore rule. Do not commit it.
+- A key is only valid on the server that issued it.
 
 ## Troubleshooting
 
