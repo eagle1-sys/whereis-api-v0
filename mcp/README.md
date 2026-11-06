@@ -84,8 +84,7 @@ Point the host at `http://localhost:8037/mcp`. This is the shape Claude Code
 
 VS Code uses the same object under a top-level `servers` key. Drop the `headers`
 line to stay anonymous. Claude Desktop's config file only takes servers it can
-spawn itself, so it cannot use this block; add the URL there through its own
-remote-server dialog instead.
+spawn itself, so it cannot use this block.
 
 Each request is authenticated on its own:
 
@@ -147,8 +146,8 @@ the key travels in the `Authorization` header.
 | Symptom                           | Fix                                                                                                    |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `401-01`                          | Send `Authorization: Bearer <key>`; `track_shipment` needs a key                                       |
-| `401-02`                          | The key is invalid or was copied incorrectly                                                           |
-| `403-01`                          | The key is the restricted `eagle1` token, or a key from a different server. Use a full key from the server you call: `make api-key` for the local container; `api.eg1.io` and `api.eagl.io` issue their own |
+| `401-02`                          | The key is invalid, or it was made on a different server. The local container, `api.eg1.io` and `api.eagl.io` each have their own keys |
+| `403-01`                          | The key is the restricted `eagle1` token; make a full one with `make api-key`                          |
 | `404-01`                          | The carrier has no data for this ID; verify it, or it may be older than the carrier's retention window |
 | `404-03`                          | `eg1` is push-only; it has no carrier history                                                          |
 | “SF Express requires phone_last4” | Pass the recipient's last four phone digits                                                            |
