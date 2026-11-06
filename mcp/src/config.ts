@@ -11,16 +11,6 @@
 
 import { load } from "@std/dotenv";
 import { WhereisError } from "./errors.ts";
-import type { LogLevel } from "./log.ts";
-
-export type Transport = "stdio" | "http";
-
-export interface HttpConfig {
-  host: string;
-  port: number;
-  authToken?: string;
-  allowedHosts?: string[];
-}
 
 export interface McpConfig {
   apiUrl: string;
@@ -30,14 +20,9 @@ export interface McpConfig {
   refreshTimeoutMs: number;
   maxEvents: number;
   enableWrite: boolean;
-  logLevel: LogLevel;
-  http: HttpConfig;
 }
 
 export const DEFAULT_API_URL = "https://api.eg1.io";
-export const DEFAULT_HTTP_PORT = 8038;
-
-const LOG_LEVELS: readonly LogLevel[] = ["debug", "info", "warn", "error"];
 
 function configError(message: string, hint: string): WhereisError {
   return new WhereisError({ code: "CONFIG", message, hint });
@@ -111,18 +96,6 @@ function readBoolean(
   );
 }
 
-function readLogLevel(env: Record<string, string>): LogLevel {
-  const raw = read(env, "MCP_LOG_LEVEL")?.toLowerCase();
-  if (raw === undefined) return "info";
-  if ((LOG_LEVELS as readonly string[]).includes(raw)) {
-    return raw as LogLevel;
-  }
-  throw configError(
-    `MCP_LOG_LEVEL must be one of ${LOG_LEVELS.join(", ")}.`,
-    "Set MCP_LOG_LEVEL to debug, info, warn, or error.",
-  );
-}
-
 function normalizeApiUrl(raw: string): string {
   let url: URL;
   try {
@@ -156,55 +129,8 @@ function normalizeApiUrl(raw: string): string {
   return `${url.origin}${url.pathname}`.replace(/\/+$/, "");
 }
 
-function isLoopbackHost(host: string): boolean {
-  const normalized = host.replace(/^\[|\]$/g, "").toLowerCase();
-  return normalized === "127.0.0.1" ||
-    normalized === "localhost" ||
-    normalized === "::1";
-}
-
-function readHttpConfig(
-  env: Record<string, string>,
-  transport: Transport,
-): HttpConfig {
-  const host = read(env, "MCP_HOST") ?? "127.0.0.1";
-  const port = readInteger(env, "MCP_PORT", DEFAULT_HTTP_PORT, 1, 65535);
-  const authToken = read(env, "MCP_AUTH_TOKEN");
-  const allowedHostsRaw = read(env, "MCP_ALLOWED_HOSTS");
-  const allowedHosts = allowedHostsRaw
-    ?.split(",")
-    .map((value) => value.trim())
-    .filter((value) => value.length > 0);
-
-  if (transport === "http" && !isLoopbackHost(host)) {
-    if (authToken === undefined) {
-      throw configError(
-        "MCP_AUTH_TOKEN is required when MCP_HOST is not a loopback address.",
-        "Set MCP_AUTH_TOKEN to a long random value, or bind MCP_HOST to 127.0.0.1.",
-      );
-    }
-    if (allowedHosts === undefined || allowedHosts.length === 0) {
-      throw configError(
-        "MCP_ALLOWED_HOSTS is required when MCP_HOST is not a loopback address.",
-        "Set MCP_ALLOWED_HOSTS to the comma-separated hostnames clients use, e.g. whereis-mcp.example.com.",
-      );
-    }
-  }
-
-  if (transport === "http" && host === "0.0.0.0" && authToken === undefined) {
-    throw configError(
-      "Refusing to bind 0.0.0.0 without MCP_AUTH_TOKEN.",
-      "Set MCP_AUTH_TOKEN, or bind to 127.0.0.1.",
-    );
-  }
-
-  return { host, port, authToken, allowedHosts };
-}
-
 /** Loads and validates the MCP server configuration. */
-export async function loadConfig(
-  transport: Transport = "stdio",
-): Promise<McpConfig> {
+export async function loadConfig(): Promise<McpConfig> {
   const envFileValue = Deno.env.get("WHEREIS_ENV_FILE");
   const envFile = envFileValue === undefined ? ".env" : envFileValue.trim();
   const dotenv = await loadDotEnv(envFile);
@@ -234,7 +160,5 @@ export async function loadConfig(
     ),
     maxEvents: readInteger(dotenv, "WHEREIS_MAX_EVENTS", 500, 1, 5_000),
     enableWrite: readBoolean(dotenv, "WHEREIS_MCP_ENABLE_WRITE", false),
-    logLevel: readLogLevel(dotenv),
-    http: readHttpConfig(dotenv, transport),
   };
 }

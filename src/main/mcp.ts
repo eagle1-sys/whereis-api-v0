@@ -47,8 +47,7 @@ export async function mountMcpEndpoint(app: Hono): Promise<boolean> {
 
   let config: McpConfig;
   try {
-    // "stdio" asks for transport-neutral config: the API owns host and port.
-    config = await loadConfig("stdio");
+    config = await loadConfig();
   } catch (error) {
     logger.error(
       `${whereIsAPI("startup")} MCP endpoint not mounted: ${

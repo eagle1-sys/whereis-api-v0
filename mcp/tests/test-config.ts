@@ -18,8 +18,6 @@ export function makeConfig(overrides: Partial<McpConfig> = {}): McpConfig {
     refreshTimeoutMs: 2_000,
     maxEvents: 500,
     enableWrite: false,
-    logLevel: "error",
-    http: { host: "127.0.0.1", port: 8038 },
     ...overrides,
   };
 }
