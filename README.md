@@ -15,7 +15,7 @@ During COVID, we wanted to systematically track critical packages containing mas
 1. This prototype is written in TypeScript and runs on the [Deno runtime](https://deno.com).
 2. We have defined [standard status codes](metadata/status-codes.jsonc) and a consistent format for global logistics data.
 3. Initially it supports two logistics operators: FedEx and SF Express, with a [future roadmap](https://github.com/eagle1-sys/whereis-api-v0/discussions/97) planned. Code review is on [DeepWiki](https://deepwiki.com/eagle1-sys/whereis-api-v0).
-4. By default, every deployment also serves a [Model Context Protocol](https://modelcontextprotocol.io) endpoint at `/mcp` (set `MCP_ENABLED=false` to leave it unmounted), so the same tracking tools work in AI hosts (Claude Desktop, VS Code, Cursor, DeepSeek Harness) without a second service.
+4. By default, every deployment also serves a [Model Context Protocol](https://modelcontextprotocol.io) endpoint at `/mcp`, so the same tracking tools work in AI hosts (Claude Desktop, VS Code, Cursor, DeepSeek Harness) without a second service.
 
 ### Intentions
 - **Beyond Simple Mapping**: Transform raw carrier data into meaningful, standardized information.
@@ -28,18 +28,27 @@ During COVID, we wanted to systematically track critical packages containing mas
 
 ## Two ways to use it
 
-| Surface    | Endpoint                 | API key                                                                  |
-| ---------- | ------------------------ | ------------------------------------------------------------------------ |
-| REST API   | `https://api.eg1.io/v0`  | Bearer for full history; the latest status is public                     |
-| Hosted MCP | `https://api.eg1.io/mcp` | none for `list_operators` / `get_latest_status`; Bearer for full history |
+| Surface    | Endpoint                 |
+| ---------- | ------------------------ |
+| REST API   | `https://api.eg1.io/v0`  |
+| Hosted MCP | `https://api.eg1.io/mcp` |
 
-Both share the same [standard status codes](metadata/status-codes.jsonc), and the MCP tools call the same `/v0` routes. The payload shape differs: the REST API returns `{entity, events}`, whereas `track_shipment` flattens it into a single object — shipment fields at the top level, `additional` fields hoisted into each event, and `eventCount` / `truncated` / `omittedEventCount` beside `events`. Both are open source and self-hostable: `make whereis` runs the API with `/mcp` mounted, using your own keys.
+Both share the same [standard status codes](metadata/status-codes.jsonc), and the MCP tools call the same `/v0` routes. The payload shape differs: the REST API returns `{entity, events}`, whereas `track_shipment` flattens it into a single object — shipment fields at the top level, `additional` fields hoisted into each event, and `eventCount` / `truncated` / `omittedEventCount` beside `events`. Both are open source and self-hostable: `make whereis` runs the API with `/mcp` mounted.
+
+## API keys
+
+- `list_operators` and the latest status are public. No key needed.
+- Everything else needs one: `/v0/whereis/{id}` and the `track_shipment` tool.
+  Send it as `Authorization: Bearer <key>`.
+- A key only works on the server that made it. `api.eg1.io` and `api.eagl.io`
+  issue their own.
+- In the local container, make one with `make api-key`.
 
 ## Examples
 
 ### Track from an AI host (MCP)
 
-Point an MCP-capable host at the hosted server. No API key is needed for the public tools:
+Point an MCP-capable host at the hosted server:
 
 ```json
 {
@@ -52,7 +61,7 @@ Point an MCP-capable host at the hosted server. No API key is needed for the pub
 }
 ```
 
-Then ask "Where is fdx-888877776666?" and the host calls `get_latest_status`. Full history needs `Authorization: Bearer <key>` so the host can call `track_shipment`; `sfex-…` IDs also need the recipient's last four phone digits. See [mcp/README.md](mcp/README.md) for per-client setup.
+Then ask "Where is fdx-888877776666?" and the host calls `get_latest_status`. `sfex-…` IDs also need the recipient's last four phone digits. See [mcp/README.md](mcp/README.md) for per-client setup.
 
 ### Track locations over time
 
@@ -141,23 +150,13 @@ const response = await fetch(url, {
 
 ## MCP server
 
-The read tools are production-ready; only the write tool is opt-in.
-
 The hosted endpoint is `https://api.eg1.io/mcp`. The `mcp/` directory exposes the same tracking API as [Model Context Protocol](https://modelcontextprotocol.io) tools, so AI hosts (Claude Desktop, VS Code, Cursor, DeepSeek Harness) can track shipments directly. The local container serves the same endpoint at `http://localhost:8037/mcp`.
 
 Tools: `list_operators`, `get_latest_status`, and `track_shipment`, plus a
 `whereis://reference/status-codes` resource. The tool set is read-only by
-default. An extra write tool, `push_tracking_events`, appears only when
-`WHEREIS_MCP_ENABLE_WRITE=true` and the call carries an API key: a keyless write
-fails with `AUTH_REQUIRED` before reaching the API, so anonymous clients are
-never offered the tool. It pushes events for the `eg1` operator through
-`POST /v0/push/eg1`, which is a separate REST route gated by an API key and
-unaffected by that flag.
-
-```bash
-# Create a key in the local container; hosted servers issue their own:
-make api-key
-```
+default. `push_tracking_events` is the one write tool: it appears only when
+`WHEREIS_MCP_ENABLE_WRITE=true`, and it pushes events for the `eg1` operator
+through `POST /v0/push/eg1`, a separate REST route unaffected by that flag.
 
 The API server also serves the endpoint at `/mcp` on its own port, so a running
 stack needs no extra process:
@@ -169,12 +168,8 @@ curl -sS https://api.eg1.io/mcp \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 ```
 
-For a self-hosted stack, use `http://localhost:8037/mcp` in place of that URL.
-
-Requests without a key get the public tools; `Authorization: Bearer <key>` runs
-the tools as that key's owner. Send the key from the client — for the container
-that is a key `make api-key` made, and `api.eg1.io` / `api.eagl.io` need a key
-from the hosted server. Set `MCP_ENABLED=false` to turn the endpoint off.
+For a self-hosted stack, use `http://localhost:8037/mcp` in place of that URL, and
+set `MCP_ENABLED=false` to turn the endpoint off.
 
 See [mcp/README.md](mcp/README.md) for client configuration, self-hosting, and
 security notes.
