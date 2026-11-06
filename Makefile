@@ -120,7 +120,7 @@ test: check_docker ## Run the API and MCP test suites in the api container
 	@echo "=> Running 'deno task mcp:test' within the whereis-api container ..."
 	@docker exec whereis-api-v0 deno task mcp:test
 
-api-key: check_docker ## Run 'deno task api_key' in the api container. Usage: make api_key ARGS="--user=xxx --key=yyy"
+api-key: check_docker ## Run 'deno task api_key' in the api container. Usage: make api-key ARGS="--user=xxx --key=yyy"
 	@echo "=> Running 'deno task api_key' within the whereis-api container ..."
 	@docker exec -it whereis-api-v0 deno task -q api_key $(ARGS)
 

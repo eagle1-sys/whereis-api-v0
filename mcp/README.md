@@ -49,13 +49,16 @@ and use `http://localhost:8037`.
 `list_operators` and `get_latest_status` work without a key. `track_shipment`
 needs a **full** key.
 
-Generate a local key from the repository (with the database available):
+For the local container, make the key inside it — that is the database the API uses:
 
 ```bash
-deno task api_key                 # prints a new sk-... key
-# or, inside the Docker container:
-make api-key
+make api-key                                  # prints a new sk-... key
+make api-key ARGS="--user=alice"              # store it under a name
+make api-key ARGS="--key=sk-abc --user=alice" # store a key you already have
 ```
+
+If you run the API outside Docker, `deno task api_key` does the same against whatever
+database your environment points at.
 
 Then either export it:
 
@@ -303,7 +306,7 @@ The flag is read in the process that runs the MCP code, so it goes where that pr
 | --------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `401-01`                          | Set `WHEREIS_API_KEY`, or point `WHEREIS_ENV_FILE` at the right `.env`                                 |
 | `401-02`                          | The key is invalid or was copied incorrectly                                                           |
-| `403-01`                          | The key is the restricted `eagle1` token; generate a full key with `deno task api_key`                 |
+| `403-01`                          | The key is the restricted `eagle1` token; generate a full key with `make api-key`                      |
 | `404-01`                          | The carrier has no data for this ID; verify it, or it may be older than the carrier's retention window |
 | `404-03`                          | `eg1` is push-only; it has no carrier history                                                          |
 | “SF Express requires phone_last4” | Pass the recipient's last four phone digits                                                            |
