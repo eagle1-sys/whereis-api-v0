@@ -278,12 +278,13 @@ For a shared HTTP server instead, use `transport: streamable-http`,
 | `WHEREIS_MCP_ENABLE_WRITE`   | `false`              | Enables `push_tracking_events`                                           |
 | `MCP_LOG_LEVEL`              | `info`               | `debug`, `info`, `warn`, or `error`; logs go to stderr                   |
 
-The write flag is set per environment:
+The flag is read in the process that runs the MCP code, so it goes where that process starts:
 
-| Environment           | How                                                                          |
-| --------------------- | ---------------------------------------------------------------------------- |
-| DEV (local container) | `WHEREIS_MCP_ENABLE_WRITE` in your local `docker-compose.yaml` (gitignored)   |
-| QA / PROD (Fly.io)    | `fly secrets set WHEREIS_MCP_ENABLE_WRITE=true -a <app>`; survives a redeploy |
+| Where the MCP server runs                | How                                                                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Inside the API container (DEV)           | `environment:` in the Compose file `make` picks by `DB_TYPE`: `docker-compose.yaml` for sqlite, `docker-compose-pg.yaml` for postgres |
+| QA / PROD (Fly.io, `/mcp` on the API)    | `fly secrets set WHEREIS_MCP_ENABLE_WRITE=true -a <app>`; survives a redeploy                          |
+| Standalone (`deno task mcp`, `mcp:http`) | In that process's environment or its `.env`. Compose and Fly settings never reach it                   |
 
 ## Security
 
