@@ -75,9 +75,12 @@ Point the host at `http://localhost:8037/mcp`. This is the shape Claude Code
 }
 ```
 
-VS Code uses the same object under a top-level `servers` key. Drop the `headers`
-line to stay anonymous. Claude Desktop's config file only takes servers it can
-spawn itself, so it cannot use this block.
+VS Code uses the same object under a top-level `servers` key. Leave out the
+`headers` line to stay anonymous.
+
+Claude Desktop works the same way: add `http://localhost:8037/mcp` as a remote MCP
+server. The URL is all it needs. Without an API key only the read tools are
+available.
 
 Each request is authenticated on its own:
 
