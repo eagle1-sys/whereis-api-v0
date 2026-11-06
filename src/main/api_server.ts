@@ -21,7 +21,7 @@ import { whereIsAPI, logger } from "../tools/logger.ts";
  */
 async function main(): Promise<void> {
     await initApp();
-    await mountMcpEndpoint(app);
+    mountMcpEndpoint(app);
 }
 
 // Start initialization once. `deno serve` accepts connections as soon as this
