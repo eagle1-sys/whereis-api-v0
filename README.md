@@ -38,8 +38,8 @@ Both share the same [standard status codes](metadata/status-codes.jsonc), and th
 ## API keys
 
 - `list_operators` and the latest status are public. No key needed.
-- Everything else needs one: `/v0/whereis/{id}` and the `track_shipment` tool.
-  Send it as `Authorization: Bearer <key>`.
+- Everything else needs one, including `/v0/whereis/{id}`, `track_shipment`,
+  and `POST /v0/push/{operator}`. Send it as `Authorization: Bearer <key>`.
 - A key only works on the server that made it. `api.eg1.io` and `api.eagl.io`
   issue their own.
 - In the local container, make one with `make api-key`.
@@ -155,8 +155,9 @@ The hosted endpoint is `https://api.eg1.io/mcp`. The `mcp/` directory exposes th
 Tools: `list_operators`, `get_latest_status`, and `track_shipment`, plus a
 `whereis://reference/status-codes` resource. The tool set is read-only by
 default. `push_tracking_events` is the one write tool: it appears only when
-`WHEREIS_MCP_ENABLE_WRITE=true`, and it pushes events for the `eg1` operator
-through `POST /v0/push/eg1`, a separate REST route unaffected by that flag.
+`WHEREIS_MCP_ENABLE_WRITE=true` and the request sends a key, and it pushes
+events for the `eg1` operator through `POST /v0/push/eg1`, a separate REST
+route unaffected by that flag.
 
 The API server also serves the endpoint at `/mcp` on its own port, so a running
 stack needs no extra process:
