@@ -145,7 +145,7 @@ const response = await fetch(url, {
 
 The read tools are production-ready; only the write tool is opt-in.
 
-The hosted endpoint is `https://api.eg1.io/mcp`. The `mcp/` directory exposes the same tracking API as [Model Context Protocol](https://modelcontextprotocol.io) tools, so AI hosts (Claude Desktop, VS Code, Cursor, DeepSeek Harness) can track shipments directly. Run it locally with `deno task mcp` (stdio) or `deno task mcp:http` (`http://127.0.0.1:8038/mcp`).
+The hosted endpoint is `https://api.eg1.io/mcp`. The `mcp/` directory exposes the same tracking API as [Model Context Protocol](https://modelcontextprotocol.io) tools, so AI hosts (Claude Desktop, VS Code, Cursor, DeepSeek Harness) can track shipments directly. The local container serves the same endpoint at `http://localhost:8037/mcp`.
 
 Tools: `list_operators`, `get_latest_status`, and `track_shipment`, plus a
 `whereis://reference/status-codes` resource. The tool set is read-only by
@@ -157,11 +157,9 @@ never offered the tool. It pushes events for the `eg1` operator through
 unaffected by that flag.
 
 ```bash
-# Put a full API key in .env (gitignored) or export it:
+# Create a key inside the container, then keep it in .env (gitignored) or export it:
+make api-key
 echo "WHEREIS_API_KEY=sk-..." >> .env
-
-deno task mcp        # stdio, for local MCP hosts
-deno task mcp:http   # Streamable HTTP on http://127.0.0.1:8038/mcp
 ```
 
 The API server also serves the endpoint at `/mcp` on its own port, so a running
@@ -177,9 +175,9 @@ curl -sS https://api.eg1.io/mcp \
 For a self-hosted stack, use `http://localhost:8037/mcp` in place of that URL.
 
 Requests without a key get the public tools; `Authorization: Bearer <key>` runs
-the tools as that key's owner. The server's own `WHEREIS_API_KEY` is never used
-for anonymous requests on this endpoint; it only seeds the local servers above.
-Set `MCP_ENABLED=false` to turn the endpoint off.
+the tools as that key's owner. The key set in the container is not used for
+endpoint requests; each request brings its own. Set `MCP_ENABLED=false` to turn
+the endpoint off.
 
 See [mcp/README.md](mcp/README.md) for client configuration, self-hosting, and
 security notes.
