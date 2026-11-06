@@ -49,12 +49,14 @@ jobs:
     concurrency: deploy-group
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # tags are needed by `git describe` below
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Set build variables
         id: build_vars
         run: |
-          echo "APP_VERSION=$(git describe --abbrev=0 --tags)" >> $GITHUB_OUTPUT
+          echo "APP_VERSION=$(git describe --abbrev=0 --tags || echo unknown)" >> $GITHUB_OUTPUT
           echo "APP_BUILD=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
           echo "APP_BUILD_DATE=$(date -u +"%Y-%m-%d")" >> $GITHUB_OUTPUT
           echo "Build info: $(git rev-parse --short HEAD) at $(date -u +"%Y-%m-%d")"
