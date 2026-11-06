@@ -37,7 +37,7 @@ export function isMcpEnabled(): boolean {
  * A configuration error disables the endpoint and leaves the REST API serving,
  * because a broken MCP config must not take the whole API down.
  */
-export async function mountMcpEndpoint(app: Hono): Promise<boolean> {
+export function mountMcpEndpoint(app: Hono): boolean {
   if (!isMcpEnabled()) {
     logger.info(
       `${whereIsAPI("startup")} MCP endpoint disabled by MCP_ENABLED.`,
@@ -47,8 +47,7 @@ export async function mountMcpEndpoint(app: Hono): Promise<boolean> {
 
   let config: McpConfig;
   try {
-    // "stdio" asks for transport-neutral config: the API owns host and port.
-    config = await loadConfig("stdio");
+    config = loadConfig();
   } catch (error) {
     logger.error(
       `${whereIsAPI("startup")} MCP endpoint not mounted: ${

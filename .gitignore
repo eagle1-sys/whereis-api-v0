@@ -2,7 +2,8 @@
 *.env
 whereis.env
 docker-compose.yaml
-fly.toml
+/docker-compose-pg.yaml
+/fly.toml*
 Dockerfile
 *.bak.*
 deno.lock

@@ -28,10 +28,10 @@ During COVID, we wanted to systematically track critical packages containing mas
 
 ## Two ways to use it
 
-| Surface    | Endpoint                 | API key                                                                  | Use it from                                       |
-| ---------- | ------------------------ | ------------------------------------------------------------------------ | ------------------------------------------------- |
-| REST API   | `https://api.eg1.io/v0`  | Bearer for full history; the latest status is public                     | Your code                                         |
-| Hosted MCP | `https://api.eg1.io/mcp` | none for `list_operators` / `get_latest_status`; Bearer for full history | Claude Desktop, VS Code, Cursor, DeepSeek Harness |
+| Surface    | Endpoint                 | API key                                                                  |
+| ---------- | ------------------------ | ------------------------------------------------------------------------ |
+| REST API   | `https://api.eg1.io/v0`  | Bearer for full history; the latest status is public                     |
+| Hosted MCP | `https://api.eg1.io/mcp` | none for `list_operators` / `get_latest_status`; Bearer for full history |
 
 Both share the same [standard status codes](metadata/status-codes.jsonc), and the MCP tools call the same `/v0` routes. The payload shape differs: the REST API returns `{entity, events}`, whereas `track_shipment` flattens it into a single object — shipment fields at the top level, `additional` fields hoisted into each event, and `eventCount` / `truncated` / `omittedEventCount` beside `events`. Both are open source and self-hostable: `make whereis` runs the API with `/mcp` mounted, using your own keys.
 
@@ -51,8 +51,6 @@ Point an MCP-capable host at the hosted server. No API key is needed for the pub
   }
 }
 ```
-
-> VS Code uses the same shape under a top-level `servers` key, and Cursor reads `mcpServers`. Claude Desktop adds remote servers through Settings → Connectors; `claude_desktop_config.json` is its local-server configuration path.
 
 Then ask "Where is fdx-888877776666?" and the host calls `get_latest_status`. Full history needs `Authorization: Bearer <key>` so the host can call `track_shipment`; `sfex-…` IDs also need the recipient's last four phone digits. See [mcp/README.md](mcp/README.md) for per-client setup.
 
@@ -145,7 +143,7 @@ const response = await fetch(url, {
 
 The read tools are production-ready; only the write tool is opt-in.
 
-The hosted endpoint is `https://api.eg1.io/mcp`. The `mcp/` directory exposes the same tracking API as [Model Context Protocol](https://modelcontextprotocol.io) tools, so AI hosts (Claude Desktop, VS Code, Cursor, DeepSeek Harness) can track shipments directly. Run it locally with `deno task mcp` (stdio) or `deno task mcp:http` (`http://127.0.0.1:8038/mcp`).
+The hosted endpoint is `https://api.eg1.io/mcp`. The `mcp/` directory exposes the same tracking API as [Model Context Protocol](https://modelcontextprotocol.io) tools, so AI hosts (Claude Desktop, VS Code, Cursor, DeepSeek Harness) can track shipments directly. The local container serves the same endpoint at `http://localhost:8037/mcp`.
 
 Tools: `list_operators`, `get_latest_status`, and `track_shipment`, plus a
 `whereis://reference/status-codes` resource. The tool set is read-only by
@@ -157,11 +155,8 @@ never offered the tool. It pushes events for the `eg1` operator through
 unaffected by that flag.
 
 ```bash
-# Put a full API key in .env (gitignored) or export it:
-echo "WHEREIS_API_KEY=sk-..." >> .env
-
-deno task mcp        # stdio, for local MCP hosts
-deno task mcp:http   # Streamable HTTP on http://127.0.0.1:8038/mcp
+# Create a key in the local container; hosted servers issue their own:
+make api-key
 ```
 
 The API server also serves the endpoint at `/mcp` on its own port, so a running
@@ -177,9 +172,9 @@ curl -sS https://api.eg1.io/mcp \
 For a self-hosted stack, use `http://localhost:8037/mcp` in place of that URL.
 
 Requests without a key get the public tools; `Authorization: Bearer <key>` runs
-the tools as that key's owner. The server's own `WHEREIS_API_KEY` is never used
-for anonymous requests on this endpoint; it only seeds the local servers above.
-Set `MCP_ENABLED=false` to turn the endpoint off.
+the tools as that key's owner. Send the key from the client — for the container
+that is a key `make api-key` made, and `api.eg1.io` / `api.eagl.io` need a key
+from the hosted server. Set `MCP_ENABLED=false` to turn the endpoint off.
 
 See [mcp/README.md](mcp/README.md) for client configuration, self-hosting, and
 security notes.
