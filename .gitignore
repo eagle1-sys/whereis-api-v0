@@ -3,6 +3,8 @@
 whereis.env
 docker-compose.yaml
 fly.toml
+fly.toml.sin
+fly.toml.sjc
 Dockerfile
 *.bak.*
 deno.lock
