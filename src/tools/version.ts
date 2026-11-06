@@ -7,21 +7,28 @@
  */
 import { logger, whereIsAPI } from "./logger.ts";
 
-function main(): void {
-  // Print the application version
+/** The one version banner: the startup log and this tool both use it. */
+export function versionBanner(): string {
   const appVersion = Deno.env.get("APP_VERSION") ?? "unknown";
   const appBuild = Deno.env.get("APP_BUILD") ?? "unknown";
   const appBuildDate = Deno.env.get("APP_BUILD_DATE") ?? "unknown";
 
-  console.log(`whereis-api ${appVersion}; build ${appBuild}, ${appBuildDate}`);
+  return `Whereis API ${appVersion}; build ${appBuild}, ${appBuildDate}`;
+}
+
+function main(): void {
+  // Print the application version
+  console.log(versionBanner());
   Deno.exit(0);
 }
 
-// Execute the main function and handle any uncaught errors
-try {
-  main();
-} catch (err) {
-  const message = err instanceof Error ? err.message : String(err);
-  logger.error(`${whereIsAPI("exception")} Failed to start tool: ${message}`);
-  Deno.exit(1);
+// Run only when this file is the entry point, so app.ts can import the banner
+if (import.meta.main) {
+  try {
+    main();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error(`${whereIsAPI("exception")} Failed to start tool: ${message}`);
+    Deno.exit(1);
+  }
 }
