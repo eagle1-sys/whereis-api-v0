@@ -60,13 +60,13 @@ rejected by `api.eg1.io` and `api.eagl.io`, which issue their own.
 
 ## Connect a host
 
-| Client                       | URL                         | How                                  |
-| ---------------------------- | --------------------------- | ------------------------------------ |
-| Claude Desktop               | `https://api.eg1.io/mcp`    | add it as a custom connector         |
-| Claude Code, Cursor, VS Code | `http://localhost:8037/mcp` | the client runs on your own machine  |
+Pick the URL by purpose:
 
-Claude Desktop connectors connect from Anthropic's cloud, so they cannot reach
-`localhost`, and its key must come from `api.eg1.io`.
+- **Normal use:** `https://api.eg1.io/mcp`. Any client can use it; in Claude
+  Desktop, add it as a custom connector.
+- **Testing local DEV:** `http://localhost:8037/mcp`, from a client on your own
+  machine (Claude Code, Cursor, VS Code). Claude Desktop connectors connect from
+  Anthropic's cloud, so they cannot reach it.
 
 This is the shape Claude Code (`.mcp.json`) and Cursor (`~/.cursor/mcp.json`) read:
 
