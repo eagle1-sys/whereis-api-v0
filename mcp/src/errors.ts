@@ -57,7 +57,7 @@ const HINTS: Record<string, string> = {
   "401-02":
     "The API key was rejected. Check that it was copied correctly.",
   "403-01":
-    "This API key is restricted to the `eg1` operator. Use a full key for FedEx or SF Express; on a self-hosted server, generate one with `deno task api_key` and set WHEREIS_API_KEY.",
+    "This API key is restricted to the `eg1` operator. Use a full key for FedEx or SF Express; in the local container, generate one with `make api-key` and set WHEREIS_API_KEY.",
   "404-01":
     "The carrier has no data for this tracking ID. Verify the number, or the shipment may be older than the carrier's retention window.",
   "404-02": "This operator does not support push.",

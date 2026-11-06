@@ -46,7 +46,7 @@ uses:
 ```bash
 make api-key                                  # prints a new sk-... key
 make api-key ARGS="--user=alice"              # store it under a name
-make api-key ARGS="--key=sk-abc --user=alice" # store a key you already have
+make api-key ARGS="--key=sk-your-key --user=alice" # store a key you already have
 ```
 
 Then either export it:
@@ -67,7 +67,8 @@ echo "WHEREIS_API_KEY=sk-..." >> .env
 
 ## Connect a host
 
-Point the host at `http://localhost:8037/mcp`:
+Point the host at `http://localhost:8037/mcp`. This is the shape Claude Code
+(`.mcp.json`) and Cursor (`~/.cursor/mcp.json`) read:
 
 ```json
 {
@@ -81,8 +82,10 @@ Point the host at `http://localhost:8037/mcp`:
 }
 ```
 
-VS Code uses the same object under a top-level `servers` key. Claude Desktop adds
-it through Settings → Connectors. Drop the `headers` line to stay anonymous.
+VS Code uses the same object under a top-level `servers` key. Drop the `headers`
+line to stay anonymous. Claude Desktop's config file only takes servers it can
+spawn itself, so it cannot use this block; add the URL there through its own
+remote-server dialog instead.
 
 Each request is authenticated on its own:
 
@@ -116,16 +119,19 @@ only to the `eg1` operator and ignores duplicate events.
 
 Set these in the Compose file's `environment:` block:
 
-| Variable                     | Default                          | Meaning                                          |
-| ---------------------------- | -------------------------------- | ------------------------------------------------ |
-| `WHEREIS_API_URL`            | `http://localhost:8037`          | origin the tools call                            |
-| `WHEREIS_MCP_ENABLE_WRITE`   | `false`                          | enables `push_tracking_events`                   |
-| `MCP_ENABLED`                | `true`                           | `false` leaves `/mcp` unmounted                  |
-| `WHEREIS_TIMEOUT_MS`         | `30000`                          | normal upstream timeout                          |
-| `WHEREIS_REFRESH_TIMEOUT_MS` | `90000`                          | timeout when `refresh=true`                      |
-| `WHEREIS_MAX_EVENTS`         | `500`                            | timeline truncation cap (oldest events omitted)  |
+| Variable                     | Default              | Meaning                                          |
+| ---------------------------- | -------------------- | ------------------------------------------------ |
+| `WHEREIS_API_URL`            | `https://api.eg1.io` | origin the tools call                            |
+| `WHEREIS_MCP_ENABLE_WRITE`   | `false`              | enables `push_tracking_events`                   |
+| `MCP_ENABLED`                | `true`               | `false` leaves `/mcp` unmounted                  |
+| `WHEREIS_TIMEOUT_MS`         | `30000`              | normal upstream timeout                          |
+| `WHEREIS_REFRESH_TIMEOUT_MS` | `90000`              | timeout when `refresh=true`                      |
+| `WHEREIS_MAX_EVENTS`         | `500`                | timeline truncation cap (oldest events omitted)  |
 
-Clients need only the URL; the key travels in the `Authorization` header.
+The Compose samples point `WHEREIS_API_URL` at the container itself
+(`http://localhost:8037`, or `http://whereis-api-v0:8037` with postgres), so the
+tools call the local API instead of the hosted one. Clients need only the URL;
+the key travels in the `Authorization` header.
 
 ## Security
 
@@ -142,7 +148,7 @@ Clients need only the URL; the key travels in the `Authorization` header.
 | --------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `401-01`                          | Send `Authorization: Bearer <key>`; `track_shipment` needs a key                                       |
 | `401-02`                          | The key is invalid or was copied incorrectly                                                           |
-| `403-01`                          | The key is the restricted `eagle1` token; generate a full key with `make api-key`                      |
+| `403-01`                          | The key is the restricted `eagle1` token, or a key from a different server. Use a full key from the server you call: `make api-key` for the local container; `api.eg1.io` and `api.eagl.io` issue their own |
 | `404-01`                          | The carrier has no data for this ID; verify it, or it may be older than the carrier's retention window |
 | `404-03`                          | `eg1` is push-only; it has no carrier history                                                          |
 | “SF Express requires phone_last4” | Pass the recipient's last four phone digits                                                            |

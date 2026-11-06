@@ -72,7 +72,7 @@ interface RequestOptions {
 }
 
 const API_KEY_HINT =
-  "Send `Authorization: Bearer <key>` from the MCP client to use this tool. For a self-hosted server, generate a full key with `deno task api_key` and set WHEREIS_API_KEY. The seeded `eagle1` token is restricted to the eg1 operator.";
+  "Send `Authorization: Bearer <key>` from the MCP client to use this tool. In the local container, generate a full key with `make api-key` and set WHEREIS_API_KEY. The seeded `eagle1` token is restricted to the eg1 operator.";
 
 const defaultSleep: SleepLike = (milliseconds) =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
