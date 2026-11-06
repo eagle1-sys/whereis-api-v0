@@ -278,6 +278,13 @@ For a shared HTTP server instead, use `transport: streamable-http`,
 | `WHEREIS_MCP_ENABLE_WRITE`   | `false`              | Enables `push_tracking_events`                                           |
 | `MCP_LOG_LEVEL`              | `info`               | `debug`, `info`, `warn`, or `error`; logs go to stderr                   |
 
+The write flag is set per environment:
+
+| Environment           | How                                                                          |
+| --------------------- | ---------------------------------------------------------------------------- |
+| DEV (local container) | `WHEREIS_MCP_ENABLE_WRITE` in your local `docker-compose.yaml` (gitignored)   |
+| QA / PROD (Fly.io)    | `fly secrets set WHEREIS_MCP_ENABLE_WRITE=true -a <app>`; survives a redeploy |
+
 ## Security
 
 - The API key is never a tool argument and is never logged. It is sent only to
