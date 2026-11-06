@@ -52,7 +52,7 @@ Point an MCP-capable host at the hosted server. No API key is needed for the pub
 }
 ```
 
-> VS Code uses the same shape under a top-level `servers` key, and Cursor reads `mcpServers`. Claude Desktop just needs the URL added as a remote server. Without an API key, only the read tools work.
+> VS Code uses the same shape under a top-level `servers` key, and Cursor reads `mcpServers`. Claude Desktop: add `https://api.eg1.io/mcp` as a custom connector. Without an API key, `list_operators` and `get_latest_status` work; `track_shipment` needs a key.
 
 Then ask "Where is fdx-888877776666?" and the host calls `get_latest_status`. Full history needs `Authorization: Bearer <key>` so the host can call `track_shipment`; `sfex-…` IDs also need the recipient's last four phone digits. See [mcp/README.md](mcp/README.md) for per-client setup.
 

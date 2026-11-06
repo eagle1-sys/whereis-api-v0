@@ -60,8 +60,15 @@ rejected by `api.eg1.io` and `api.eagl.io`, which issue their own.
 
 ## Connect a host
 
-Point the host at `http://localhost:8037/mcp`. This is the shape Claude Code
-(`.mcp.json`) and Cursor (`~/.cursor/mcp.json`) read:
+| Client                       | URL                         | How                                  |
+| ---------------------------- | --------------------------- | ------------------------------------ |
+| Claude Desktop               | `https://api.eg1.io/mcp`    | add it as a custom connector         |
+| Claude Code, Cursor, VS Code | `http://localhost:8037/mcp` | the client runs on your own machine  |
+
+Claude Desktop connectors connect from Anthropic's cloud, so they cannot reach
+`localhost`, and its key must come from `api.eg1.io`.
+
+This is the shape Claude Code (`.mcp.json`) and Cursor (`~/.cursor/mcp.json`) read:
 
 ```json
 {
@@ -78,9 +85,8 @@ Point the host at `http://localhost:8037/mcp`. This is the shape Claude Code
 VS Code uses the same object under a top-level `servers` key. Leave out the
 `headers` line to stay anonymous.
 
-Claude Desktop works the same way: add `http://localhost:8037/mcp` as a remote MCP
-server. The URL is all it needs. Without an API key only the read tools are
-available.
+Without an API key, `list_operators` and `get_latest_status` work;
+`track_shipment` needs a key.
 
 Each request is authenticated on its own:
 

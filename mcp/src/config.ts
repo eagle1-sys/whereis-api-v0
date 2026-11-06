@@ -88,7 +88,7 @@ function normalizeApiUrl(raw: string): string {
   if (url.username.length > 0 || url.password.length > 0) {
     throw configError(
       "WHEREIS_API_URL must not contain embedded credentials.",
-      "Keep the API key in WHEREIS_API_KEY, not in the URL.",
+      "Send the API key as `Authorization: Bearer <key>`, not in the URL.",
     );
   }
   if (url.search.length > 0 || url.hash.length > 0) {
