@@ -35,14 +35,13 @@ During COVID, we wanted to systematically track critical packages containing mas
 
 Both share the same [standard status codes](metadata/status-codes.jsonc), and the MCP tools call the same `/v0` routes. The payload shape differs: the REST API returns `{entity, events}`, whereas `track_shipment` flattens it into a single object — shipment fields at the top level, `additional` fields hoisted into each event, and `eventCount` / `truncated` / `omittedEventCount` beside `events`. Both are open source and self-hostable: `make whereis` runs the API with `/mcp` mounted.
 
-## API keys
+## Whereis API keys
 
-- `list_operators` and the latest status are public. No key needed.
+- `list_operators` and `get_latest_status` are public. No key needed.
 - Everything else needs one, including `/v0/whereis/{id}`, `track_shipment`,
   and `POST /v0/push/{operator}`. Send it as `Authorization: Bearer <key>`.
-- A key only works on the server that made it. `api.eg1.io` and `api.eagl.io`
-  issue their own.
-- In the local container, make one with `make api-key`.
+- For the local container deployment, make one with `make api-key`.
+- A key only works on the server that made it: `api.eg1.io` issues its own.
 
 ## Examples
 
