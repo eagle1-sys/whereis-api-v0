@@ -52,7 +52,7 @@ Then send it from the client with every request, as `Authorization: Bearer sk-..
 The container's own environment does not need it.
 
 A key is only valid on the server that made it: a key from the local container is
-rejected by `api.eg1.io` and `api.eagl.io`, which issue their own.
+rejected by `api.eg1.io`, which issues its own.
 
 > The seeded `eagle1` token is intentionally restricted: it can only access
 > `eg1` and cannot push. Using it for `fdx`/`sfex` returns `403-01`. Generate a
@@ -148,7 +148,7 @@ the key travels in the `Authorization` header.
 | Symptom                           | Fix                                                                                                    |
 | --------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `401-01`                          | Send `Authorization: Bearer <key>`; `track_shipment` needs a key                                       |
-| `401-02`                          | The key is invalid, or it was made on a different server. The local container, `api.eg1.io` and `api.eagl.io` each have their own keys |
+| `401-02`                          | The key is invalid, or it was made on a different server. The local container and `api.eg1.io` each have their own keys |
 | `403-01`                          | The key is the restricted `eagle1` token; make a full one with `make api-key`                          |
 | `404-01`                          | The carrier has no data for this ID; verify it, or it may be older than the carrier's retention window |
 | `404-03`                          | `eg1` is push-only; it has no carrier history                                                          |

@@ -37,7 +37,8 @@ Both share the same [standard status codes](metadata/status-codes.jsonc), and th
 
 ## Whereis API keys
 
-- `list_operators` and `get_latest_status` are public. No key needed.
+- `/v0/operators`, `/v0/status/{id}`, and their MCP tools `list_operators`
+  and `get_latest_status` are public. No key needed.
 - Everything else needs one, including `/v0/whereis/{id}`, `track_shipment`,
   and `POST /v0/push/{operator}`. Send it as `Authorization: Bearer <key>`.
 - For the local container deployment, make one with `make api-key`.
