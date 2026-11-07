@@ -65,8 +65,6 @@ Then ask "Where is fdx-888877776666?" and the host calls `get_latest_status`. `s
 
 ### Track locations over time
 
-#### cURL
-
 IDs are `<operator>-<tracking number>`. SF Express also needs the recipient's last
 four phone digits.
 
@@ -112,7 +110,6 @@ curl "https://api.eg1.io/v0/whereis/sfex-SF1234567890123?phonenum=1234" -H "Auth
 
 ### The latest status and location
 
-#### cURL
 ```shell
 curl https://api.eg1.io/v0/status/fdx-888877776666
 ```
