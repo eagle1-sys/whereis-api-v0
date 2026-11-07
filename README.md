@@ -72,17 +72,6 @@ curl https://api.eg1.io/v0/whereis/{{trackingID}} -H "Authorization: Bearer YOUR
 
 > ***{{trackingID}}*** uses the structure `operatorCode-trackingNum`. Example: a FedEx trackingID is `fdx-888877776666`.
 
-#### TypeScript
-```TypeScript
-const url = "https://api.eg1.io/v0/whereis/{{trackingID}}";
-const response = await fetch(url, {
-  method: "GET",
-  headers: {
-    Authorization: "Bearer YOUR-TOKEN",
-  },
-});
-```
-
 #### Response (consistent format for all logistics providers)
 ```JSON
 {
@@ -125,13 +114,6 @@ const response = await fetch(url, {
 curl https://api.eg1.io/v0/status/{{trackingID}}
 ```
 
-#### TypeScript
-```TypeScript
-const url = 'https://api.eg1.io/v0/status/{{trackingID}}';
-const response = await fetch(url, {
-  method: "GET"
-});
-```
 
 #### Response
 ```json
