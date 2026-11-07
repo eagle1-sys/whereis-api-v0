@@ -66,21 +66,13 @@ Then ask "Where is fdx-888877776666?" and the host calls `get_latest_status`. `s
 ### Track locations over time
 
 #### cURL
+
+IDs are `<operator>-<tracking number>`. SF Express also needs the recipient's last
+four phone digits.
+
 ```shell
-curl https://api.eg1.io/v0/whereis/{{trackingID}} -H "Authorization: Bearer YOUR-TOKEN"
-```
-
-> ***{{trackingID}}*** uses the structure `operatorCode-trackingNum`. Example: a FedEx trackingID is `fdx-888877776666`.
-
-#### TypeScript
-```TypeScript
-const url = "https://api.eg1.io/v0/whereis/{{trackingID}}";
-const response = await fetch(url, {
-  method: "GET",
-  headers: {
-    Authorization: "Bearer YOUR-TOKEN",
-  },
-});
+curl https://api.eg1.io/v0/whereis/fdx-888877776666 -H "Authorization: Bearer YOUR-TOKEN"
+curl "https://api.eg1.io/v0/whereis/sfex-SF1234567890123?phonenum=1234" -H "Authorization: Bearer YOUR-TOKEN"
 ```
 
 #### Response (consistent format for all logistics providers)
@@ -122,15 +114,7 @@ const response = await fetch(url, {
 
 #### cURL
 ```shell
-curl https://api.eg1.io/v0/status/{{trackingID}}
-```
-
-#### TypeScript
-```TypeScript
-const url = 'https://api.eg1.io/v0/status/{{trackingID}}';
-const response = await fetch(url, {
-  method: "GET"
-});
+curl https://api.eg1.io/v0/status/fdx-888877776666
 ```
 
 #### Response
