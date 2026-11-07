@@ -76,12 +76,12 @@ const testData = [
 
 /**
  * True when the carrier had nothing for this waybill, so the case cannot run.
- * The API answers 404-01, or 500 when the carrier pull times out first.
+ * A timeout or any other server error is not covered: those should still fail.
  */
 async function isMissingSourceData(response: Response): Promise<boolean> {
-  if (response.status !== 404 && response.status !== 500) return false;
+  if (response.status !== 404) return false;
   const body = await response.clone().json().catch(() => ({}));
-  return body["error"] === "404-01" || body["code"] === "500";
+  return body["error"] === "404-01";
 }
 
 export function whereisApiTest() {
