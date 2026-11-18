@@ -413,8 +413,8 @@ export class Sfex implements OperatorModule {
    *
    * The route is re-read every few minutes, so the rules only fire once the data
    * needed for the answer is actually there. On a cross-border route the base is
-   * the first arrival scan after the international leg - while the shipment is
-   * still in transit, nothing is generated. On a domestic route the older
+   * the first arrival scan after the international leg, or the first event after
+   * the leg when that scan is missing or late. On a domestic route the older
    * in-transit heuristic still applies.
    *
    * @param entity - The Entity object containing the events to be searched.
@@ -453,8 +453,8 @@ export class Sfex implements OperatorModule {
    *
    * SF sometimes logs the import release before that arrival scan, and a scan
    * can also be reported late. In both cases the earliest event after the leg is
-   * used instead, but only once the shipment is delivered: waiting until then
-   * keeps the anchor from moving under readers on the next pull.
+   * used instead, so the arrival is reported while the shipment is still moving;
+   * a scan reported later refines the anchor.
    */
   private static get3300BaseEventAtCountryEntry(entity: Entity): Event | undefined {
     let importCustoms = -1;
@@ -522,11 +522,9 @@ export class Sfex implements OperatorModule {
       }
     }
 
-    // No usable scan yet. The fallback is only taken once the shipment is
-    // delivered, so a scan that arrives later cannot move the anchor.
-    if (!entity.events.some((event) => event.status === 3500)) {
-      return undefined;
-    }
+    // No usable scan yet: anchor on the first event after the leg, so the
+    // arrival is reported while the shipment is still moving instead of only
+    // when it is delivered. A scan reported later refines the anchor.
     return firstAfterLeg && timeOf(firstAfterLeg) < releaseTime
       ? firstAfterLeg
       : undefined;
