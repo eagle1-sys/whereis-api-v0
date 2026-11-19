@@ -391,6 +391,20 @@ export function sfexMappingTest() {
     assertEquals(Sfex.get3300BaseEvent(entity), customsStart);
   });
 
+  Deno.test("SFEx: an origin departure after the flight does not anchor the 3300", () => {
+    // The fallback keeps the arrival in the destination country: a 三藩市
+    // departure logged after the flight must not stand in for it.
+    const customsStart = event(3350, "2026-11-14T07:59:08+08:00", "广州市", "清关进行中,请耐心等候");
+    const entity = entityWith(
+      event(3250, "2026-11-11T18:45:00+08:00", "三藩市", "航班已起飞"),
+      event(3004, "2026-11-11T20:00:00+08:00", "三藩市", "离开 旧金山营业部"),
+      customsStart,
+    );
+
+    assertEquals(Sfex.get3300BaseEvent(entity), customsStart);
+    assert(Sfex.get3300BaseEvent(entity)?.where !== "三藩市");
+  });
+
   Deno.test("SFEx: a direct flight without a leg marker gets no 3300", () => {
     // Neither a 3250 nor a transit event: the country arrival cannot be located,
     // so no 3300 is invented in Hangzhou.

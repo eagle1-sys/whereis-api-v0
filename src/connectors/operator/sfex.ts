@@ -452,9 +452,9 @@ export class Sfex implements OperatorModule {
    * customs city.
    *
    * SF sometimes logs the import release before that arrival scan, and a scan
-   * can also be reported late. In both cases the earliest event after the leg is
-   * used instead, so the arrival is reported while the shipment is still moving;
-   * a scan reported later refines the anchor.
+   * can also be reported late. In both cases the import customs event is used
+   * instead, so the arrival is reported while the shipment is still moving; a
+   * scan reported later refines the anchor.
    */
   private static get3300BaseEventAtCountryEntry(entity: Entity): Event | undefined {
     let importCustoms = -1;
@@ -501,13 +501,11 @@ export class Sfex implements OperatorModule {
       event?.when ? new Date(event.when).getTime() : Infinity;
     const customsWhere = entity.events[importCustoms].where;
 
-    let firstAfterLeg: Event | undefined;
     for (let i = legEnd + 1; i < segmentEnd; i++) {
       const event = entity.events[i];
       if (Sfex.isTransitRegion(event.where ?? "")) {
         continue;
       }
-      firstAfterLeg ??= event;
 
       if (event.status !== 3002) {
         continue;
@@ -522,12 +520,11 @@ export class Sfex implements OperatorModule {
       }
     }
 
-    // No usable scan yet: anchor on the first event after the leg, so the
-    // arrival is reported while the shipment is still moving instead of only
-    // when it is delivered. A scan reported later refines the anchor.
-    return firstAfterLeg && timeOf(firstAfterLeg) < releaseTime
-      ? firstAfterLeg
-      : undefined;
+    // No usable scan yet: anchor on the import customs event, which is always in
+    // the destination country, so an origin scan after the leg cannot stand in
+    // for the arrival. A scan reported later refines the anchor.
+    const customsStart = entity.events[importCustoms];
+    return timeOf(customsStart) < releaseTime ? customsStart : undefined;
   }
 
   /**
