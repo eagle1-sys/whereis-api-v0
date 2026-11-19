@@ -477,7 +477,7 @@ export function sfexMappingTest() {
     assertEquals(Sfex.isMissing3300(atCustoms), true);
     assertEquals(Sfex.get3300BaseEvent(atCustoms), customsStart);
 
-    // Pull 3: the arrival scan shows up and refines the anchor.
+    // Pull 3: the arrival scan shows up and becomes the anchor.
     const arrivalAtPort = event(3002, "2026-10-21T14:59:19+08:00", "广州市", "快件到达 【广州机场关务组】");
     const arrived = entityWith(...atCustoms.events, arrivalAtPort);
     assertEquals(Sfex.isMissing3300(arrived), true);
@@ -507,7 +507,7 @@ export function sfexMappingTest() {
     ])), portScan);
   });
 
-  Deno.test("SFEx: no early anchor when the data is interleaved", () => {
+  Deno.test("SFEx: interleaved data keeps the anchor in the destination country", () => {
     // D: no scan at the post and no departure after customs; the Chengdu arrival
     // must never be taken for the landing, even while no release is known yet.
     const lateData = assertStableAcrossPulls([

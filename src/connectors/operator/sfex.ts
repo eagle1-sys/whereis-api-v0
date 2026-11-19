@@ -411,10 +411,10 @@ export class Sfex implements OperatorModule {
   /**
    * Finds the base event for generating a supplementary 3300 status event (Arrived At Destination).
    *
-   * The route is re-read every few minutes, so the rules only fire once the data
-   * needed for the answer is actually there. On a cross-border route the base is
-   * the first arrival scan after the international leg, or the first event after
-   * the leg when that scan is missing or late. On a domestic route the older
+   * The route is re-read every few minutes, so the rules use the best data so
+   * far: a later pull can refine the answer. On a cross-border route the base is
+   * the first arrival scan after the international leg, or the import customs
+   * event when that scan is missing or late. On a domestic route the older
    * in-transit heuristic still applies.
    *
    * @param entity - The Entity object containing the events to be searched.
@@ -522,7 +522,7 @@ export class Sfex implements OperatorModule {
 
     // No usable scan yet: anchor on the import customs event, which is always in
     // the destination country, so an origin scan after the leg cannot stand in
-    // for the arrival. A scan reported later refines the anchor.
+    // for the arrival.
     const customsStart = entity.events[importCustoms];
     return timeOf(customsStart) < releaseTime ? customsStart : undefined;
   }
